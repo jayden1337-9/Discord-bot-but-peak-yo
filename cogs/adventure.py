@@ -100,9 +100,24 @@ BOSS_DIMENSIONS = {
  "dio":"stone_ocean","pucci":"stone_ocean","diavolo":"stone_ocean","kira":"stone_ocean","dio_vampire":"stone_ocean",
  "meruem":"hunter_world","zeref":"fairy_tail","anti_spiral":"spiral_nexus","asta_devil":"celestial_plane","eren_founder":"infinity_void","rimuru_demon_lord":"tempest",
 }
+CHEST_TIERS = {
+ "common":{"name":"Common Chest","icon":"📦","color":0x9AA4B2,"gold":(50,180),"gems":(0,0),"rolls":2},
+ "rare":{"name":"Rare Chest","icon":"💜","color":0x9B72CF,"gold":(180,550),"gems":(0,2),"rolls":3},
+ "diamond":{"name":"Diamond Chest","icon":"💎","color":0x55C7E8,"gold":(500,1500),"gems":(1,5),"rolls":3},
+ "ruby":{"name":"Ruby Chest","icon":"❤️","color":0xE65B75,"gold":(1200,3500),"gems":(3,10),"rolls":4},
+ "mythic":{"name":"Mythic Chest","icon":"🌌","color":0xC28BFF,"gold":(3000,10000),"gems":(8,25),"rolls":5},
+}
+CHEST_LOOT = {
+ "common":["cursed_ash","soul_fragment","devil_fruit_shard","chakra_crystal","healing_potion","basic_potion"],
+ "rare":["void_ore","starsteel","dragon_scale","spirit_silk","ether_core","battle_tonic","focus_elixir"],
+ "diamond":["ancient_core","awakening_crystal","celestial_dust","dimension_key","zanpakuto_core","oni_horn","dimensional_eye"],
+ "ruby":["rift_crystal","phoenix_ash","abyssal_pearl","ten_tails_core","spiral_core","dimensional_eye"],
+ "mythic":["mythic_token","phoenix_feather","dimensional_eye","spiral_core","abyssal_pearl","ten_tails_core"],
+}
+for _chest_key,_chest_data in CHEST_TIERS.items():
+ ITEMS[f"{_chest_key}_chest"]=_chest_data["name"]
 for _boss_key,_boss_data in BOSSES.items():
- _chest_key=f"boss_chest_{_boss_key}"
- ITEMS[_chest_key]=f"{_boss_data[0]} Chest"
+ ITEMS[f"boss_chest_{_boss_key}"]=f"{_boss_data[0]} Chest"
 
 BOSS_RARE_DROPS = {
  "gojo":[("six_eyes",0.025),("limitless_core",0.12),("hollow_purple_shard",0.08)],
@@ -112,7 +127,21 @@ BOSS_RARE_DROPS = {
 }
 JJK_BOSSES = {"mahito","jogo","hanami","toji","maki","jjk_sukuna","jjk_gojo","jjk_mahito","low_rank_curse"}
 
+def boss_chest_weights(boss_key):
+ boss=BOSSES[boss_key]
+ world=BOSS_DIMENSIONS.get(boss_key,"earth")
+ effective_hp=int(boss[1]*DIMENSIONS.get(world,{}).get("hp_mult",1))
+ if effective_hp<=1000: return (90,9,0.9,0.09,0.01)
+ if effective_hp<=10000: return (75,19,5,0.9,0.1)
+ if effective_hp<=1000000: return (55,28,12,4,1)
+ if effective_hp<=1000000000: return (35,32,20,10,3)
+ return (20,30,25,17,8)
+
+def roll_boss_chest(boss_key):
+ return random.choices(tuple(CHEST_TIERS),weights=boss_chest_weights(boss_key),k=1)[0]
+
 ITEM_ICONS = {
+ "common_chest":"📦","rare_chest":"💜","diamond_chest":"💎","ruby_chest":"❤️","mythic_chest":"🌌",
  "six_eyes":"👁️","cursed_fingers":"☝️","black_flash_residue":"⚡","cursed_ash":"🌑","soul_fragment":"👻",
  "limitless_core":"🔷","hollow_purple_shard":"🟣","blue_orb":"🔵","red_orb":"🔴","sukuna_relic":"👹",
  "malevolent_essence":"⛩️","shrine_fragment":"🩸","king_of_curses_seal":"👑","transfigured_soul":"🧬",
@@ -825,10 +854,10 @@ class Adventure(commands.Cog):
       for item,limits in b[4].items():
        amount=random.randint(*limits)*swarm_multiplier
        self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
-     chest_key=f"boss_chest_{r['boss']}"
+     chest_tier=roll_boss_chest(r["boss"]); chest_key=f"{chest_tier}_chest"
      if symbolic_swarm:
       sr=q["symbolic_rewards"]; sr["inventory"][chest_key]=sr["inventory"].get(chest_key,0)+1
-      got.append(f"{ITEM_ICONS.get(chest_key,'🎁')} {ITEMS[chest_key]} x{symbolic_quantity(1)}")
+      got.append(f"{CHEST_TIERS[chest_tier]['icon']} {CHEST_TIERS[chest_tier]['name']} x{symbolic_quantity(1)}")
       gold_gain=max(30,b[1]//8)
       q["gold"]=q.get("gold",0)+gold_gain
       got.append(f"🪙 {gold_gain:,} Gold")
@@ -838,7 +867,7 @@ class Adventure(commands.Cog):
         got.append(f"{ITEM_ICONS.get(rare_key,'📦')} {ITEMS.get(rare_key,rare_key)} x{symbolic_quantity(1)}")
      else:
       self.item(q,chest_key,swarm_multiplier)
-      got.append(f"{ITEM_ICONS.get(chest_key,'🎁')} {ITEMS[chest_key]} x{display_number(swarm_multiplier)}")
+      got.append(f"{CHEST_TIERS[chest_tier]['icon']} {CHEST_TIERS[chest_tier]['name']} x{display_number(swarm_multiplier)}")
       gold_gain=max(30,b[1]//8)*swarm_multiplier
       q["gold"]=q.get("gold",0)+gold_gain
       got.append(f"🪙 {display_number(gold_gain)} Gold")
@@ -1044,32 +1073,38 @@ class Adventure(commands.Cog):
 
  @commands.group(name="chest",invoke_without_command=True)
  async def chest(self,ctx):
-  await ctx.reply(embed=self.embed("BOSS CHEST VAULT","Every boss clear awards that boss's own chest. Open one with ,chest open <boss_key>. Chest contents stay tied to the boss that dropped it."),mention_author=False)
+  p=self.p(ctx.author.id); lines=["Open a chest with ,chest open <common|rare|diamond|ruby|mythic>."]
+  for key,data in CHEST_TIERS.items():
+   amount=p.get("inventory",{}).get(f"{key}_chest",0)
+   symbolic=p.get("symbolic_rewards",{}).get("inventory",{}).get(f"{key}_chest",0)
+   lines.append(f"{data['icon']} **{data['name']}** x{display_number(amount)}"+(" + symbolic stash" if symbolic else ""))
+  await ctx.reply(embed=self.embed("CHEST VAULT","\\n".join(lines)),mention_author=False)
 
  @chest.command(name="open")
- async def chest_open(self,ctx,*,boss_key):
-  key=boss_key.lower().strip().replace(" ","_")
-  if key not in BOSSES:
-   await ctx.reply(embed=self.embed("UNKNOWN CHEST","Use ,bosses to find a boss key."),mention_author=False); return
-  p=self.p(ctx.author.id); chest_key=f"boss_chest_{key}"
+ async def chest_open(self,ctx,*,tier):
+  key=tier.lower().strip().replace(" ","_").replace("_chest","")
+  if key not in CHEST_TIERS:
+   await ctx.reply(embed=self.embed("UNKNOWN CHEST","Choose Common, Rare, Diamond, Ruby or Mythic."),mention_author=False); return
+  p=self.p(ctx.author.id); chest_key=f"{key}_chest"
   if not self.has_item(p,chest_key,1):
-   await ctx.reply(embed=self.embed("CHEST MISSING",f"You need {ITEMS[chest_key]}. Defeat {BOSSES[key][0]} to earn its chest."),mention_author=False); return
+   await ctx.reply(embed=self.embed("CHEST MISSING",f"You do not have a {CHEST_TIERS[key]['name']}."),mention_author=False); return
   self.consume_item(p,chest_key,1)
-  boss=BOSSES[key]; rewards=[]
-  pool=list(boss[4].items())
-  if pool:
-   for _ in range(min(3,len(pool))):
-    item,limits=random.choice(pool); amount=random.randint(*limits)
-    self.item(p,item,amount); rewards.append(f"{ITEM_ICONS.get(item,'📦')} {ITEMS.get(item,item)} x{amount}")
-  for item,chance in BOSS_RARE_DROPS.get(key,[]):
-   if random.random()<chance:
-    self.item(p,item,1); rewards.append(f"{ITEM_ICONS.get(item,'📦')} {ITEMS.get(item,item)} x1")
-  gold=max(50,boss[1]//4); p["gold"]=p.get("gold",0)+gold
+  data=CHEST_TIERS[key]; rewards=[]
+  pool=[item for item in CHEST_LOOT[key] if item in ITEMS]
+  for _ in range(data["rolls"]):
+   item=random.choice(pool)
+   amount=1 if key=="mythic" and item in {"mythic_token","phoenix_feather"} else random.randint(1,3 if key in {"common","rare"} else 5)
+   self.item(p,item,amount); rewards.append(f"{ITEM_ICONS.get(item,'📦')} {ITEMS.get(item,item)} x{amount}")
+  gold=random.randint(*data["gold"]); p["gold"]=p.get("gold",0)+gold
   rewards.append(f"🪙 {gold:,} Gold")
-  if random.random()<0.20:
-   gems=random.randint(1,3); p["gems"]=p.get("gems",0)+gems; rewards.append(f"💎 {gems} Gems")
+  low_gem,high_gem=data["gems"]
+  gem_chance={"rare":0.10,"diamond":0.35,"ruby":0.65,"mythic":1.0}.get(key,0)
+  if high_gem and random.random()<gem_chance:
+   gems=random.randint(max(1,low_gem),high_gem); p["gems"]=p.get("gems",0)+gems
+   rewards.append(f"💎 {gems} Gems")
   self.flush()
-  await ctx.reply(embed=self.embed(f"🎁 {boss[0].upper()} CHEST OPENED","\\n".join(rewards)),mention_author=False)
+  embed=self.embed(f"{data['icon']} {data['name'].upper()} OPENED","\\n".join(rewards),data["color"])
+  await ctx.reply(embed=embed,mention_author=False)
 
  @commands.command(name="wallet",aliases=["balance","bal"])
  async def wallet(self,ctx):
