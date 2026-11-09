@@ -1071,9 +1071,48 @@ class Adventure(commands.Cog):
   p["active_dimension"]=key; self.flush()
   await ctx.reply(embed=self.embed("DIMENSION ENTERED",f"You entered {d['name']}. Damage affinity: +{int((d['bonus']-1)*100)}%."),mention_author=False)
 
+ async def open_chest_tiers(self,ctx,tier):
+  p=self.p(ctx.author.id)
+  key=tier.lower().strip().replace(" ","_").replace("_chest","")
+  if key!="all" and key not in CHEST_TIERS:
+   await ctx.reply(embed=self.embed("UNKNOWN CHEST","Choose Common, Rare, Diamond, Ruby, Mythic or All."),mention_author=False); return
+  selected=list(CHEST_TIERS) if key=="all" else [key]
+  counts={k:int(p.get("inventory",{}).get(f"{k}_chest",0)) for k in selected}
+  counts={k:n for k,n in counts.items() if n>0}
+  if not counts:
+   await ctx.reply(embed=self.embed("NO CHESTS","You do not have any matching chests to open."),mention_author=False); return
+  loot_totals={}; opened={}; total_gold=0; total_gems=0
+  for chest_tier,count in counts.items():
+   data=CHEST_TIERS[chest_tier]; chest_key=f"{chest_tier}_chest"
+   self.consume_item(p,chest_key,count); opened[chest_tier]=count
+   pool=[item for item in CHEST_LOOT[chest_tier] if item in ITEMS]
+   for _ in range(count):
+    for _roll in range(data["rolls"]):
+     item=random.choice(pool)
+     amount=1 if chest_tier=="mythic" and item in {"mythic_token","phoenix_feather"} else random.randint(1,3 if chest_tier in {"common","rare"} else 5)
+     loot_totals[item]=loot_totals.get(item,0)+amount
+    total_gold+=random.randint(*data["gold"])
+    low_gem,high_gem=data["gems"]
+    gem_chance={"rare":0.10,"diamond":0.35,"ruby":0.65,"mythic":1.0}.get(chest_tier,0)
+    if high_gem and random.random()<gem_chance:
+     total_gems+=random.randint(max(1,low_gem),high_gem)
+  for item,amount in loot_totals.items(): self.item(p,item,amount)
+  p["gold"]=p.get("gold",0)+total_gold
+  p["gems"]=p.get("gems",0)+total_gems
+  self.flush()
+  lines=[]
+  for chest_tier,count in opened.items():
+   data=CHEST_TIERS[chest_tier]; lines.append(f"{data['icon']} **{data['name']}** x{display_number(count)} opened")
+  lines.append("")
+  lines.extend(f"{ITEM_ICONS.get(item,'📦')} **{ITEMS.get(item,item)}** x{display_number(amount)}" for item,amount in loot_totals.items())
+  lines.append(f"🪙 **Gold:** +{display_number(total_gold)}")
+  if total_gems: lines.append(f"💎 **Gems:** +{display_number(total_gems)}")
+  embed=self.embed(f"CHEST OPENING COMPLETE · {sum(opened.values())} OPENED","\\n".join(lines),0xC28BFF if key=="all" else CHEST_TIERS[key]["color"])
+  await ctx.reply(embed=embed,mention_author=False)
+
  @commands.group(name="chest",invoke_without_command=True)
  async def chest(self,ctx):
-  p=self.p(ctx.author.id); lines=["Open a chest with ,chest open <common|rare|diamond|ruby|mythic>."]
+  p=self.p(ctx.author.id); lines=["Open one tier with ,chest open <tier> or everything with ,chest open all / ,oca."]
   for key,data in CHEST_TIERS.items():
    amount=p.get("inventory",{}).get(f"{key}_chest",0)
    symbolic=p.get("symbolic_rewards",{}).get("inventory",{}).get(f"{key}_chest",0)
@@ -1082,29 +1121,11 @@ class Adventure(commands.Cog):
 
  @chest.command(name="open")
  async def chest_open(self,ctx,*,tier):
-  key=tier.lower().strip().replace(" ","_").replace("_chest","")
-  if key not in CHEST_TIERS:
-   await ctx.reply(embed=self.embed("UNKNOWN CHEST","Choose Common, Rare, Diamond, Ruby or Mythic."),mention_author=False); return
-  p=self.p(ctx.author.id); chest_key=f"{key}_chest"
-  if not self.has_item(p,chest_key,1):
-   await ctx.reply(embed=self.embed("CHEST MISSING",f"You do not have a {CHEST_TIERS[key]['name']}."),mention_author=False); return
-  self.consume_item(p,chest_key,1)
-  data=CHEST_TIERS[key]; rewards=[]
-  pool=[item for item in CHEST_LOOT[key] if item in ITEMS]
-  for _ in range(data["rolls"]):
-   item=random.choice(pool)
-   amount=1 if key=="mythic" and item in {"mythic_token","phoenix_feather"} else random.randint(1,3 if key in {"common","rare"} else 5)
-   self.item(p,item,amount); rewards.append(f"{ITEM_ICONS.get(item,'📦')} {ITEMS.get(item,item)} x{amount}")
-  gold=random.randint(*data["gold"]); p["gold"]=p.get("gold",0)+gold
-  rewards.append(f"🪙 {gold:,} Gold")
-  low_gem,high_gem=data["gems"]
-  gem_chance={"rare":0.10,"diamond":0.35,"ruby":0.65,"mythic":1.0}.get(key,0)
-  if high_gem and random.random()<gem_chance:
-   gems=random.randint(max(1,low_gem),high_gem); p["gems"]=p.get("gems",0)+gems
-   rewards.append(f"💎 {gems} Gems")
-  self.flush()
-  embed=self.embed(f"{data['icon']} {data['name'].upper()} OPENED","\\n".join(rewards),data["color"])
-  await ctx.reply(embed=embed,mention_author=False)
+  await self.open_chest_tiers(ctx,tier)
+
+ @commands.command(name="oca",aliases=["openallchests"])
+ async def open_all_chests(self,ctx):
+  await self.open_chest_tiers(ctx,"all")
 
  @commands.command(name="wallet",aliases=["balance","bal"])
  async def wallet(self,ctx):
