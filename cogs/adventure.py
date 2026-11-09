@@ -101,6 +101,14 @@ for _boss_key,_boss_data in BOSSES.items():
  _chest_key=f"boss_chest_{_boss_key}"
  ITEMS[_chest_key]=f"{_boss_data[0]} Chest"
 
+BOSS_RARE_DROPS = {
+ "gojo":[("six_eyes",0.025),("limitless_core",0.12),("hollow_purple_shard",0.08)],
+ "jjk_gojo":[("six_eyes",0.025),("limitless_core",0.12),("hollow_purple_shard",0.08)],
+ "sukuna":[("cursed_fingers",0.025),("sukuna_relic",0.08),("malevolent_essence",0.12),("shrine_fragment",0.08),("king_of_curses_seal",0.025)],
+ "jjk_sukuna":[("cursed_fingers",0.025),("sukuna_relic",0.08),("malevolent_essence",0.12),("shrine_fragment",0.08),("king_of_curses_seal",0.025)],
+}
+JJK_BOSSES = {"mahito","jogo","hanami","toji","maki","jjk_sukuna","jjk_gojo","jjk_mahito","low_rank_curse"}
+
 ITEM_ICONS = {
  "six_eyes":"👁️","cursed_fingers":"☝️","black_flash_residue":"⚡","cursed_ash":"🌑","soul_fragment":"👻",
  "limitless_core":"🔷","hollow_purple_shard":"🟣","blue_orb":"🔵","red_orb":"🔴","sukuna_relic":"👹",
@@ -763,6 +771,31 @@ class Adventure(commands.Cog):
       for item,limits in b[4].items():
        amount=random.randint(*limits)*swarm_multiplier
        self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
+     chest_key=f"boss_chest_{r['boss']}"
+     if symbolic_swarm:
+      sr=q["symbolic_rewards"]; sr["inventory"][chest_key]=sr["inventory"].get(chest_key,0)+1
+      got.append(f"{ITEM_ICONS.get(chest_key,'🎁')} {ITEMS[chest_key]} x{symbolic_quantity(1)}")
+      gold_gain=max(30,b[1]//8)
+      q["gold"]=q.get("gold",0)+gold_gain
+      got.append(f"🪙 {gold_gain:,} Gold")
+      for rare_key,chance in BOSS_RARE_DROPS.get(r["boss"],[]):
+       if random.random()<chance:
+        sr["inventory"][rare_key]=sr["inventory"].get(rare_key,0)+1
+        got.append(f"{ITEM_ICONS.get(rare_key,'📦')} {ITEMS.get(rare_key,rare_key)} x{symbolic_quantity(1)}")
+     else:
+      self.item(q,chest_key,swarm_multiplier)
+      got.append(f"{ITEM_ICONS.get(chest_key,'🎁')} {ITEMS[chest_key]} x{display_number(swarm_multiplier)}")
+      gold_gain=max(30,b[1]//8)*swarm_multiplier
+      q["gold"]=q.get("gold",0)+gold_gain
+      got.append(f"🪙 {display_number(gold_gain)} Gold")
+      if random.random()<0.12:
+       gem_gain=random.randint(1,2)*swarm_multiplier
+       q["gems"]=q.get("gems",0)+gem_gain
+       got.append(f"💎 {display_number(gem_gain)} Gems")
+      for rare_key,chance in BOSS_RARE_DROPS.get(r["boss"],[]):
+       if random.random()<chance:
+        self.item(q,rare_key,swarm_multiplier)
+        got.append(f"{ITEM_ICONS.get(rare_key,'📦')} {ITEMS.get(rare_key,rare_key)} x{display_number(swarm_multiplier)}")
      if random.random()<0.08:
       if symbolic_swarm:
        sr=q["symbolic_rewards"]; sr["inventory"]["phoenix_feather"]=sr["inventory"].get("phoenix_feather",0)+1
