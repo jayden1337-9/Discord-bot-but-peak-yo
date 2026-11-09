@@ -49,6 +49,23 @@ class GameSystemTests(unittest.TestCase):
         progress, target, _ = Progression(None).quest_progress(profile, "daily")
         self.assertGreaterEqual(progress, target)
 
+    def test_starter_bosses_are_easier_and_have_anime_keys(self):
+        expected = {
+            "bandit": 220,
+            "buggy": 360,
+            "mizuki": 480,
+            "fishbone_d": 620,
+            "hand_demon": 780,
+            "sludge_villain": 920,
+            "raditz": 1150,
+            "low_rank_curse": 1350,
+        }
+        for key, hp in expected.items():
+            self.assertIn(key, BOSSES)
+            self.assertEqual(BOSSES[key][1], hp)
+            self.assertLess(BOSSES[key][2][1], 30)
+            self.assertTrue(BOSSES[key][4])
+
     def test_expansion_content_is_connected(self):
         self.assertGreaterEqual(len(BOSSES), 15)
         self.assertGreaterEqual(len(WEAPON_RECIPES), 9)
