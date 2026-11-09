@@ -333,8 +333,11 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("SKILL UNLOCKED",c[4]+" is now available."),mention_author=False)
  @commands.command(name="inventory",aliases=["inv","bag"])
  async def inventory(self,ctx):
-  p=self.p(ctx.author.id); lines=[f"{ITEMS.get(k,k)} x{v}" for k,v in sorted(p["inventory"].items()) if v>0] or ["Your inventory is empty."]
-  e=self.embed("INVENTORY","\n".join(lines)); e.add_field(name="Awakening progress",value=f"Six Eyes: {p['inventory'].get('six_eyes',0)}/6\nCursed Fingers: {p['inventory'].get('cursed_fingers',0)}/20\nRace: {RACES[p['race']][0]}",inline=False)
+  p=self.p(ctx.author.id)
+  lines=[f"{ITEMS.get(k,k)} x{display_number(v)}" for k,v in sorted(p["inventory"].items()) if v>0] or ["Your inventory is empty."]
+  e=self.embed("INVENTORY","\n".join(lines)[:4000])
+  six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
+  e.add_field(name="Awakening progress",value=f"Six Eyes: {display_number(six)}/6\nCursed Fingers: {display_number(fingers)}/20\nRace: {RACES[p['race']][0]}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="eat",aliases=["consume"])
  async def eat(self,ctx,*,item):
