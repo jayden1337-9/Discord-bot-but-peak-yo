@@ -75,6 +75,53 @@ ITEMS.update({"limitless_core":"Limitless Core","phoenix_feather":"Phoenix Feath
 
 ITEMS.update({"void_ore":"Void Ore","starsteel":"Starsteel","dragon_scale":"Dragon Scale","spirit_silk":"Spirit Silk","ancient_core":"Ancient Core","dimension_key":"Dimension Key","awakening_crystal":"Awakening Crystal","celestial_dust":"Celestial Dust","zanpakuto_core":"Zanpakuto Core","oni_horn":"Oni Horn","dimensional_eye":"Dimensional Eye","ten_tails_core":"Ten Tails Core","spiral_core":"Spiral Core","rift_crystal":"Rift Crystal","phoenix_ash":"Phoenix Ash","abyssal_pearl":"Abyssal Pearl"})
 ITEMS.update({"jjk_key":"JJK Key","jojo_key":"JoJo Key","naruto_key":"Naruto Key","clan_token":"Clan Reroll","six_eyes":"Six Eyes","dio_bone":"Dio Bone","dio_diary":"Dio Diary","green_baby":"Green Baby","stand_arrow":"Stand Arrow","itachi_soul":"Itachi Soul","uchiha_soul":"Uchiha Soul","chakra_fruit":"Chakra Fruit","fruit_chest":"Fruit Chest","luffy_soul":"Luffy Soul","one_piece_soul":"One Piece Soul","imu_key":"IMU Key","joyboy_key":"Joyboy Key","katana":"Katana"})
+# Exclusive drops are rolled separately and can only come from their named boss.
+BOSS_RARE_DROPS = {
+ "gojo":[("six_eyes",0.025),("limitless_core",0.12),("hollow_purple_shard",0.08)],
+ "jjk_gojo":[("six_eyes",0.025),("limitless_core",0.12),("hollow_purple_shard",0.08)],
+ "sukuna":[("cursed_fingers",0.025),("sukuna_relic",0.08),("malevolent_essence",0.12),("shrine_fragment",0.08),("king_of_curses_seal",0.025)],
+ "jjk_sukuna":[("cursed_fingers",0.025),("sukuna_relic",0.08),("malevolent_essence",0.12),("shrine_fragment",0.08),("king_of_curses_seal",0.025)],
+}
+JJK_BOSSES = {"mahito","jogo","hanami","toji","maki","jjk_sukuna","jjk_gojo","jjk_mahito","low_rank_curse"}
+JJK_NO_CURSED_ENERGY = {"toji","maki"}
+
+# One anime per world. The roster is grouped by the anime each boss comes from.
+BOSS_DIMENSIONS = {
+ "bandit":"new_world","buggy":"new_world","doflamingo":"new_world","kaido":"new_world",
+ "mizuki":"ninja_world","madara":"ninja_world","kaguya":"ninja_world","madara_six_paths":"ninja_world","itachi":"ninja_world","hashirama":"ninja_world","momoshiki":"ninja_world","isshiki":"ninja_world","naruto_six_paths":"ninja_world",
+ "fishbone_d":"soul_society","kenpachi":"soul_society",
+ "hand_demon":"demon_castle","muzan":"demon_castle",
+ "sludge_villain":"hero_society","all_for_one":"hero_society",
+ "raditz":"dragon_world","frieza":"dragon_world",
+ "mahito":"cursed_realm","jogo":"cursed_realm","hanami":"cursed_realm","toji":"cursed_realm","maki":"cursed_realm","gojo":"cursed_realm","sukuna":"cursed_realm","jjk_sukuna":"cursed_realm","jjk_gojo":"cursed_realm","jjk_mahito":"cursed_realm","low_rank_curse":"cursed_realm",
+ "dio":"stone_ocean","pucci":"stone_ocean","diavolo":"stone_ocean","kira":"stone_ocean","dio_vampire":"stone_ocean",
+ "meruem":"hunter_world","zeref":"fairy_tail","anti_spiral":"spiral_nexus",
+}
+for _boss_key,_boss_data in BOSSES.items():
+ _chest_key=f"boss_chest_{_boss_key}"
+ ITEMS[_chest_key]=f"{_boss_data[0]} Chest"
+
+ITEM_ICONS = {
+ "six_eyes":"👁️","cursed_fingers":"☝️","black_flash_residue":"⚡","cursed_ash":"🌑","soul_fragment":"👻",
+ "limitless_core":"🔷","hollow_purple_shard":"🟣","blue_orb":"🔵","red_orb":"🔴","sukuna_relic":"👹",
+ "malevolent_essence":"⛩️","shrine_fragment":"🩸","king_of_curses_seal":"👑","transfigured_soul":"🧬",
+ "devil_fruit_shard":"🍈","chakra_crystal":"🔮","dragon_ball":"🌟","ether_core":"✨","void_ore":"🪨",
+ "healing_potion":"🧪","battle_tonic":"⚗️","focus_elixir":"🧿","phoenix_feather":"🪶","mythic_token":"🏅",
+ "jjk_key":"🗝️","jojo_key":"🗝️","naruto_key":"🗝️","clan_token":"🎴","gold_coin":"🪙","gem_shard":"💎",
+ "volcanic_core":"🌋","cursed_bark":"🌿","heavenly_relic":"⚔️","maki_tool":"🗡️",
+}
+for _item_key in ITEMS:
+ if _item_key.startswith("boss_chest_"): ITEM_ICONS[_item_key]="🎁"
+ elif _item_key not in ITEM_ICONS:
+  if any(x in _item_key for x in ("chakra","uchiha","rinnegan","ten_tails","god_tree")): ITEM_ICONS[_item_key]="🔮"
+  elif any(x in _item_key for x in ("dragon","saiyan","cosmic","zenkai")): ITEM_ICONS[_item_key]="🐉"
+  elif any(x in _item_key for x in ("soul","ether","zanpakuto","hollow")): ITEM_ICONS[_item_key]="👻"
+  elif any(x in _item_key for x in ("demon","oni","sunsteel","nightmare")): ITEM_ICONS[_item_key]="🔥"
+  elif any(x in _item_key for x in ("void","rift","dimension","spiral","ancient")): ITEM_ICONS[_item_key]="🌀"
+  elif any(x in _item_key for x in ("fruit","string","starsteel","kingly")): ITEM_ICONS[_item_key]="🏴‍☠️"
+  elif any(x in _item_key for x in ("potion","tonic","elixir")): ITEM_ICONS[_item_key]="🧪"
+  else: ITEM_ICONS[_item_key]="📦"
+
 WEAPON_RECIPES = {
  "cursed_katana":{"name":"Cursed Katana","damage":[125,175],"ability":"Cleave","ability_key":"cleave","ability_damage":[230,300],"description":"A blade tempered with cursed energy.","level":8,"materials":{"cursed_ash":12,"soul_fragment":8,"void_ore":3}},
  "sixfold_spear":{"name":"Sixfold Spear","damage":[160,215],"ability":"Blue Impact","ability_key":"blue_impact","ability_damage":[290,370],"description":"A spear that bends space.","level":15,"materials":{"limitless_core":2,"blue_orb":8,"starsteel":5}},
