@@ -1272,6 +1272,11 @@ class Adventure(commands.Cog):
   for key,w in custom.items():
    e.add_field(name=f"{w['name']} / {key}",value=f"{w['damage'][0]}-{w['damage'][1]} basic damage\n{w['ability']}: {w['ability_damage'][0]}-{w['ability_damage'][1]}\n{w.get('description','')}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
+ @weapon.command(name="inventory")
+ async def weapon_inventory(self,ctx):
+  p=self.p(ctx.author.id); owned=p.get("weapon_inventory",{})
+  lines=[f"**{self.data['custom_weapons'][key]['name']}** · x{display_number(count)} · ,weapon equip {key}" for key,count in owned.items() if key in self.data.get("custom_weapons",{}) and count>0]
+  await ctx.reply(embed=self.embed("YOUR WEAPON INVENTORY","\\n".join(lines) if lines else "You don't own any custom weapons yet. Ask the bot owner to grant one with ,giveitem."),mention_author=False)
  @weapon.command(name="equip")
  async def weapon_equip(self,ctx,*,key):
   key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
