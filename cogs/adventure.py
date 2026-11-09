@@ -135,6 +135,13 @@ CLANS = {
  "otogakure":{"name":"Otogakure","melee":0.0,"sword":0.70,"magic":0.50,"rarity":"3%"},
  "king":{"name":"King","melee":1.00,"sword":1.00,"magic":1.00,"rarity":"0.02%"},
 }
+PETS = {
+ "cursed_wolf":{"name":"Cursed Wolf","attack":0.08,"defense":0.03,"rarity":"Rare"},
+ "chakra_fox":{"name":"Chakra Fox","attack":0.06,"defense":0.06,"rarity":"Epic"},
+ "soul_moth":{"name":"Soul Moth","attack":0.05,"defense":0.12,"rarity":"Epic"},
+ "dragonling":{"name":"Dragonling","attack":0.12,"defense":0.02,"rarity":"Legendary"},
+ "void_sprite":{"name":"Void Sprite","attack":0.15,"defense":0.04,"rarity":"Mythic"},
+}
 CHARACTER_ATTACK_TYPES = {"sukuna":"magic","gojo":"magic","yuji":"melee","naruto":"magic","sasuke":"sword","luffy":"melee","zoro":"sword","ichigo":"sword","aizen":"magic","goku":"melee","vegeta":"melee","tanjiro":"sword","asta":"sword","deku":"melee","eren":"melee","rimuru":"magic"}
 BOSS_KEY_POOLS = {"jjk_key":["jogo","hanami","toji","jjk_sukuna","jjk_gojo","jjk_mahito"],"jojo_key":["dio","pucci","dio_vampire","diavolo","kira"],"naruto_key":["itachi","hashirama","momoshiki","isshiki","naruto_six_paths"]}
 ITEM_RECIPES = {
@@ -572,7 +579,8 @@ class Adventure(commands.Cog):
    except ImportError: pass
    damage+=gear_attack
    dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
-   damage=min(r["hp"],max(1,int(damage*race_mult*clan_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
+   pet=PETS.get(p.get("pet_equipped")); pet_mult=1+(pet["attack"] if pet else 0)
+   damage=min(r["hp"],max(1,int(damage*race_mult*clan_mult*level_mult*mastery_mult*dimension_mult*pet_mult))); r["hp"]-=damage
    mastery[p["character"]]=mastery_xp+damage
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
    phase_line=""
@@ -632,7 +640,8 @@ class Adventure(commands.Cog):
     from cogs.endgame import GEAR
     gear_defense=sum(GEAR[k]["defense"] for k in p.get("gear_equipped",{}).values() if k in GEAR)
    except ImportError: gear_defense=0
-   reduction=min(.75,reduction+gear_defense)
+   pet_defense=pet["defense"] if pet else 0
+   reduction=min(.75,reduction+gear_defense+pet_defense)
    incoming=max(1,int(incoming*(1-reduction))) if boss_hits else 0
    r["players"][uid]=max(0,r["players"][uid]-incoming); hp=r["players"][uid]
    alive2=[u for u in r["turns"] if r["players"].get(u,0)>0]
