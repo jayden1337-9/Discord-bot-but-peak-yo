@@ -40,6 +40,33 @@ BOSSES = {
 }
 ITEMS = {k:k.replace("_"," ").title() for b in BOSSES.values() for k in b[4]}
 ITEMS.update({"limitless_core":"Limitless Core","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
+
+ITEMS.update({"void_ore":"Void Ore","starsteel":"Starsteel","dragon_scale":"Dragon Scale","spirit_silk":"Spirit Silk","ancient_core":"Ancient Core","dimension_key":"Dimension Key","awakening_crystal":"Awakening Crystal","celestial_dust":"Celestial Dust"})
+WEAPON_RECIPES = {
+ "cursed_katana":{"name":"Cursed Katana","damage":[125,175],"ability":"Cleave","ability_key":"cleave","ability_damage":[230,300],"description":"A blade tempered with cursed energy.","level":8,"materials":{"cursed_ash":12,"soul_fragment":8,"void_ore":3}},
+ "sixfold_spear":{"name":"Sixfold Spear","damage":[160,215],"ability":"Blue Impact","ability_key":"blue_impact","ability_damage":[290,370],"description":"A spear that bends space.","level":15,"materials":{"limitless_core":2,"blue_orb":8,"starsteel":5}},
+ "dragon_fang":{"name":"Dragon Fang","damage":[190,250],"ability":"Dragon Roar","ability_key":"dragon_roar","ability_damage":[350,440],"description":"A dragon-forged weapon.","level":22,"materials":{"dragon_ball":5,"cosmic_core":4,"dragon_scale":10}},
+ "soul_reaper":{"name":"Soul Reaper","damage":[225,290],"ability":"Getsuga Breaker","ability_key":"getsuga_breaker","ability_damage":[410,520],"description":"A blade resonating with spiritual pressure.","level":30,"materials":{"soul_fragment":15,"ether_core":8,"spirit_silk":6}},
+ "reality_edge":{"name":"Reality Edge","damage":[280,360],"ability":"Rift Rend","ability_key":"rift_rend","ability_damage":[520,680],"description":"Forged at the edge of a collapsing dimension.","level":40,"materials":{"time_rift_fragment":8,"void_ore":15,"ancient_core":3,"celestial_dust":10}}
+}
+SKILL_TREE = {
+ "black_flash_chain":{"name":"Black Flash Chain","cost":3,"multiplier":1.8,"level":5,"materials":{"black_flash_residue":3}},
+ "domain_amplification":{"name":"Domain Amplification","cost":5,"multiplier":2.2,"level":12,"materials":{"cursed_ash":8,"malevolent_essence":2}},
+ "chakra_surge":{"name":"Chakra Surge","cost":4,"multiplier":2.0,"level":10,"materials":{"chakra_crystal":6}},
+ "conquerors_haki":{"name":"Conqueror's Haki","cost":6,"multiplier":2.5,"level":18,"materials":{"kingly_aura":3,"celestial_blood":2}},
+ "final_getsuga":{"name":"Final Getsuga","cost":8,"multiplier":3.0,"level":25,"materials":{"ether_core":8,"soul_fragment":12}},
+ "limit_breaker":{"name":"Limit Breaker","cost":10,"multiplier":3.5,"level":35,"materials":{"zenkai_cell":8,"cosmic_core":8,"awakening_crystal":2}}
+}
+DIMENSIONS = {
+ "earth":{"name":"Earth","level":1,"wins":0,"materials":{},"bonus":1.0,"description":"The starting world."},
+ "cursed_realm":{"name":"Cursed Realm","level":8,"wins":3,"materials":{"cursed_ash":8,"soul_fragment":5},"bonus":1.08,"description":"A realm saturated with cursed energy."},
+ "ninja_world":{"name":"Ninja World","level":15,"wins":8,"materials":{"chakra_crystal":8,"uchiha_relic":2},"bonus":1.12,"description":"A world shaped by chakra."},
+ "new_world":{"name":"New World","level":22,"wins":15,"materials":{"devil_fruit_shard":8,"string_core":8},"bonus":1.16,"description":"A dangerous sea ruled by pirates."},
+ "soul_society":{"name":"Soul Society","level":30,"wins":25,"materials":{"ether_core":8,"soul_fragment":15},"bonus":1.20,"description":"A spiritual plane."},
+ "dragon_world":{"name":"Dragon World","level":40,"wins":40,"materials":{"dragon_ball":8,"cosmic_core":12,"dragon_scale":5},"bonus":1.25,"description":"A cosmic battlefield."},
+ "infinity_void":{"name":"Infinity Void","level":55,"wins":75,"materials":{"time_rift_fragment":15,"void_ore":20,"ancient_core":5,"dimension_key":1},"bonus":1.35,"description":"An endgame realm beyond ordinary space."}
+}
+
 RACES = {
  "human":("Human",1.0,0.0,"Balanced starting race."),
  "gojo":("Gojo Clan",1.10,.10,"+10% damage and 10% damage reduction."),
@@ -50,7 +77,7 @@ RACES = {
  "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -198,6 +225,9 @@ class Adventure(commands.Cog):
   if p["race"] not in RACES: p["race"]="human"
   p.setdefault("weapon",None)
   p.setdefault("mastery",{})
+  p.setdefault("active_dimension","earth")
+  p.setdefault("unlocked_dimensions",["earth"])
+  p.setdefault("unlocked_skills",[])
   p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
   sr=p["symbolic_rewards"]
   for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items(): sr.setdefault(key,value)
@@ -385,11 +415,14 @@ class Adventure(commands.Cog):
       await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
      damage=random.randint(*c[6]); action=c[4]
     else: damage=random.randint(*c[3]); action="Basic strike"
-   race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
+   if ability and not custom and ability.lower().strip().replace(" ","_") in p["unlocked_skills"]:
+   sk=SKILL_TREE[ability.lower().strip().replace(" ","_")]; damage=int(random.randint(*c[3])*sk["multiplier"]); action=sk["name"]
+  race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
    level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
    mastery=p.setdefault("mastery",{}); mastery_xp=int(mastery.get(p["character"],0)); mastery_level=mastery_tier(mastery_xp)
    mastery_mult=1+0.02*mastery_level
-   damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult))); r["hp"]-=damage
+   dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
+  damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
    mastery[p["character"]]=mastery_xp+damage
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
    phase_line=""
@@ -472,8 +505,18 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("TECHNIQUE RECORD",f"{c[0]} · {c[4]}\nDamage: {c[6][0]}–{c[6][1]}\nCost: {c[7]} points\nStatus: {'Unlocked' if unlocked else 'Locked'}"),mention_author=False)
  @commands.command(name="unlock")
  async def unlock(self,ctx,*,skill):
-  p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; key=c[5]
-  if skill.lower().strip()!=key: await ctx.reply(embed=self.embed("UNKNOWN SKILL",f"Your character uses {key}."),mention_author=False); return
+  p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; key=skill.lower().strip().replace(" ","_")
+  if key in SKILL_TREE:
+   d=SKILL_TREE[key]
+   missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in d["materials"].items() if int(p["inventory"].get(i,0))<n]
+   if key in p["unlocked_skills"]:
+    await ctx.reply(embed=self.embed("ALREADY UNLOCKED",f"{d['name']} is already available."),mention_author=False); return
+   if p["level"]<d["level"] or p["points"]<d["cost"] or missing:
+    await ctx.reply(embed=self.embed("SKILL REQUIREMENTS",f"Level {d['level']} · {d['cost']} points\nMissing: {', '.join(missing) if missing else 'None'}"),mention_author=False); return
+   for i,n in d["materials"].items(): self.item(p,i,-n)
+   p["points"]-=d["cost"]; p["unlocked_skills"].append(key); self.flush()
+   await ctx.reply(embed=self.embed("SKILL UNLOCKED",f"{d['name']} is ready. Damage multiplier x{d['multiplier']:.2f}."),mention_author=False); return
+  if key!=c[5]: await ctx.reply(embed=self.embed("UNKNOWN SKILL",f"Your character uses {c[5]}. Use ,skilltree for more skills."),mention_author=False); return
   if key in p["unlocked"] or(p["race"]=="vessel" and p["character"]=="sukuna"): await ctx.reply(embed=self.embed("ALREADY UNLOCKED","This skill is already available."),mention_author=False); return
   if p["points"]<c[7]:
    sr=p["symbolic_rewards"]
@@ -482,6 +525,67 @@ class Adventure(commands.Cog):
   else: p["points"]-=c[7]
   p["unlocked"].append(key); self.flush()
   await ctx.reply(embed=self.embed("SKILL UNLOCKED",c[4]+" is now available."),mention_author=False)
+
+ @commands.command(name="skilltree")
+ async def skilltree(self,ctx):
+  p=self.p(ctx.author.id); e=self.embed("UNIVERSAL SKILL TREE","Unlock with ,unlock <key>. Skills need levels, points and materials.")
+  for key,d in SKILL_TREE.items():
+   mats=", ".join(f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items())
+   state="UNLOCKED" if key in p["unlocked_skills"] else f"Level {d['level']} · {d['cost']} points"
+   e.add_field(name=f"{d['name']} / {key} · {state}",value=f"Damage x{d['multiplier']:.2f}\nMaterials: {mats}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+
+ @commands.command(name="recipes")
+ async def recipes(self,ctx):
+  e=self.embed("FORGE BLUEPRINTS","Craft a weapon with ,craft <key>.")
+  for key,d in WEAPON_RECIPES.items():
+   mats=", ".join(f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items())
+   e.add_field(name=f"{d['name']} / {key}",value=f"Level {d['level']} · Damage {d['damage'][0]}–{d['damage'][1]}\n{d['ability']} · {d['ability_damage'][0]}–{d['ability_damage'][1]}\nMaterials: {mats}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+
+ @commands.command(name="craft")
+ async def craft(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id); d=WEAPON_RECIPES.get(key)
+  if not d:
+   await ctx.reply(embed=self.embed("BLUEPRINT NOT FOUND","Use ,recipes."),mention_author=False); return
+  owned=self.data.setdefault("crafted_weapons",{}).setdefault(str(ctx.author.id),[])
+  if key in owned:
+   await ctx.reply(embed=self.embed("ALREADY FORGED","You already crafted this weapon."),mention_author=False); return
+  missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in d["materials"].items() if int(p["inventory"].get(i,0))<n]
+  if p["level"]<d["level"] or missing:
+   await ctx.reply(embed=self.embed("FORGE REQUIREMENTS",f"Required level: {d['level']}\nMissing materials: {', '.join(missing) if missing else 'None'}"),mention_author=False); return
+  for i,n in d["materials"].items(): self.item(p,i,-n)
+  self.data["custom_weapons"][key]={k:d[k] for k in ("name","damage","ability","ability_key","ability_damage","description")}
+  owned.append(key); p["weapon"]=key; self.flush()
+  await ctx.reply(embed=self.embed("WEAPON FORGED",f"{d['name']} crafted and equipped. Use ,attack {d['ability_key']}."),mention_author=False)
+
+ @commands.group(name="dimension",invoke_without_command=True)
+ async def dimension(self,ctx):
+  await ctx.invoke(self.dimension_list)
+
+ @dimension.command(name="list")
+ async def dimension_list(self,ctx):
+  p=self.p(ctx.author.id); e=self.embed("DIMENSION GATEWAY",f"Current world: {DIMENSIONS.get(p['active_dimension'],DIMENSIONS['earth'])['name']}")
+  for key,d in DIMENSIONS.items():
+   state="UNLOCKED" if key in p["unlocked_dimensions"] else f"Level {d['level']} · {d['wins']} victories"
+   mats=", ".join(f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items()) or "None"
+   e.add_field(name=f"{d['name']} / {key} · {state}",value=f"{d['description']}\nEntry materials: {mats}\nDamage affinity: +{int((d['bonus']-1)*100)}%",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+
+ @dimension.command(name="enter")
+ async def dimension_enter(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id); d=DIMENSIONS.get(key)
+  if not d:
+   await ctx.reply(embed=self.embed("UNKNOWN DIMENSION","Use ,dimension list."),mention_author=False); return
+  if key not in p["unlocked_dimensions"]:
+   missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in d["materials"].items() if int(p["inventory"].get(i,0))<n]
+   if p["level"]<d["level"] or p["wins"]<d["wins"] or missing:
+    await ctx.reply(embed=self.embed("GATE SEALED",f"Level {d['level']} · {d['wins']} victories\nMissing: {', '.join(missing) if missing else 'None'}"),mention_author=False); return
+   for i,n in d["materials"].items(): self.item(p,i,-n)
+   p["unlocked_dimensions"].append(key)
+  p["active_dimension"]=key; self.flush()
+  await ctx.reply(embed=self.embed("DIMENSION ENTERED",f"You entered {d['name']}. Damage affinity: +{int((d['bonus']-1)*100)}%."),mention_author=False)
+
  @commands.command(name="inventory",aliases=["inv","bag"])
  async def inventory(self,ctx):
   p=self.p(ctx.author.id)
