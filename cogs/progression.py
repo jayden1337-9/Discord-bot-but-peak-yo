@@ -159,6 +159,7 @@ class Progression(commands.Cog):
     async def title(self, ctx, *, key: str):
         cog, p = self.profile(ctx.author.id)
         key = key.lower().strip().replace(" ", "_")
+        self.grant_titles(p)
         if key in {"off", "none", "clear"}:
             p["equipped_title"] = None
             cog.flush()
