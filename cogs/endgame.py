@@ -175,7 +175,21 @@ class Endgame(commands.Cog):
             return
         gear = self.gear_stats(p)
         character = CHARACTERS[p["character"]]
-        damage = random.randint(*character[3]) + gear["attack"]
+        weapon_key = p.get("weapon")
+        custom_weapons = cog.data.get("custom_weapons", {})
+        weapon = custom_weapons.get(weapon_key) if weapon_key else None
+        override = p.get("weapon_damage_override")
+
+        if weapon:
+            if override == "googolplex":
+                damage = state["enemy"]["hp"]
+            elif override is not None:
+                damage = int(override)
+            else:
+                damage = random.randint(*weapon["damage"]) + gear["attack"]
+        else:
+            damage = random.randint(*character[3]) + gear["attack"]
+
         state["enemy"]["hp"] = max(0, state["enemy"]["hp"] - damage)
         state["damage"] += damage
         if state["enemy"]["hp"] <= 0:
