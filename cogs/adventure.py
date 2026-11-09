@@ -278,6 +278,19 @@ class Adventure(commands.Cog):
   if not 1<=level<=10000: await ctx.reply(embed=self.embed("INVALID LEVEL","Choose 1 to 10000."),mention_author=False); return
   p=self.p(member.id); p["level"]=level; p["xp"]=0; self.flush()
   await ctx.reply(embed=self.embed("OWNER LEVEL UPDATE",f"{member.mention} is now level {level}."),mention_author=False)
+ @commands.command(name="addpoints")
+ @commands.is_owner()
+ async def addpoints(self,ctx,member:discord.User,amount:int):
+  if not 0<=amount<=100000: await ctx.reply(embed=self.embed("INVALID AMOUNT","Skill points must be 0 to 100000."),mention_author=False); return
+  p=self.p(member.id); p["points"]+=amount; self.flush()
+  await ctx.reply(embed=self.embed("OWNER POINT GRANT",f"Added {amount} skill points to {member.mention}."),mention_author=False)
+ @commands.command(name="setcharacter")
+ @commands.is_owner()
+ async def setcharacter(self,ctx,member:discord.User,*,character:str):
+  key=character.lower().strip().replace(" ","_")
+  if key not in CHARACTERS: await ctx.reply(embed=self.embed("INVALID CHARACTER","Use a character key from ,characters."),mention_author=False); return
+  p=self.p(member.id); p["character"]=key; self.flush()
+  await ctx.reply(embed=self.embed("OWNER CHARACTER UPDATE",f"{member.mention} now uses {CHARACTERS[key][0]}."),mention_author=False)
  @commands.command(name="setrace")
  @commands.is_owner()
  async def setrace(self,ctx,member:discord.User,*,race:str):
