@@ -158,6 +158,25 @@ DIMENSIONS = {
  "spiral_nexus":{"name":"Spiral Nexus","level":65,"wins":100,"materials":{"spiral_core":5,"void_ore":25,"dimension_key":4,"time_rift_fragment":15},"bonus":1.45,"description":"The final frontier where dimensions collapse."}
 }
 
+# Dedicated anime worlds and their unlock gates. The harder worlds scale boss HP into the millions/billions.
+DIMENSIONS.update({
+ "cursed_realm":{"name":"Jujutsu Kaisen","anime":"Jujutsu Kaisen","level":8,"wins":3,"materials":{"cursed_ash":8,"soul_fragment":5},"bonus":1.08,"hp_mult":1,"damage_mult":1.0,"description":"Cursed techniques, special grades and the King of Curses."},
+ "ninja_world":{"name":"Naruto","anime":"Naruto","level":15,"wins":8,"materials":{"chakra_crystal":8,"uchiha_relic":2},"bonus":1.12,"hp_mult":1,"damage_mult":1.0,"description":"The shinobi nations and their legendary fighters."},
+ "new_world":{"name":"One Piece","anime":"One Piece","level":22,"wins":15,"materials":{"devil_fruit_shard":8,"string_core":8},"bonus":1.16,"hp_mult":1,"damage_mult":1.0,"description":"The Grand Line, pirates, warlords and emperors."},
+ "soul_society":{"name":"Bleach","anime":"Bleach","level":30,"wins":25,"materials":{"ether_core":8,"soul_fragment":15},"bonus":1.20,"hp_mult":1,"damage_mult":1.0,"description":"Soul Reapers, Hollows and spiritual pressure."},
+ "demon_castle":{"name":"Demon Slayer","anime":"Demon Slayer","level":28,"wins":20,"materials":{"demon_blood":15,"sunsteel":8,"nightmare_ash":8},"bonus":1.18,"hp_mult":1,"damage_mult":1.0,"description":"The demon-infested era of the Demon Slayer Corps."},
+ "hero_society":{"name":"My Hero Academia","anime":"My Hero Academia","level":35,"wins":30,"materials":{"quirk_catalyst":12,"all_for_one_core":2},"bonus":1.24,"hp_mult":1000000,"damage_mult":1.25,"description":"A world of heroes, villains and powerful quirks."},
+ "dragon_world":{"name":"Dragon Ball","anime":"Dragon Ball","level":40,"wins":40,"materials":{"dragon_ball":8,"cosmic_core":12,"dragon_scale":5},"bonus":1.25,"hp_mult":1000000,"damage_mult":1.3,"description":"A cosmic battlefield where power reaches absurd heights."},
+ "stone_ocean":{"name":"JoJo's Bizarre Adventure","anime":"JoJo's Bizarre Adventure","level":38,"wins":35,"materials":{"starsteel":15,"soul_fragment":12,"dio_bone":1},"bonus":1.28,"hp_mult":1000000,"damage_mult":1.3,"description":"Stand users, fate and bizarre supernatural battles."},
+ "hunter_world":{"name":"Hunter x Hunter","anime":"Hunter x Hunter","level":42,"wins":45,"materials":{"nen_crystal":10,"chimera_essence":5},"bonus":1.32,"hp_mult":100000000,"damage_mult":1.4,"description":"Nen masters and the Chimera Ant threat."},
+ "fairy_tail":{"name":"Fairy Tail","anime":"Fairy Tail","level":48,"wins":55,"materials":{"ether_core":15,"fairy_heart_shard":5,"time_rift_fragment":5},"bonus":1.36,"hp_mult":100000000,"damage_mult":1.45,"description":"Ancient magic, dragon slayers and forbidden curses."},
+ "spiral_nexus":{"name":"Gurren Lagann","anime":"Gurren Lagann","level":65,"wins":100,"materials":{"spiral_core":5,"void_ore":25,"dimension_key":4,"time_rift_fragment":15},"bonus":1.45,"hp_mult":1000000000,"damage_mult":1.6,"description":"A universe-scale conflict at the edge of reality."},
+})
+for _dim_key,_dim_data in DIMENSIONS.items():
+ _dim_data.setdefault("anime","Starting World" if _dim_key=="earth" else _dim_data["name"])
+ _dim_data.setdefault("hp_mult",1)
+ _dim_data.setdefault("damage_mult",1.0)
+
 RACES = {
  "human":("Human",1.0,0.0,"Balanced starting race."),
  "gojo":("Gojo Clan",1.10,.10,"+10% damage and 10% damage reduction."),
