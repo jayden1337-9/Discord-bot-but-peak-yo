@@ -167,7 +167,8 @@ class Endgame(commands.Cog):
         await ctx.reply(embed=self.embed(cog, "RIFT TOWER ENTERED", f"Floor 1: **{enemy['name']}**\nEnemy HP: {enemy['hp']:,}\nYour HP: {hp}\nThe run ends if you are defeated. Progress is saved."), mention_author=False)
 
     @tower.command(name="attack")
-    async def tower_attack(self, ctx):
+    @commands.cooldown(1, 1.0, commands.BucketType.user)
+    async def tower_attack(self, ctx, *, ability: str = None):
         cog, p = self.services(ctx)
         state = p.get("tower")
         if not state:
@@ -180,16 +181,54 @@ class Endgame(commands.Cog):
         weapon = custom_weapons.get(weapon_key) if weapon_key else None
         override = p.get("weapon_damage_override")
 
+        from cogs.adventure import (
+            RACES, CLANS, CHARACTER_ATTACK_TYPES, DIMENSIONS, SKILL_TREE,
+            PETS, mastery_tier,
+        )
         if weapon:
-            if override == "googolplex":
-                damage = state["enemy"]["hp"]
-            elif override is not None:
-                damage = int(override)
+            if ability:
+                if ability.lower().strip().replace(" ", "_") != weapon["ability_key"]:
+                    await ctx.reply(embed=self.embed(cog, "UNKNOWN ABILITY", f"This weapon uses {weapon['ability']}."), mention_author=False)
+                    return
+                damage = random.randint(*weapon["ability_damage"])
             else:
-                damage = random.randint(*weapon["damage"]) + gear["attack"]
+                damage = random.randint(*weapon["damage"])
+        elif ability:
+            key = ability.lower().strip().replace(" ", "_")
+            if key == character[5]:
+                if key not in p.get("unlocked", []) and not (p["race"] == "vessel" and p["character"] == "sukuna"):
+                    await ctx.reply(embed=self.embed(cog, "SKILL LOCKED", f"Unlock it with ,unlock {key}."), mention_author=False)
+                    return
+                damage = random.randint(*character[6])
+            elif key in p.get("unlocked_skills", []) and key in SKILL_TREE:
+                damage = int(random.randint(*character[3]) * SKILL_TREE[key]["multiplier"])
+            else:
+                await ctx.reply(embed=self.embed(cog, "SKILL LOCKED", "That ability is not unlocked."), mention_author=False)
+                return
         else:
-            damage = random.randint(*character[3]) + gear["attack"]
-
+            damage = random.randint(*character[3])
+        if override == "googolplex":
+            damage = state["enemy"]["hp"]
+        elif override is not None:
+            damage = int(override)
+        race = RACES[p["race"]]
+        clan = CLANS.get(p.get("clan"))
+        attack_type = CHARACTER_ATTACK_TYPES.get(p["character"], "magic")
+        clan_mult = 1 + (clan.get(attack_type, 0) if clan else 0)
+        level_mult = 1 + min(35, max(0, int(p["level"]) - 1)) * 0.01
+        mastery_xp = int(p.setdefault("mastery", {}).get(p["character"], 0))
+        mastery_mult = 1 + 0.02 * mastery_tier(mastery_xp)
+        pet = PETS.get(p.get("pet_equipped"))
+        pet_mult = 1 + (pet["attack"] if pet else 0)
+        if p.get("damage_boosts", 0) > 0:
+            damage = int(damage * 1.5)
+            p["damage_boosts"] -= 1
+        if p.get("focus_boosts", 0) > 0:
+            damage *= 2
+            p["focus_boosts"] -= 1
+        dimension_mult = DIMENSIONS.get(p.get("active_dimension"), DIMENSIONS["earth"])["bonus"]
+        damage = max(1, int((damage + gear["attack"]) * race[1] * clan_mult * level_mult * mastery_mult * pet_mult * dimension_mult))
+        damage = min(state["enemy"]["hp"], damage)
         state["enemy"]["hp"] = max(0, state["enemy"]["hp"] - damage)
         state["damage"] += damage
         if state["enemy"]["hp"] <= 0:
@@ -215,7 +254,9 @@ class Endgame(commands.Cog):
             return
         enemy = state["enemy"]
         incoming = random.randint(*enemy["damage"])
-        reduction = min(0.65, self.gear_stats(p)["defense"])
+        race_reduction = RACES[p["race"]][2]
+        pet_reduction = pet["defense"] if pet else 0
+        reduction = min(0.75, max(-0.10, self.gear_stats(p)["defense"] + race_reduction + pet_reduction))
         incoming = max(1, int(incoming * (1 - reduction)))
         state["hp"] = max(0, state["hp"] - incoming)
         if state["hp"] <= 0:
