@@ -250,7 +250,9 @@ class Adventure(commands.Cog):
      damage=random.randint(*custom["ability_damage"]); action=custom["ability"]
     else: damage=random.randint(*custom["damage"]); action=custom["name"]+" strike"
     override=p.get("weapon_damage_override")
-    if override is not None:
+    if override == "googolplex":
+     damage=r["hp"]
+    elif override is not None:
      damage=override
    else:
     skill=c[5]
@@ -372,6 +374,9 @@ class Adventure(commands.Cog):
   if amount.lower() in {"off","reset","none"}:
    p["weapon_damage_override"]=None; self.flush()
    await ctx.reply(embed=self.embed("WEAPON DAMAGE RESET",f"{self.data['custom_weapons'][p['weapon']]['name']} is back to its normal damage ranges."),mention_author=False); return
+  if amount.lower() == "googolplex":
+   p["weapon_damage_override"]="googolplex"; self.flush()
+   await ctx.reply(embed=self.embed("WEAPON DAMAGE UPDATED","Your equipped weapon now uses googolplex damage. It hits for the boss's remaining HP."),mention_author=False); return
   try: value=int(amount.replace(",",""))
   except ValueError:
    await ctx.reply(embed=self.embed("INVALID DAMAGE","Use ,setdamage <amount> or ,setdamage off."),mention_author=False); return
