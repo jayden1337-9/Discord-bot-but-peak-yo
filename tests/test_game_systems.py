@@ -1,6 +1,6 @@
 import unittest
 
-from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 from cogs.render_ui import inventory_image, gear_image
@@ -105,6 +105,13 @@ class GameSystemTests(unittest.TestCase):
             self.assertGreaterEqual(item["level"], 1, key)
             self.assertTrue(item["materials"], key)
             self.assertTrue(all(amount > 0 for amount in item["materials"].values()), key)
+
+    def test_weapon_skill_categories_and_equipped_slots(self):
+        self.assertEqual(set(SKILL_CATEGORIES), set(SKILL_TREE))
+        self.assertEqual(set(WEAPON_CATEGORIES), set(WEAPON_RECIPES))
+        self.assertEqual(set(SKILL_CATEGORIES.values()), {"melee", "sword", "magic"})
+        self.assertEqual(set(WEAPON_CATEGORIES.values()), {"melee", "sword", "magic"})
+        self.assertEqual(DEFAULT["equipped_skills"], {"melee": [], "sword": [], "magic": []})
 
     def test_tower_enemy_scales_with_floor(self):
         game = Endgame(None)
