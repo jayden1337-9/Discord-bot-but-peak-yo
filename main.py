@@ -37,7 +37,7 @@ class PeakBot(commands.Bot):
         elif isinstance(error, commands.CommandOnCooldown):
             message = f"Try again in {error.retry_after:.1f} seconds."
         else:
-            log.error("Command failed", exc_info=error)
+            log.error("Command failed", exc_info=(type(error), error, error.__traceback__))
             message = "Something went wrong while running that command."
         embed = discord.Embed(title="Command error", description=message, color=discord.Color.red())
         await ctx.reply(embed=embed, mention_author=False)
