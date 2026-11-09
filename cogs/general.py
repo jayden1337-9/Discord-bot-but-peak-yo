@@ -37,6 +37,62 @@ class PollView(discord.ui.View):
         await self.record(interaction, False)
 
 
+class HelpView(discord.ui.View):
+    def __init__(self, author_id: int, prefix: str) -> None:
+        super().__init__(timeout=180)
+        self.author_id = author_id
+        self.prefix = prefix
+        self.page = 0
+        self.pages = self.build_pages()
+        self.refresh_buttons()
+
+    def build_pages(self) -> list[tuple[str, str]]:
+        p = self.prefix
+        return [
+            ("SYSTEM", f"`{p}ping` · gateway latency\n`{p}about` · bot information\n`{p}help` · command index"),
+            ("COMMUNITY", f"`{p}userinfo [member]` · member profile\n`{p}serverinfo` · server overview\n`{p}avatar [member]` · avatar viewer\n`{p}roleinfo <role>` · role details\n`{p}poll <question>` · create a poll\n`{p}purge <amount>` · clear messages (moderators)"),
+            ("TOOLS", f"`{p}roll [sides]` · random dice\n`{p}coinflip` · flip a coin\n`{p}choose <a | b | ...>` · random choice\n`{p}8ball <question>` · ask the 8-ball"),
+            ("ADVENTURE", f"`{p}bosses` · anime raid register\n`{p}boss challenge <name>` · start a raid\n`{p}boss status` · battlefield status\n`{p}boss leave` · leave the party\n`{p}boss abandon` · close your raid\n`{p}boss summon <key> <count>` · summon a boss swarm (owner)\n`{p}join` · join the active fight\n`{p}attack [ability]` · take your turn\n`{p}use <item>` · use consumables\n`{p}weapon list` / `{p}weapon equip <key>` · custom weapons\n`{p}characters` / `{p}character <name>` · character roster and selection\n`{p}skills` / `{p}skilltree` / `{p}unlock <skill>` · combat skills\n`{p}recipes` / `{p}craft <key>` · forge weapons\n`{p}dimension list` / `{p}dimension enter <key>` · explore worlds\n`{p}mastery` · character progression\n`{p}forge list` / `{p}forge craft <key>` · craft relic equipment\n`{p}gear` / `{p}equipgear <key>` / `{p}unequipgear <slot>` · manage equipment\n`{p}tower` / `{p}tower start` / `{p}tower attack` / `{p}tower retreat` · solo endgame\n`{p}races` / `{p}race <name>` · race passives and selection\n`{p}inventory` · collected items\n`{p}eat <item>` · awaken bloodlines\n`{p}stats [member]` · adventurer profile\n`{p}leaderboard` · top adventurers"),
+            ("PROGRESSION & OWNER", f"`{p}daily` / `{p}weekly` · contracts\n`{p}quests` · contract board\n`{p}claim <daily|weekly>` · collect rewards\n`{p}achievements` · achievement archive\n`{p}titles` / `{p}title <key>` · title collection\n\n**OWNER ONLY**\n`{p}reload` · update and restart\n`{p}giveitem <member> <item> [amount]` · grant loot\n`{p}addxp <member> <amount>` · grant XP\n`{p}setlevel <member> <level>` · set level\n`{p}addpoints <member> <amount>` · grant skill points\n`{p}setcharacter <member> <character>` · set character\n`{p}setrace <member> <race>` · set race\n`{p}resetprofile <member>` · reset profile\n`{p}gamedb` · database status\n`{p}createweapon` · custom weapon builder\n`{p}setdamage <amount|googolplex|off>` · damage override"),
+        ]
+
+    def build_embed(self) -> discord.Embed:
+        title, description = self.pages[self.page]
+        embed = discord.Embed(
+            title=f"Command index  /  {title}",
+            description=description,
+            color=discord.Color.from_rgb(48, 61, 82),
+        )
+        embed.set_footer(text=f"PEAK  /  SYSTEM  •  Page {self.page + 1} of {len(self.pages)}")
+        return embed
+
+    def refresh_buttons(self) -> None:
+        self.previous_button.disabled = self.page == 0
+        self.next_button.disabled = self.page >= len(self.pages) - 1
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.author_id:
+            await interaction.response.send_message("These help controls belong to the person who opened the menu.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
+    async def previous_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        self.page = max(0, self.page - 1)
+        self.refresh_buttons()
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+    @discord.ui.button(label="Next", style=discord.ButtonStyle.primary)
+    async def next_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        self.page = min(len(self.pages) - 1, self.page + 1)
+        self.refresh_buttons()
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+    async def on_timeout(self) -> None:
+        for item in self.children:
+            item.disabled = True
+
+
 class General(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -71,14 +127,8 @@ class General(commands.Cog):
 
     @commands.command(name="help", aliases=["commands", "cmds"])
     async def help_command(self, ctx: commands.Context) -> None:
-        p = ctx.clean_prefix
-        embed = self.embed("Command index", "A quick reference to the available systems. Arguments in [brackets] are optional.")
-        embed.add_field(name="SYSTEM", value=f"`{p}ping` · gateway latency\n`{p}about` · bot information\n`{p}help` · command index", inline=False)
-        embed.add_field(name="COMMUNITY", value=f"`{p}userinfo [member]` · member profile\n`{p}serverinfo` · server overview\n`{p}avatar [member]` · avatar viewer\n`{p}roleinfo <role>` · role details\n`{p}poll <question>` · create a reaction poll\n`{p}purge <amount>` · clear messages (moderators)", inline=False)
-        embed.add_field(name="TOOLS", value=f"`{p}roll [sides]` · random dice\n`{p}coinflip` · flip a coin\n`{p}choose <a | b | ...>` · random choice\n`{p}8ball <question>` · ask the 8-ball", inline=False)
-        embed.add_field(name="ADVENTURE", value=f"`{p}bosses` · anime raid register · expanded boss roster\n`{p}boss challenge <name>` · start a raid\n`{p}boss status` · battlefield status\n`{p}boss leave` · leave the party\n`{p}boss abandon` · close a raid you started\n`{p}join` · join the active fight\n`{p}attack [ability]` · take your turn\n`{p}use <item>` · use potions, tonics and revives\n`{p}weapon list` · custom weapon archive\n`{p}weapon equip <key>` · equip a forged weapon\n`{p}characters` · anime character roster\n`{p}character <name>` · select a character\n`{p}skills` / `{p}skilltree` · combat skills\n`{p}recipes` / `{p}craft <key>` · forge weapons\n`{p}dimension list` / `{p}dimension enter <key>` · explore worlds\n`{p}mastery` · character progression\n`{p}forge list` / `{p}forge craft <key>` · craft relic equipment\n`{p}gear` / `{p}equipgear <key>` · manage armor, relics and cores\n`{p}tower start` / `{p}tower attack` / `{p}tower retreat` · ten-floor solo endgame\n`{p}unlock <skill>` · unlock a character ability\n`{p}races` · view race passives\n`{p}race <name>` · choose a race\n`{p}inventory` · view collected items\n`{p}eat six_eyes` / `,eat cursed_fingers` · awaken bloodlines\n`{p}stats [member]` · adventurer profile\n`{p}leaderboard` · top adventurers\n`{p}daily` / `{p}weekly` · contracts\n`{p}quests` · contract board\n`{p}claim <daily|weekly>` · collect rewards\n`{p}achievements` · achievement archive\n`{p}titles` / `{p}title <key>` · title collection", inline=False)
-        embed.add_field(name="OWNER", value=f"`{p}reload` · update and restart\n`{p}giveitem <member> <item> [amount]` · grant loot\n`{p}addxp <member> <amount>` · grant XP\n`{p}setlevel <member> <level>` · set level\n`{p}addpoints <member> <amount>` · grant skill points\n`{p}setcharacter <member> <character>` · set character\n`{p}setrace <member> <race>` · set race\n`{p}resetprofile <member>` · reset profile\n`{p}gamedb` · JSON database status\n`{p}createweapon` · open the custom weapon builder\n`{p}setdamage <amount|googolplex|off>` · custom weapon damage override\n`{p}boss summon <key> <count>` · summon a boss swarm", inline=False)
-        await ctx.reply(embed=embed, mention_author=False)
+        view = HelpView(ctx.author.id, ctx.clean_prefix)
+        await ctx.reply(embed=view.build_embed(), view=view, mention_author=False)
 
     @commands.command(name="userinfo", aliases=["whois", "profile"])
     async def userinfo(self, ctx: commands.Context, member: discord.Member = None) -> None:
