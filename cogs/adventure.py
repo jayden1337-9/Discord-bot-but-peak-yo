@@ -361,6 +361,20 @@ class Adventure(commands.Cog):
   d=CLANS[result]
   await ctx.reply(embed=self.embed("CLAN AWAKENED",f"You rolled **{d['name']}**.\nMelee +{int(d['melee']*100)}% · Sword +{int(d['sword']*100)}% · Magic +{int(d['magic']*100)}%\nRerolls remaining: {p['clan_rolls']}"),mention_author=False)
 
+ @clan.command(name="set",aliases=["choose","select"])
+ @commands.is_owner()
+ async def clan_set(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_")
+  if key in {"none","off","clear"}:
+   p=self.p(ctx.author.id); p["clan"]=None; self.flush()
+   await ctx.reply(embed=self.embed("CLAN CLEARED","Your clan has been set to Unassigned."),mention_author=False); return
+  if key not in CLANS:
+   names=", ".join(f"{d['name']} ({k})" for k,d in CLANS.items())
+   await ctx.reply(embed=self.embed("UNKNOWN CLAN",f"Choose one of: {names}.\nUsage: ,clan set <key>"),mention_author=False); return
+  p=self.p(ctx.author.id); p["clan"]=key; self.flush()
+  d=CLANS[key]
+  await ctx.reply(embed=self.embed("CLAN SELECTED",f"You selected **{d['name']}**.\nMelee +{int(d['melee']*100)}% · Sword +{int(d['sword']*100)}% · Magic +{int(d['magic']*100)}%"),mention_author=False)
+
  @commands.command(name="races")
  async def races(self,ctx):
   p=self.p(ctx.author.id); e=self.embed("RACE REGISTRY",f"Current race: {RACES[p['race']][0]}")
