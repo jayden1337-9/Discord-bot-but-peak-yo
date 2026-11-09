@@ -208,7 +208,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=e,mention_author=False)
  @commands.group(name="boss",invoke_without_command=True)
  async def boss(self,ctx):
-  await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss summon <key> <count> · ,boss status · ,join · ,boss leave · ,attack [skill] · ,use phoenix_feather"),mention_author=False)
+  await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss summon <key> <count> · ,boss status · ,join · ,boss leave · ,boss abandon · ,attack [skill] · ,use phoenix_feather"),mention_author=False)
  @boss.command(name="summon")
  @commands.guild_only()
  @commands.is_owner()
@@ -229,7 +229,7 @@ class Adventure(commands.Cog):
    if g in self.data["raids"]:
     await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
    b=BOSSES[key]
-   self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"swarm_count":count,"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
+   self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
    self.flush()
   await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {b[1]:,}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
  @boss.command(name="challenge")
@@ -240,9 +240,22 @@ class Adventure(commands.Cog):
   async with self.lock:
    g=str(ctx.guild.id)
    if g in self.data["raids"]: await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
-   b=BOSSES[key]; self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
+   b=BOSSES[key]; self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
    self.flush()
   await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{b[1]:,} HP. First turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
+ @boss.command(name="abandon")
+ @commands.guild_only()
+ async def abandon_raid(self,ctx):
+  g=str(ctx.guild.id); uid=str(ctx.author.id)
+  async with self.lock:
+   r=self.data["raids"].get(g)
+   if not r:
+    await ctx.reply(embed=self.embed("NO RAID","There is no active raid to abandon."),mention_author=False); return
+   if r.get("leader")!=uid:
+    await ctx.reply(embed=self.embed("ACCESS DENIED","Only the player who started the raid can abandon it."),mention_author=False); return
+   self.data["raids"].pop(g,None); self.flush()
+  await ctx.reply(embed=self.embed("RAID ABANDONED","The active raid has been closed. No rewards were granted."),mention_author=False)
+
  @commands.command(name="join")
  @commands.guild_only()
  async def join(self,ctx):
@@ -278,6 +291,7 @@ class Adventure(commands.Cog):
    turns=r["turns"][:]; idx=turns.index(uid)
    following=next((u for u in turns[idx+1:]+turns[:idx] if u!=uid and r["players"].get(u,0)>0),None)
    r["turns"].remove(uid); r["players"].pop(uid,None); r["damage"].pop(uid,None)
+   if r.get("leader")==uid and r["turns"]: r["leader"]=r["turns"][0]
    if not r["players"]:
     self.data["raids"].pop(g,None); self.flush()
     await ctx.reply(embed=self.embed("RAID CLOSED","The last party member left. The raid has been closed."),mention_author=False); return
