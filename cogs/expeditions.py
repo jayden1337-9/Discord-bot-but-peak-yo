@@ -62,8 +62,8 @@ def expedition_scale(level):
 
 
 def daily_login_reward(streak):
-    streak = max(1, min(7, int(streak)))
-    return {"xp": 150 + streak * 50, "points": 1 if streak < 7 else 3, "token": streak == 7}
+    day = ((max(1, int(streak)) - 1) % 7) + 1
+    return {"xp": 150 + day * 50, "points": 1 if day < 7 else 3, "token": day == 7}
 
 
 class Expeditions(commands.Cog):
@@ -355,7 +355,7 @@ class Expeditions(commands.Cog):
             await ctx.reply(embed=self.embed("DAILY LOGIN CLAIMED", f"Your current streak is **{p.get('login_streak', 1)} days**. Come back after the UTC day changes."), mention_author=False)
             return
         yesterday = (today - timedelta(days=1)).isoformat()
-        streak = min(7, p.get("login_streak", 0) + 1) if last == yesterday else 1
+        streak = int(p.get("login_streak", 0)) + 1 if last == yesterday else 1
         reward = daily_login_reward(streak)
         p["login_streak"] = streak
         p["last_login"] = today.isoformat()
@@ -366,7 +366,7 @@ class Expeditions(commands.Cog):
             game.item(p, "mythic_token", 1)
         game.flush()
         extra = "\n7-day bonus: Mythic Token x1" if reward["token"] else ""
-        await ctx.reply(embed=self.embed("DAILY LOGIN REWARD", f"Day **{streak}/7**\nXP: +{display_number(reward['xp'])}\nSkill points: +{reward['points']}{extra}"), mention_author=False)
+        await ctx.reply(embed=self.embed("DAILY LOGIN REWARD", f"Day **{((streak - 1) % 7) + 1}/7** · Current streak: **{streak} days**\nXP: +{display_number(reward['xp'])}\nSkill points: +{reward['points']}{extra}"), mention_author=False)
 
 
 async def setup(bot):
