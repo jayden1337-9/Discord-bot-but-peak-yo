@@ -76,7 +76,7 @@ class General(commands.Cog):
         embed.add_field(name="SYSTEM", value=f"`{p}ping` · gateway latency\n`{p}about` · bot information\n`{p}help` · command index", inline=False)
         embed.add_field(name="COMMUNITY", value=f"`{p}userinfo [member]` · member profile\n`{p}serverinfo` · server overview\n`{p}avatar [member]` · avatar viewer\n`{p}roleinfo <role>` · role details\n`{p}poll <question>` · create a reaction poll\n`{p}purge <amount>` · clear messages (moderators)", inline=False)
         embed.add_field(name="TOOLS", value=f"`{p}roll [sides]` · random dice\n`{p}coinflip` · flip a coin\n`{p}choose <a | b | ...>` · random choice\n`{p}8ball <question>` · ask the 8-ball", inline=False)
-        embed.add_field(name="ADVENTURE", value=f"`{p}bosses` · calamity register\n`{p}boss challenge <name>` · start a raid\n`{p}boss status` · battlefield status\n`{p}join` · join the active fight\n`{p}attack [ability]` · take your turn\n`{p}weapons` · weapon catalogue\n`{p}weapon <name>` · equip a weapon\n`{p}skills` · view your skills\n`{p}unlock <skill>` · unlock a weapon ability", inline=False)
+        embed.add_field(name="ADVENTURE", value=f"`{p}bosses` · anime raid register\n`{p}boss challenge <name>` · start a raid\n`{p}boss status` · battlefield status\n`{p}join` · join the active fight\n`{p}attack [ability]` · take your turn\n`{p}characters` · anime character roster\n`{p}character <name>` · select a character\n`{p}skills` · view your skills\n`{p}unlock <skill>` · unlock a weapon ability", inline=False)
         embed.add_field(name="OWNER", value=f"`{p}reload` · update and restart", inline=False)
         await ctx.reply(embed=embed, mention_author=False)
 
