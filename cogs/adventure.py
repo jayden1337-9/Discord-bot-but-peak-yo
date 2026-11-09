@@ -252,7 +252,7 @@ class Adventure(commands.Cog):
   return p
  def flush(self): save(self.data)
  def embed(self,title,desc="",color=None):
-  e=discord.Embed(title=title,description=desc,color=color or discord.Color.from_rgb(48,61,82)); e.set_footer(text="PEAK  /  ANIME CHRONICLES"); return e
+  e=discord.Embed(title=title,description=desc,color=color or discord.Color.from_rgb(35,45,64)); return e
  def item(self,p,key,n):
   p["inventory"][key]=max(0,p["inventory"].get(key,0)+n)
   if not p["inventory"][key]: p["inventory"].pop(key,None)
