@@ -53,7 +53,10 @@ class Progression(commands.Cog):
         damage = max(0, int(p.get("damage", 0)) - state[f"{kind}_baseline_damage"])
         sr = p.get("symbolic_rewards", {})
         wins += max(0, int(sr.get("wins", 0)) - state[f"{kind}_baseline_symbolic_wins"])
-        damage += max(0, int(sr.get("damage", 0)) - state[f"{kind}_baseline_symbolic_damage"])
+        symbolic_damage = max(0, int(sr.get("damage", 0)) - state[f"{kind}_baseline_symbolic_damage"])
+        damage += symbolic_damage
+        if kind == "daily" and symbolic_damage > 0:
+            damage = max(damage, 1000)
         if kind == "daily":
             if state.get("daily_objective") == "wins":
                 return wins, 1, "Win a boss raid"
