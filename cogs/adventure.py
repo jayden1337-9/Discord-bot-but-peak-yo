@@ -230,7 +230,7 @@ WEAPON_CATEGORIES = {
  "zanpakuto_prime":"sword","ten_tails_staff":"magic","anti_spiral_edge":"magic",
 }
 ATTACK_TYPES = {"melee":"Melee","sword":"Sword","magic":"Magic"}
-BOSS_KEY_POOLS = {"jjk_key":["jogo","hanami","toji","jjk_sukuna","jjk_gojo","jjk_mahito"],"jojo_key":["dio","pucci","dio_vampire","diavolo","kira"],"naruto_key":["itachi","hashirama","momoshiki","isshiki","naruto_six_paths"]}
+BOSS_KEY_POOLS = {"jjk_key":["jogo","hanami","toji","maki","jjk_sukuna","jjk_gojo","jjk_mahito"],"jojo_key":["dio","pucci","dio_vampire","diavolo","kira"],"naruto_key":["itachi","hashirama","momoshiki","isshiki","naruto_six_paths"]}
 ITEM_RECIPES = {
  "jjk_key":{"name":"JJK Key","materials":{"cursed_ash":12,"soul_fragment":8,"six_eyes":1}},
  "jojo_key":{"name":"JoJo Key","materials":{"starsteel":12,"devil_fruit_shard":8,"soul_fragment":8}},
@@ -617,7 +617,7 @@ class Adventure(commands.Cog):
   async with self.lock:
    g=str(ctx.guild.id)
    if g in self.data["raids"]: await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
-   p=self.p(ctx.author.id); world=BOSS_DIMENSIONS.get(key,"earth")
+   b=BOSSES[key]; p=self.p(ctx.author.id); world=BOSS_DIMENSIONS.get(key,"earth")
    if p.get("active_dimension","earth")!=world:
     await ctx.reply(embed=self.embed("WRONG ANIME WORLD",f"{b[0]} belongs to {DIMENSIONS.get(world,DIMENSIONS['earth'])['name']}. Travel there with ,dimension enter {world} first."),mention_author=False); return
    dim=DIMENSIONS.get(world,DIMENSIONS["earth"]); hp=max(1,int(b[1]*dim.get("hp_mult",1)))
