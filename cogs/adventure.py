@@ -431,27 +431,37 @@ class Adventure(commands.Cog):
   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; key=c[5]
   if skill.lower().strip()!=key: await ctx.reply(embed=self.embed("UNKNOWN SKILL",f"Your character uses {key}."),mention_author=False); return
   if key in p["unlocked"] or(p["race"]=="vessel" and p["character"]=="sukuna"): await ctx.reply(embed=self.embed("ALREADY UNLOCKED","This skill is already available."),mention_author=False); return
-  if p["points"]<c[7]: await ctx.reply(embed=self.embed("NOT ENOUGH POINTS",f"You need {c[7]} points."),mention_author=False); return
-  p["points"]-=c[7]; p["unlocked"].append(key); self.flush()
+  if p["points"]<c[7]:
+   sr=p["symbolic_rewards"]
+   if sr["points"]<=sr["points_spent"]: await ctx.reply(embed=self.embed("NOT ENOUGH POINTS",f"You need {c[7]} points."),mention_author=False); return
+   sr["points_spent"]+=c[7]-p["points"]; p["points"]=0
+  else: p["points"]-=c[7]
+  p["unlocked"].append(key); self.flush()
   await ctx.reply(embed=self.embed("SKILL UNLOCKED",c[4]+" is now available."),mention_author=False)
  @commands.command(name="inventory",aliases=["inv","bag"])
  async def inventory(self,ctx):
   p=self.p(ctx.author.id)
-  lines=[f"{ITEMS.get(k,k)} x{display_number(v)}" for k,v in sorted(p["inventory"].items()) if v>0] or ["Your inventory is empty."]
+  lines=[f"{ITEMS.get(k,k)} x{display_number(v)}" for k,v in sorted(p["inventory"].items()) if v>0]
+  sr=p["symbolic_rewards"]
+  for k,v in sorted(sr["inventory"].items()):
+   if v>0: lines.append(f"{ITEMS.get(k,k)} x{symbolic_quantity(v,sr["inventory_spent"].get(k,0))}")
+  if not lines: lines=["Your inventory is empty."]
   e=self.embed("INVENTORY","\n".join(lines)[:4000])
   six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
-  e.add_field(name="Awakening progress",value=f"Six Eyes: {display_number(six)}/6\nCursed Fingers: {display_number(fingers)}/20\nRace: {RACES[p['race']][0]}",inline=False)
+  six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr["inventory_spent"].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
+  finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
+  e.add_field(name="Awakening progress",value=f"Six Eyes: {six_label}/6\nCursed Fingers: {finger_label}/20\nRace: {RACES[p['race']][0]}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="eat",aliases=["consume"])
  async def eat(self,ctx,*,item):
   key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if key in {"six_eye","six_eyes"}:
-   if p["race"]!="gojo" or p["inventory"].get("six_eyes",0)<6 or p["six_eyes_unlocked"]: await ctx.reply(embed=self.embed("AWAKENING UNAVAILABLE","You need Gojo Clan and 6 Six Eyes. You can only awaken once."),mention_author=False); return
-   self.item(p,"six_eyes",-6); p["six_eyes_unlocked"]=True; p["infinity_unlocked"]=True; self.flush()
+   if p["race"]!="gojo" or not self.has_item(p,"six_eyes",6) or p["six_eyes_unlocked"]: await ctx.reply(embed=self.embed("AWAKENING UNAVAILABLE","You need Gojo Clan and 6 Six Eyes. You can only awaken once."),mention_author=False); return
+   self.consume_item(p,"six_eyes",6); p["six_eyes_unlocked"]=True; p["infinity_unlocked"]=True; self.flush()
    await ctx.reply(embed=self.embed("LIMITLESS AWAKENED","Infinity and Six Eyes unlocked. Gojo Clan gains +20% damage and 35% damage reduction."),mention_author=False); return
   if key in {"cursed_finger","cursed_fingers","fingers"}:
-   if p["race"]!="vessel" or p["inventory"].get("cursed_fingers",0)<20 or p["sukuna_race_unlocked"]: await ctx.reply(embed=self.embed("AWAKENING UNAVAILABLE","You need Vessel and 20 Cursed Fingers. This awakening can only be unlocked once."),mention_author=False); return
-   self.item(p,"cursed_fingers",-20); p["sukuna_race_unlocked"]=True; p["race"]="sukuna"; self.flush()
+   if p["race"]!="vessel" or not self.has_item(p,"cursed_fingers",20) or p["sukuna_race_unlocked"]: await ctx.reply(embed=self.embed("AWAKENING UNAVAILABLE","You need Vessel and 20 Cursed Fingers. This awakening can only be unlocked once."),mention_author=False); return
+   self.consume_item(p,"cursed_fingers",20); p["sukuna_race_unlocked"]=True; p["race"]="sukuna"; self.flush()
    await ctx.reply(embed=self.embed("KING OF CURSES AWAKENED","20 fingers consumed. Secret race unlocked and equipped: +25% damage and 15% damage reduction."),mention_author=False); return
   await ctx.reply(embed=self.embed("CANNOT CONSUME","That item has no consumption effect."),mention_author=False)
  @commands.command(name="use")
@@ -465,15 +475,21 @@ class Adventure(commands.Cog):
    uid=str(ctx.author.id); p=self.p(ctx.author.id)
    if not r or uid not in r["players"] or r["players"][uid]>0:
     await ctx.reply(embed=self.embed("CANNOT USE","You must be a defeated party member in an active raid."),mention_author=False); return
-   if p["inventory"].get("phoenix_feather",0)<1:
+   if not self.has_item(p,"phoenix_feather",1):
     await ctx.reply(embed=self.embed("ITEM MISSING","You need a Phoenix Feather."),mention_author=False); return
-   self.item(p,"phoenix_feather",-1); r["players"][uid]=150; self.flush()
+   self.consume_item(p,"phoenix_feather",1); r["players"][uid]=150; self.flush()
   await ctx.reply(embed=self.embed("PHOENIX REVIVAL","Phoenix Feather consumed. You have returned with 150 HP."),mention_author=False)
 
  @commands.command(name="stats",aliases=["me"])
  async def stats(self,ctx,member:discord.Member=None):
   member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
-  desc=(f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}")
+  sr=p["symbolic_rewards"]
+  symbolic_lines=[]
+  if sr["xp"]: symbolic_lines.append(f"Symbolic XP: {symbolic_quantity(sr['xp'])} (stored separately from level progression)")
+  if sr["points"]: symbolic_lines.append(f"Symbolic skill points: {symbolic_quantity(sr['points'],sr['points_spent'])}")
+  if sr["wins"]: symbolic_lines.append(f"Symbolic victories: {symbolic_quantity(sr['wins'])}")
+  if sr["damage"]: symbolic_lines.append(f"Symbolic damage: {symbolic_quantity(sr['damage'])}")
+  desc=(f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
   e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
