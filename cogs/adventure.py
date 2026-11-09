@@ -231,7 +231,7 @@ class Adventure(commands.Cog):
    b=BOSSES[key]
    self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"swarm_count":count,"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
    self.flush()
-  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{display_number(count)} {b[0]}**. Each attack damages every living boss for the same amount.\nPer-boss HP: {b[1]:,}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
+  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {b[1]:,}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
  @boss.command(name="challenge")
  @commands.guild_only()
  async def challenge(self,ctx,*,key):
@@ -315,7 +315,7 @@ class Adventure(commands.Cog):
       self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{amount}")
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
-    await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {display_number(swarm_count)} bosses. Rewards were multiplied by the boss count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
+    await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Symbolic googolplex mode uses a 10^100 gameplay reward multiplier.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
    boss_hits=random.random()<0.72
    incoming=random.randint(*b[2]) if boss_hits else 0
    reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
@@ -366,7 +366,7 @@ class Adventure(commands.Cog):
  @commands.command(name="stats",aliases=["me"])
  async def stats(self,ctx,member:discord.Member=None):
   member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
-  e=self.embed("ADVENTURER PROFILE",f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {p['level']} · XP: {p['xp']}/{p['level']*250}\nSkill points: {p['points']}\nVictories: {p['wins']}\nTotal damage: {p['damage']:,}")
+  desc=(f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}")\n  e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
  async def leaderboard(self,ctx):
