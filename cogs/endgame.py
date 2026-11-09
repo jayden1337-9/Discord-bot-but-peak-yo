@@ -107,7 +107,12 @@ class Endgame(commands.Cog):
         lines = [f"**{slot.title()}:** {GEAR[key]['name'] if key in GEAR else 'Empty'}" for slot, key in p["gear_equipped"].items()]
         lines.append(f"\n**Total bonuses**\nATK +{stats['attack']} · DEF {int(stats['defense'] * 100)}% · HP +{stats['hp']}")
         lines.append(f"\nOwned relics: {len(p['gear_owned'])}/{len(GEAR)}")
-        await ctx.reply(embed=self.embed(cog, "EQUIPMENT LOADOUT", "\n".join(lines)), mention_author=False)
+        from cogs.render_ui import gear_image
+        image = gear_image(p, GEAR)
+        file = __import__("discord").File(image, filename="equipment.png")
+        embed = self.embed(cog, "EQUIPMENT LOADOUT", "\n".join(lines))
+        embed.set_image(url="attachment://equipment.png")
+        await ctx.reply(embed=embed, file=file, mention_author=False)
 
     @commands.command(name="equipgear")
     async def equipgear(self, ctx, *, key: str):
