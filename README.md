@@ -22,8 +22,8 @@ A modular Python Discord bot designed for Wispbyte.
 Set these in Wispbyte's environment/settings panel. Never commit real tokens.
 
 - `DISCORD_TOKEN` — required Discord bot token
-- `BOT_OWNER_ID` — Discord user ID allowed to use `!reload`
-- `COMMAND_PREFIX` — command prefix (default: `!`)
+- `BOT_OWNER_ID` — Discord user ID allowed to use `,reload`
+- `COMMAND_PREFIX` — command prefix (default: `,`)
 - `GITHUB_TOKEN` — fine-grained GitHub token with Contents: Read-only
 - `GITHUB_BRANCH` — branch to pull (default: `main`)
 
@@ -40,20 +40,20 @@ Enable **Message Content Intent** in the Discord Developer Portal for prefix com
 ## Commands
 
 ### General
-- `!ping`
-- `!about`
-- `!help`
-- `!userinfo [member]`
-- `!serverinfo`
-- `!avatar [member]`
-- `!roll [sides]`
-- `!choose option one | option two | option three`
-- `!8ball <question>`
+- `,ping`
+- `,about`
+- `,help`
+- `,userinfo [member]`
+- `,serverinfo`
+- `,avatar [member]`
+- `,roll [sides]`
+- `,choose option one | option two | option three`
+- `,8ball <question>`
 
 ### Adventure
-- `!bosses`
-- `!boss challenge <warden|leviathan|sovereign>`
-- `!boss status`
-- `!attack`
+- `,bosses`
+- `,boss challenge <warden|leviathan|sovereign>`
+- `,boss status`
+- `,attack`
 
 Boss encounters are currently in-memory and reset if the bot process restarts. Rewards are displayed as a reward pool only; no economy or currency is granted yet.
