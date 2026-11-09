@@ -1098,7 +1098,10 @@ class Adventure(commands.Cog):
    if not pool:
     continue
    samples=min(count,sample_limit)
-   scale=count/samples
+   # Keep scaling entirely in integer arithmetic; float conversion overflows
+   # when players hold chest stacks larger than roughly 10^308.
+   def scale_reward(value):
+    return (value*count + samples//2)//samples
    tier_loot={}; tier_gold=0; tier_gems=0
    for _ in range(samples):
     for _roll in range(data["rolls"]):
@@ -1111,9 +1114,9 @@ class Adventure(commands.Cog):
     if high_gem and random.random()<gem_chance:
      tier_gems+=random.randint(max(1,low_gem),high_gem)
    for item,amount in tier_loot.items():
-    loot_totals[item]=loot_totals.get(item,0)+round(amount*scale)
-   total_gold+=round(tier_gold*scale)
-   total_gems+=round(tier_gems*scale)
+    loot_totals[item]=loot_totals.get(item,0)+scale_reward(amount)
+   total_gold+=scale_reward(tier_gold)
+   total_gems+=scale_reward(tier_gems)
   for item,amount in loot_totals.items(): self.item(p,item,amount)
   p["gold"]=p.get("gold",0)+total_gold
   p["gems"]=p.get("gems",0)+total_gems
