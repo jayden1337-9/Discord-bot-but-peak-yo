@@ -41,7 +41,7 @@ class PeakBot(commands.Bot):
         else:
             log.error("Command failed", exc_info=(type(error), error, error.__traceback__))
             message = "Something went wrong while running that command."
-        embed = discord.Embed(title="Command error", description=message, color=discord.Color.red())
+        embed = discord.Embed(title="Something went wrong", description=message, color=discord.Color.from_rgb(190, 62, 72))
         await ctx.reply(embed=embed, mention_author=False)
 
     async def is_owner(self, user: discord.User | discord.Member) -> bool:
