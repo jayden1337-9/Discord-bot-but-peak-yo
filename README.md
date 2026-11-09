@@ -12,7 +12,7 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
 - Custom weapon builder and owner-only damage controls
 - Persistent JSON player profiles, inventories, weapons and active raids
-- Huge-number display for existing high-level profiles
+- Huge-number display for existing high-level profiles\n- Exact symbolic googolplex swarm rewards, tracked without expanding their decimal digits; symbolic XP is kept separate from ordinary level calculations
 - Owner-only GitHub update/restart with validation and rollback
 
 ## Requirements
@@ -107,4 +107,4 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 
 The game database is stored in `peak_game.json` inside `BOT_DATA_DIR`. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save.
 
-Large player values are displayed in scientific notation. The owner-only damage override and swarm tools are intentionally separate from normal player progression.
+Large player values are displayed in scientific notation. A googolplex swarm is represented exactly as 10^(10^100) and its damage, loot, victories, skill points and XP rewards are tracked symbolically. Symbolic XP is kept separate from ordinary level progression because the resulting level cannot be represented as a practical finite integer.
