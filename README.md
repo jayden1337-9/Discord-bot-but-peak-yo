@@ -10,7 +10,7 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Character-specific signature abilities, a material-and-level gated universal skill tree, race passives and character mastery
 - Five craftable weapons with distinct damage ranges and signature abilities
 - Ten unlockable dimensions with victory, level and material requirements; each grants a different damage affinity
-- Fifteen raid bosses, including Kenpachi, Kaido, Kaguya, Six Paths Madara and Anti-Spiral
+- Twenty-three raid bosses across Jujutsu Kaisen, One Piece, Naruto, Bleach, Demon Slayer, My Hero Academia, Dragon Ball and more, including eight beginner-friendly encounters
 - Nine forgeable signature weapons and ten universal combat skills
 - Eight permanent relic pieces across armor, relic and core slots, with attack and defense bonuses
 - A persistent ten-floor solo Rift Tower with escalating bosses, floor rewards and saved best records
