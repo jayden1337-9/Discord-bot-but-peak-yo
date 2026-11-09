@@ -64,6 +64,12 @@ def apply_level_ups(profile):
  profile["points"]+=levels
  return levels
 
+def swarm_value(count):
+ return 10**100 if count == "googolplex" else int(count)
+
+def swarm_label(count):
+ return "googolplex (symbolic)" if count == "googolplex" else display_number(count)
+
 def display_number(value):
  value=int(value)
  if value==0: return "0"
@@ -206,11 +212,17 @@ class Adventure(commands.Cog):
  @boss.command(name="summon")
  @commands.guild_only()
  @commands.is_owner()
- async def summon(self,ctx,key:str,count:int):
+ async def summon(self,ctx,key:str,count:str):
   key=key.lower().strip().replace(" ","_")
+  raw_count=count.lower().replace(",","").strip()
+  if raw_count == "googolplex": count="googolplex"
+  else:
+   try: count=int(raw_count)
+   except ValueError:
+    await ctx.reply(embed=self.embed("INVALID COUNT","Use a whole number or the word googolplex."),mention_author=False); return
   if key not in BOSSES:
    await ctx.reply(embed=self.embed("UNKNOWN TARGET","Use ,bosses to view available bosses."),mention_author=False); return
-  if count < 1:
+  if count != "googolplex" and count < 1:
    await ctx.reply(embed=self.embed("INVALID COUNT","Boss count must be at least 1."),mention_author=False); return
   async with self.lock:
    g=str(ctx.guild.id)
@@ -247,8 +259,8 @@ class Adventure(commands.Cog):
   if not r: await ctx.reply(embed=self.embed("NO RAID","There is no active raid."),mention_author=False); return
   b=BOSSES[r["boss"]]; alive=[u for u in r["turns"] if r["players"].get(u,0)>0]; current=alive[r["turn"]%len(alive)] if alive else None
   count=r.get("swarm_count",1)
-  title=f"{display_number(count)}x {b[0].upper()}" if count>1 else b[0].upper()
-  e=self.embed(title,f"{display_number(r['hp'])} / {display_number(r['max_hp'])} HP per boss · {display_number(count)} remaining"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
+  title=f"{swarm_label(count)}x {b[0].upper()}" if count != 1 else b[0].upper()
+  e=self.embed(title,f"{display_number(r['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
   e.add_field(name="Party",value="\n".join(f"<@{u}> · {hp}/250 HP" for u,hp in r["players"].items())[:1024],inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="attack",aliases=["strike","hit"])
@@ -285,25 +297,25 @@ class Adventure(commands.Cog):
     else: damage=random.randint(*c[3]); action="Basic strike"
    race=RACES[p["race"]]; mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
    damage=min(r["hp"],max(1,int(damage*mult))); r["hp"]-=damage
-   swarm_count=r.get("swarm_count",1)
-   total_damage=damage*swarm_count
+   swarm_count=r.get("swarm_count",1); swarm_multiplier=swarm_value(swarm_count)
+   total_damage=damage*swarm_multiplier
    r["damage"][uid]=r["damage"].get(uid,0)+total_damage; p["damage"]+=total_damage
    b=BOSSES[r["boss"]]
    if r["hp"]<=0:
     drops=[]
     for player_id in list(r["players"]):
-     q=self.p(int(player_id)); q["xp"]+=b[3]*swarm_count+r["damage"].get(player_id,0)//4; q["points"]+=swarm_count; q["wins"]+=swarm_count
+     q=self.p(int(player_id)); q["xp"]+=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4; q["points"]+=swarm_multiplier; q["wins"]+=swarm_multiplier
      apply_level_ups(q)
      got=[]
      for item,limits in b[4].items():
-      amount=random.randint(*limits)*swarm_count
+      amount=random.randint(*limits)*swarm_multiplier
       self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
      if random.random()<0.10:
-      amount=swarm_count
+      amount=swarm_multiplier
       self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{amount}")
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
-    await ctx.reply(embed=self.embed(f"RAID CLEARED / {display_number(swarm_count)}x {b[0].upper()}",f"Defeated {display_number(swarm_count)} bosses. Rewards were multiplied by the boss count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
+    await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {display_number(swarm_count)} bosses. Rewards were multiplied by the boss count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
    boss_hits=random.random()<0.72
    incoming=random.randint(*b[2]) if boss_hits else 0
    reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
@@ -315,9 +327,9 @@ class Adventure(commands.Cog):
    else: self.data["raids"].pop(g,None); nextline="\nThe party has fallen."
    self.flush()
   count=r.get("swarm_count",1)
-  target_line=f" every one of {display_number(count)} bosses" if count>1 else ""
+  target_line=f" every one of {swarm_label(count)} bosses" if count != 1 else ""
   e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {damage:,} damage to{target_line or ' the boss'}.\nTotal damage dealt: {total_damage:,}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
-  if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{display_number(self.data['raids'][g]['hp'])} / {display_number(r['max_hp'])} HP per boss · {display_number(count)} remaining",inline=False)
+  if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{display_number(self.data['raids'][g]['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="skills")
  async def skills(self,ctx):
