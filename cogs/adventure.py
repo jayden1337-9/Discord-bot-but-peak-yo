@@ -11,16 +11,16 @@ from discord.ext import commands
 DB_PATH = Path("/home/container/peak_adventure.sqlite3")
 
 BOSSES = {
-    "warden": {"name": "THE ASHEN WARDEN", "hp": 1200, "reward": 350, "damage": (24, 42), "description": "An ancient guardian sealed inside scorched iron."},
-    "leviathan": {"name": "THE DROWNED LEVIATHAN", "hp": 2200, "reward": 700, "damage": (35, 58), "description": "A colossal creature said to sleep beneath the deepest waters."},
-    "sovereign": {"name": "THE HOLLOW SOVEREIGN", "hp": 4000, "reward": 1400, "damage": (48, 76), "description": "A forgotten ruler whose presence bends the air around it."},
+    "hollowfang": {"name": "HOLLOWFANG, THE DEVOURER", "hp": 1400, "reward": 350, "damage": (25, 43), "description": "A calamity-born beast that feeds on the battle spirit of fallen warriors."},
+    "tideemperor": {"name": "THE TIDE EMPEROR", "hp": 2600, "reward": 700, "damage": (36, 59), "description": "An exiled sea monarch who commands pressure, storms and crushing waves."},
+    "eclipse": {"name": "THE ECLIPSE TYRANT", "hp": 4600, "reward": 1400, "damage": (50, 78), "description": "An ancient warlord whose aura can silence an entire battlefield."},
 }
 
 WEAPONS = {
-    "ironblade": {"name": "Ironblade", "level": 1, "damage": (75, 110), "ability": "cleave", "ability_name": "Cleave", "ability_damage": (145, 190), "cost": 1},
-    "frostfang": {"name": "Frostfang", "level": 3, "damage": (65, 125), "ability": "frostbite", "ability_name": "Frostbite", "ability_damage": (175, 220), "cost": 2},
-    "stormcaller": {"name": "Stormcaller", "level": 6, "damage": (90, 135), "ability": "thunderfall", "ability_name": "Thunderfall", "ability_damage": (210, 270), "cost": 2},
-    "voidreaper": {"name": "Voidreaper", "level": 10, "damage": (115, 160), "ability": "soulrend", "ability_name": "Soulrend", "ability_damage": (270, 340), "cost": 3},
+    "ironblade": {"name": "Ironblade", "level": 1, "damage": (75, 110), "ability": "cleave", "ability_name": "Rising Cleave", "ability_damage": (145, 190), "cost": 1},
+    "frostfang": {"name": "Frostfang", "level": 3, "damage": (65, 125), "ability": "frostbite", "ability_name": "Winter Prison", "ability_damage": (175, 220), "cost": 2},
+    "stormcaller": {"name": "Stormcaller", "level": 6, "damage": (90, 135), "ability": "thunderfall", "ability_name": "Heaven’s Breaker", "ability_damage": (210, 270), "cost": 2},
+    "voidreaper": {"name": "Voidreaper", "level": 10, "damage": (115, 160), "ability": "soulrend", "ability_name": "Abyssal Sever", "ability_damage": (270, 340), "cost": 3},
 }
 
 class Adventure(commands.Cog):
@@ -51,7 +51,7 @@ class Adventure(commands.Cog):
 
     def make_embed(self, title: str, description: str = "", color: discord.Color = discord.Color.from_rgb(77, 54, 92)) -> discord.Embed:
         embed = discord.Embed(title=title, description=description, color=color)
-        embed.set_footer(text="PEAK  /  ADVENTURE")
+        embed.set_footer(text="PEAK  /  THE AWAKENING")
         return embed
 
     def weapon_for(self, user_id: int):
@@ -61,13 +61,13 @@ class Adventure(commands.Cog):
     @commands.group(name="boss", invoke_without_command=True, aliases=["hunt"])
     async def boss(self, ctx: commands.Context) -> None:
         p = ctx.clean_prefix
-        await ctx.reply(embed=self.make_embed("Adventure terminal", f"`{p}bosses` catalogue  ·  `{p}boss challenge <name>` summon
+        await ctx.reply(embed=self.make_embed("HUNTER GUILD", f"`{p}bosses` view calamities  ·  `{p}boss challenge <name>` start a raid\\n`{p}join` enter  ·  `{p}attack [technique]` take your turn\\n`{p}boss status` inspect the battlefield"), mention_author=False)
 `{p}join` enter  ·  `{p}attack [ability]` take your turn
 `{p}boss status` encounter status"), mention_author=False)
 
     @commands.command(name="bosses", aliases=["bestiary"])
     async def bosses(self, ctx: commands.Context) -> None:
-        embed = self.make_embed("The bestiary", "Three known threats. Bosses retaliate after every player turn.")
+        embed = self.make_embed("CALAMITY REGISTER", "Threats recorded by the Hunter Guild. Each boss retaliates after every adventurer’s turn.")
         for key, boss in BOSSES.items():
             embed.add_field(name=f"{boss['name']}  /  {key}", value=f"{boss['description']}\n**{boss['hp']:,} HP**  ·  **{boss['damage'][0]}–{boss['damage'][1]} damage** per turn", inline=False)
         await ctx.reply(embed=embed, mention_author=False)
