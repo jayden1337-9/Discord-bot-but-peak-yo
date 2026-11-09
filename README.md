@@ -8,7 +8,7 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Community tools, polls, moderation utilities and random tools
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
 - Character-specific signature abilities, unlockable skills and race passives
-- Cooperative turn-based boss raids with party turns, boss retaliation and rewards
+- Cooperative turn-based boss raids with party turns, escalating boss phases, retaliation and rewards
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
 - Custom weapon builder and owner-only damage controls
 - Persistent JSON player profiles, inventories, weapons and active raids
@@ -88,6 +88,8 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,use phoenix_feather` — revive during a raid
 - `,stats [member]` / `,me`
 - `,leaderboard` / `,top`
+- `,daily`, `,weekly`, `,quests`, `,claim <daily|weekly>`
+- `,achievements`, `,titles`, `,title <key|off>`
 - `,weapon list`, `,weapon equip <key>`, `,weapon unequip`
 
 ### Owner
@@ -105,6 +107,6 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 
 ## Data
 
-The game database is stored in `peak_game.json` inside `BOT_DATA_DIR`. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save.
+The game database is stored in `peak_game.json` inside `BOT_DATA_DIR`. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save and refreshes `peak_game.backup.json` from the last valid database before overwriting it.
 
 Large player values are displayed in scientific notation. A googolplex swarm is represented exactly as 10^(10^100) and its damage, loot, victories, skill points and XP rewards are tracked symbolically. Symbolic XP is kept separate from ordinary level progression because the resulting level cannot be represented as a practical finite integer.
