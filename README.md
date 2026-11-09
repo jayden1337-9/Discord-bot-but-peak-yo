@@ -1,12 +1,21 @@
 # Discord-bot-but-peak-yo
 
-A modular Python Discord bot designed to run on Wispbyte.
+A modular Python Discord bot designed for Wispbyte.
+
+## Features
+
+- Consistent Discord embeds and a central command directory
+- Latency, bot information, member information, server information and avatar commands
+- Dice rolls, random choice and a simple 8-ball
+- Cooperative server boss encounters with health, attack cooldowns and contributor rankings
+- Owner-only controlled GitHub update and restart
+- Supervisor restart loop with validation and rollback on failed updates
 
 ## Requirements
 
 - Python 3.10+
-- A Discord bot token
 - Git installed on the host
+- A Discord bot token
 
 ## Environment variables
 
@@ -20,22 +29,31 @@ Set these in Wispbyte's environment/settings panel. Never commit real tokens.
 
 ## Startup
 
-Use this as the Wispbyte startup command:
+Install dependencies with `pip install -r requirements.txt`, then use:
 
 ```sh
 python run.py
 ```
 
-The supervisor restarts the bot after unexpected exits, using a short backoff.
-The owner-only `!reload` command requests a controlled restart. The supervisor
-then pulls the latest `main` branch, checks Python syntax, installs requirements,
-and starts the bot again. If validation fails, it restores the previous code.
+Enable **Message Content Intent** in the Discord Developer Portal for prefix commands.
 
-## Starter commands
+## Commands
 
+### General
 - `!ping`
 - `!about`
 - `!help`
-- `!reload` (owner only)
+- `!userinfo [member]`
+- `!serverinfo`
+- `!avatar [member]`
+- `!roll [sides]`
+- `!choose option one | option two | option three`
+- `!8ball <question>`
 
-Enable **Message Content Intent** in the Discord Developer Portal for prefix commands.
+### Adventure
+- `!bosses`
+- `!boss challenge <warden|leviathan|sovereign>`
+- `!boss status`
+- `!attack`
+
+Boss encounters are currently in-memory and reset if the bot process restarts. Rewards are displayed as a reward pool only; no economy or currency is granted yet.
