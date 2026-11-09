@@ -1,6 +1,6 @@
 import unittest
 
-from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, BOSS_RARE_DROPS, BOSS_DIMENSIONS, JJK_BOSSES, JJK_NO_CURSED_ENERGY, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 from cogs.render_ui import inventory_image, gear_image
@@ -90,6 +90,29 @@ class GameSystemTests(unittest.TestCase):
         for key in expected:
             for item in BOSSES[key][4]:
                 self.assertIn(item, ITEMS)
+
+    def test_boss_worlds_chests_and_currency_are_complete(self):
+        self.assertEqual(set(BOSS_DIMENSIONS), set(BOSSES))
+        for key in BOSSES:
+            self.assertIn(f"boss_chest_{key}", ITEMS)
+        self.assertEqual(DEFAULT["gold"], 0)
+        self.assertEqual(DEFAULT["gems"], 0)
+
+    def test_gojo_and_sukuna_have_exclusive_rare_drops(self):
+        self.assertEqual(dict(BOSS_RARE_DROPS["gojo"])["six_eyes"], 0.025)
+        self.assertEqual(dict(BOSS_RARE_DROPS["jjk_gojo"])["six_eyes"], 0.025)
+        for key, boss in BOSSES.items():
+            if key not in {"gojo", "jjk_gojo"}:
+                self.assertNotIn("six_eyes", boss[4], key)
+            if key not in {"sukuna", "jjk_sukuna"}:
+                for item in ("cursed_fingers", "sukuna_relic", "malevolent_essence", "shrine_fragment", "king_of_curses_seal"):
+                    self.assertNotIn(item, boss[4], key)
+
+    def test_black_flash_residue_only_drops_from_cursed_energy_jjk_bosses(self):
+        for key in JJK_BOSSES - JJK_NO_CURSED_ENERGY:
+            self.assertIn("black_flash_residue", BOSSES[key][4], key)
+        for key in JJK_NO_CURSED_ENERGY:
+            self.assertNotIn("black_flash_residue", BOSSES[key][4], key)
 
     def test_expansion_content_is_connected(self):
         self.assertGreaterEqual(len(BOSSES), 15)
