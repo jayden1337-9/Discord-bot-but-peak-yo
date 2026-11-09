@@ -353,9 +353,12 @@ class Adventure(commands.Cog):
   p=self.p(ctx.author.id)
   if p.get("clan_rolls",0)<1:
    await ctx.reply(embed=self.embed("NO CLAN REROLLS","Earn one clan reroll every 5 boss victories, or craft one with ,craft item clan_token."),mention_author=False); return
-  choices=[("otogakure",35),("satoru",18),("zenin",18),("kamo",18),("akatsuki",5),("konoha",5),("king",1)]
+  choices=[(None,95.28),("otogakure",3.0),("satoru",0.5),("zenin",0.5),("kamo",0.5),("akatsuki",0.1),("konoha",0.1),("king",0.02)]
   result=random.choices([x[0] for x in choices],weights=[x[1] for x in choices],k=1)[0]
-  p["clan_rolls"]-=1; p["clan"]=result; self.flush(); d=CLANS[result]
+  p["clan_rolls"]-=1; p["clan"]=result; self.flush()
+  if result is None:
+   await ctx.reply(embed=self.embed("CLAN ROLL",f"You rolled no clan this time. Rerolls remaining: {p['clan_rolls']}"),mention_author=False); return
+  d=CLANS[result]
   await ctx.reply(embed=self.embed("CLAN AWAKENED",f"You rolled **{d['name']}**.\nMelee +{int(d['melee']*100)}% · Sword +{int(d['sword']*100)}% · Magic +{int(d['magic']*100)}%\nRerolls remaining: {p['clan_rolls']}"),mention_author=False)
 
  @commands.command(name="races")
