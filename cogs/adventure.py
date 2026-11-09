@@ -1,4 +1,5 @@
 import asyncio, json, os, random, sqlite3, tempfile
+from math import isqrt
 from pathlib import Path
 import discord
 from discord.ext import commands
@@ -50,6 +51,18 @@ RACES = {
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
 DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0}
+
+def apply_level_ups(profile):
+ xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
+ a=2*level-1
+ levels=max(0,(isqrt(a*a+(8*xp)//250)-a)//2)
+ cost=lambda n: 125*n*(2*level+n-1)
+ while levels and cost(levels)>xp: levels-=1
+ while cost(levels+1)<=xp: levels+=1
+ profile["xp"]=xp-cost(levels)
+ profile["level"]=level+levels
+ profile["points"]+=levels
+ return levels
 
 def save(data):
  ROOT.mkdir(parents=True,exist_ok=True)
@@ -271,7 +284,7 @@ class Adventure(commands.Cog):
     drops=[]
     for player_id in list(r["players"]):
      q=self.p(int(player_id)); q["xp"]+=b[3]*swarm_count+r["damage"].get(player_id,0)//4; q["points"]+=swarm_count; q["wins"]+=swarm_count
-     while q["xp"]>=q["level"]*250: q["xp"]-=q["level"]*250; q["level"]+=1; q["points"]+=1
+     apply_level_ups(q)
      got=[]
      for item,limits in b[4].items():
       amount=random.randint(*limits)*swarm_count
@@ -397,7 +410,7 @@ class Adventure(commands.Cog):
  async def addxp(self,ctx,member:discord.User,amount:int):
   if not 0<=amount<=100000000: await ctx.reply(embed=self.embed("INVALID XP","Amount must be 0 to 100000000."),mention_author=False); return
   p=self.p(member.id); p["xp"]+=amount
-  while p["xp"]>=p["level"]*250: p["xp"]-=p["level"]*250; p["level"]+=1; p["points"]+=1
+  apply_level_ups(p)
   self.flush(); await ctx.reply(embed=self.embed("OWNER XP GRANT",f"Added {amount:,} XP. New level: {p['level']}."),mention_author=False)
  @commands.command(name="setlevel")
  @commands.is_owner()
