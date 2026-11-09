@@ -3,7 +3,8 @@ import unittest
 from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
-from cogs.render_ui import inventory_image, gear_image\nfrom cogs.expeditions import ROUTES, expedition_scale, daily_login_reward
+from cogs.render_ui import inventory_image, gear_image
+from cogs.expeditions import ROUTES, expedition_scale, daily_login_reward
 from PIL import Image
 
 
