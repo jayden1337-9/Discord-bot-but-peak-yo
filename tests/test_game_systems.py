@@ -1,7 +1,7 @@
 import unittest
 
 from cogs.adventure import apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
-from cogs.progression import TITLE_RULES
+from cogs.progression import Progression, TITLE_RULES, utc_day
 
 
 class GameSystemTests(unittest.TestCase):
@@ -27,6 +27,24 @@ class GameSystemTests(unittest.TestCase):
         profile = {"wins": 0, "damage": 0, "race": "human", "symbolic_rewards": {"wins": 1, "damage": 1}}
         self.assertTrue(TITLE_RULES["conqueror"][2](profile))
         self.assertTrue(TITLE_RULES["calamity"][2](profile))
+
+    def test_symbolic_swarm_completes_daily_damage_contract(self):
+        profile = {
+            "wins": 0,
+            "damage": 0,
+            "symbolic_rewards": {"wins": 0, "damage": 1},
+            "quests": {
+                "daily_period": utc_day(),
+                "daily_claimed": False,
+                "daily_baseline_wins": 0,
+                "daily_baseline_damage": 0,
+                "daily_baseline_symbolic_wins": 0,
+                "daily_baseline_symbolic_damage": 0,
+                "daily_objective": "damage",
+            },
+        }
+        progress, target, _ = Progression(None).quest_progress(profile, "daily")
+        self.assertGreaterEqual(progress, target)
 
     def test_level_up_math(self):
         profile = {"level": 1, "xp": 250, "points": 0}
