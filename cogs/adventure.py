@@ -27,6 +27,16 @@ CHARACTERS = {
  "rimuru":("Rimuru Tempest","That Time I Got Reincarnated as a Slime",18,(145,195),"Predator","predator",(330,420),5),
 }
 BOSSES = {
+ # Starter encounters from several anime worlds. These are intentionally weaker
+ # than the original raid roster so new players have a clear progression path.
+ "bandit":("East Blue Bandit",220,(5,9),45,{"bandit_badge":(1,2),"basic_potion":(1,2)}),
+ "buggy":("Buggy the Clown",360,(7,12),75,{"buggy_emblem":(1,2),"devil_fruit_shard":(1,1)}),
+ "mizuki":("Mizuki",480,(8,14),100,{"rogue_ninja_headband":(1,2),"chakra_crystal":(1,1)}),
+ "fishbone_d":("Fishbone D",620,(10,16),130,{"hollow_fragment":(1,2),"soul_fragment":(1,1)}),
+ "hand_demon":("Hand Demon",780,(12,19),165,{"demon_blood":(1,2),"nightmare_ash":(1,1)}),
+ "sludge_villain":("Sludge Villain",920,(14,22),200,{"quirk_residue":(1,2),"healing_potion":(1,1)}),
+ "raditz":("Raditz",1150,(17,26),250,{"saiyan_armor":(1,2),"zenkai_cell":(1,1)}),
+ "low_rank_curse":("Grade 2 Cursed Spirit",1350,(19,29),290,{"cursed_ash":(1,2),"soul_fragment":(1,1)}),
  "mahito":("Mahito",1600,(28,46),350,{"cursed_ash":(1,3),"cursed_fingers":(1,2),"transfigured_soul":(1,2),"idle_transfiguration":(1,1),"soul_fragment":(1,3),"black_flash_residue":(1,2),"void_ore":(1,2),"healing_potion":(1,2)}),
  "doflamingo":("Donquixote Doflamingo",2800,(38,62),650,{"string_core":(1,3),"devil_fruit_shard":(1,2),"birdcage_thread":(1,2),"celestial_blood":(1,1),"ito_essence":(1,2),"flamingo_feather":(1,3),"starsteel":(1,2)}),
  "madara":("Madara Uchiha",4700,(52,82),1200,{"six_paths_essence":(1,2),"chakra_crystal":(1,3),"susanoo_fragment":(1,2),"rinnegan_shard":(1,1),"god_tree_seed":(1,2),"uchiha_relic":(1,3),"awakening_crystal":(1,2)}),
