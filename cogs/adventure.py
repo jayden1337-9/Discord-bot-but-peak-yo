@@ -94,7 +94,7 @@ class WeaponBuilderModal(discord.ui.Modal, title="Create a custom weapon"):
  def __init__(self, cog, owner_id):
   super().__init__(timeout=300); self.cog=cog; self.owner_id=owner_id
   self.weapon_name=discord.ui.TextInput(label="Weapon name",placeholder="e.g. World Splitter",max_length=40)
-  self.damage=discord.ui.TextInput(label="Basic damage range",placeholder="Example: 100-150",max_length=15)
+  self.damage=discord.ui.TextInput(label="Basic damage range",placeholder="Example: 100-150",max_length=100)
   self.ability=discord.ui.TextInput(label="Ability name",placeholder="e.g. Reality Sever",max_length=40)
   self.ability_damage=discord.ui.TextInput(label="Ability damage range",placeholder="Example: 200-300",max_length=15)
   self.description=discord.ui.TextInput(label="Description",style=discord.TextStyle.paragraph,required=False,max_length=180)
@@ -105,9 +105,9 @@ class WeaponBuilderModal(discord.ui.Modal, title="Create a custom weapon"):
   try:
    low,high=[int(x.strip()) for x in self.damage.value.split("-",1)]
    skill_low,skill_high=[int(x.strip()) for x in self.ability_damage.value.split("-",1)]
-   if not (1<=low<=high<=100000 and 1<=skill_low<=skill_high<=200000): raise ValueError
+   if not (1<=low<=high and 1<=skill_low<=skill_high): raise ValueError
   except (ValueError,TypeError):
-   await interaction.response.send_message("Damage ranges must use MIN-MAX format and stay within the allowed limits.",ephemeral=True); return
+   await interaction.response.send_message("Damage ranges must use MIN-MAX format. Both values must be positive, and the maximum must be at least the minimum.",ephemeral=True); return
   name=self.weapon_name.value.strip(); key=name.lower().replace(" ","_")
   if not key or key in self.cog.data["custom_weapons"] or key in CHARACTERS:
    await interaction.response.send_message("That weapon name is empty or already in use.",ephemeral=True); return
