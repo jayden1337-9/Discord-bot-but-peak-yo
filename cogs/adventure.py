@@ -295,7 +295,7 @@ class Adventure(commands.Cog):
    self.item(p,"cursed_fingers",-20); p["sukuna_race_unlocked"]=True; p["race"]="sukuna"; self.flush()
    await ctx.reply(embed=self.embed("KING OF CURSES AWAKENED","20 fingers consumed. Secret race unlocked and equipped: +25% damage and 15% damage reduction."),mention_author=False); return
   await ctx.reply(embed=self.embed("CANNOT CONSUME","That item has no consumption effect."),mention_author=False)
- @commands.command(name="stats",aliases=["profile","me"])
+ @commands.command(name="stats",aliases=["me"])
  async def stats(self,ctx,member:discord.Member=None):
   member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
   e=self.embed("ADVENTURER PROFILE",f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {p['level']} · XP: {p['xp']}/{p['level']*250}\nSkill points: {p['points']}\nVictories: {p['wins']}\nTotal damage: {p['damage']:,}")
