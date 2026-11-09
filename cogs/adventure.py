@@ -15,6 +15,7 @@ BOSSES = {
     "doflamingo": {"name": "DONQUIXOTE DOFLAMINGO", "hp": 2600, "reward": 700, "damage": (36, 59), "description": "The Heavenly Demon. His strings control the battlefield and punish careless fighters."},
     "madara": {"name": "MADARA UCHIHA", "hp": 4600, "reward": 1400, "damage": (50, 78), "description": "The legendary Uchiha who brings the power of the Sharingan and Susanoo to the battlefield."},
     "frieza": {"name": "FRIEZA", "hp": 7200, "reward": 2200, "damage": (65, 95), "description": "The emperor of the universe. His overwhelming power makes this a final-tier raid."},
+    "gojo": {"name": "SATORU GOJO", "hp": 1900, "reward": 500, "damage": (30, 48), "description": "The honoured one. Defeat this special encounter to obtain a Six Eyes relic."},
 }
 
 WEAPONS = {
@@ -28,6 +29,16 @@ WEAPONS = {
     "goku": {"name": "Son Goku", "level": 15, "damage": (130, 175), "ability": "spirit_bomb", "ability_name": "Spirit Bomb", "ability_damage": (300, 380), "cost": 4, "series": "Dragon Ball", "moves": "Kaioken · Super Saiyan · Instant Transmission"},
 }
 
+
+RACES = {
+    "human": {"name": "Human", "description": "No special traits. A balanced starting race.", "damage": 1.0, "reduction": 0.0},
+    "gojo": {"name": "Gojo Clan", "description": "Six Eyes bloodline. +10% damage and 10% less incoming damage.", "damage": 1.10, "reduction": 0.10},
+    "saiyan": {"name": "Saiyan", "description": "Battle-born fighters. +15% damage.", "damage": 1.15, "reduction": 0.0},
+    "fishman": {"name": "Fish-Man", "description": "Tough bodies. 20% less incoming damage.", "damage": 1.0, "reduction": 0.20},
+    "shinobi": {"name": "Shinobi", "description": "Quick and tactical. +7% damage and 8% less incoming damage.", "damage": 1.07, "reduction": 0.08},
+    "curse": {"name": "Cursed Spirit", "description": "Cursed energy. +12% damage, but takes 5% more damage.", "damage": 1.12, "reduction": -0.05},
+}
+
 class Adventure(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -39,10 +50,19 @@ class Adventure(commands.Cog):
             level INTEGER NOT NULL DEFAULT 1, skill_points INTEGER NOT NULL DEFAULT 0,
             weapon TEXT NOT NULL DEFAULT 'sukuna', unlocked TEXT NOT NULL DEFAULT ''
         )""")
+        columns = {row[1] for row in self.db.execute("PRAGMA table_info(profiles)").fetchall()}
+        for column, definition in {
+            "race": "TEXT NOT NULL DEFAULT 'human'",
+            "six_eyes": "INTEGER NOT NULL DEFAULT 0",
+            "infinity_unlocked": "INTEGER NOT NULL DEFAULT 0",
+            "six_eyes_unlocked": "INTEGER NOT NULL DEFAULT 0",
+        }.items():
+            if column not in columns:
+                self.db.execute(f"ALTER TABLE profiles ADD COLUMN {column} {definition}")
         self.db.commit()
 
     def profile(self, user_id: int):
-        row = self.db.execute("SELECT xp, level, skill_points, weapon, unlocked FROM profiles WHERE user_id=?", (user_id,)).fetchone()
+        row = self.db.execute("SELECT xp, level, skill_points, weapon, unlocked, race, six_eyes, infinity_unlocked, six_eyes_unlocked FROM profiles WHERE user_id=?", (user_id,)).fetchone()
         if row is None:
             self.db.execute("INSERT INTO profiles(user_id) VALUES(?)", (user_id,))
             self.db.commit()
@@ -51,14 +71,14 @@ class Adventure(commands.Cog):
         weapon = legacy.get(row[3], row[3])
         if weapon not in WEAPONS:
             weapon = "sukuna"
-        profile = {"xp": row[0], "level": row[1], "points": row[2], "weapon": weapon, "unlocked": set(filter(None, row[4].split(",")))}
+        profile = {"xp": row[0], "level": row[1], "points": row[2], "weapon": weapon, "unlocked": set(filter(None, row[4].split(","))), "race": row[5] if row[5] in RACES else "human", "six_eyes": row[6], "infinity_unlocked": bool(row[7]), "six_eyes_unlocked": bool(row[8])}
         if weapon != row[3]:
             self.save_profile(user_id, profile)
         return profile
 
     def save_profile(self, user_id: int, profile: dict) -> None:
-        self.db.execute("UPDATE profiles SET xp=?, level=?, skill_points=?, weapon=?, unlocked=? WHERE user_id=?",
-                        (profile["xp"], profile["level"], profile["points"], profile["weapon"], ",".join(sorted(profile["unlocked"])), user_id))
+        self.db.execute("UPDATE profiles SET xp=?, level=?, skill_points=?, weapon=?, unlocked=?, race=?, six_eyes=?, infinity_unlocked=?, six_eyes_unlocked=? WHERE user_id=?",
+                        (profile["xp"], profile["level"], profile["points"], profile["weapon"], ",".join(sorted(profile["unlocked"])), profile["race"], profile["six_eyes"], int(profile["infinity_unlocked"]), int(profile["six_eyes_unlocked"]), user_id))
         self.db.commit()
 
     def make_embed(self, title: str, description: str = "", color: discord.Color = discord.Color.from_rgb(77, 54, 92)) -> discord.Embed:
@@ -133,6 +153,59 @@ class Adventure(commands.Cog):
         embed.add_field(name="Damage dealt", value=f"{sum(encounter['damage'].values()):,}", inline=True)
         embed.add_field(name="Party", value=roster[:1024] or "No players", inline=False)
         await ctx.reply(embed=embed, mention_author=False)
+
+
+    @commands.command(name="races")
+    async def races(self, ctx: commands.Context) -> None:
+        profile = self.profile(ctx.author.id)
+        embed = self.make_embed("RACE REGISTRY", "Choose a race to gain its passive bonuses. Your current race is **" + RACES[profile["race"]]["name"] + "**.")
+        for key, race in RACES.items():
+            state = "CURRENT" if profile["race"] == key else "AVAILABLE"
+            embed.add_field(name=f"{race['name']} · {state}", value=f"{race['description']}\nSelect with `,race {key}`.", inline=False)
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="race")
+    async def race(self, ctx: commands.Context, *, name: str) -> None:
+        key = name.lower().strip().replace(" ", "_").replace("-", "_")
+        aliases = {"gojo clan": "gojo", "cursed spirit": "curse", "fish man": "fishman"}
+        key = aliases.get(name.lower().strip(), key)
+        if key not in RACES:
+            await ctx.reply(embed=self.make_embed("Race not found", "Use `,races` to view the available races."), mention_author=False)
+            return
+        profile = self.profile(ctx.author.id)
+        profile["race"] = key
+        self.save_profile(ctx.author.id, profile)
+        race = RACES[key]
+        await ctx.reply(embed=self.make_embed("RACE CHANGED", f"You are now part of **{race['name']}**.\n{race['description']}"), mention_author=False)
+
+    @commands.command(name="inventory", aliases=["inv", "bag"])
+    async def inventory(self, ctx: commands.Context) -> None:
+        profile = self.profile(ctx.author.id)
+        embed = self.make_embed("INVENTORY", f"**Six Eyes:** {profile['six_eyes']} / 6\n**Race:** {RACES[profile['race']]['name']}")
+        embed.add_field(name="Awakening requirements", value="Eat 6 Six Eyes while using the Gojo Clan race to unlock **Infinity** and **Six Eyes**.", inline=False)
+        await ctx.reply(embed=embed, mention_author=False)
+
+    @commands.command(name="eat")
+    async def eat(self, ctx: commands.Context, *, item: str) -> None:
+        key = item.lower().strip().replace(" ", "_")
+        if key not in {"six_eye", "six_eyes"}:
+            await ctx.reply(embed=self.make_embed("Cannot consume item", "That item cannot be consumed."), mention_author=False)
+            return
+        profile = self.profile(ctx.author.id)
+        if profile["race"] != "gojo":
+            await ctx.reply(embed=self.make_embed("Bloodline required", "You must be part of the **Gojo Clan** to awaken these traits."), mention_author=False)
+            return
+        if profile["six_eyes_unlocked"] and profile["infinity_unlocked"]:
+            await ctx.reply(embed=self.make_embed("Already awakened", "You have already unlocked Infinity and Six Eyes."), mention_author=False)
+            return
+        if profile["six_eyes"] < 6:
+            await ctx.reply(embed=self.make_embed("Not enough Six Eyes", f"You need **6 Six Eyes**. Your inventory contains **{profile['six_eyes']}**."), mention_author=False)
+            return
+        profile["six_eyes"] -= 6
+        profile["six_eyes_unlocked"] = True
+        profile["infinity_unlocked"] = True
+        self.save_profile(ctx.author.id, profile)
+        await ctx.reply(embed=self.make_embed("LIMITLESS AWAKENED", "Six Eyes consumed. **Infinity** and **Six Eyes** are now permanently unlocked.\n\nGojo Clan bonus upgraded: +20% damage and 35% less incoming damage."), mention_author=False)
 
     @commands.command(name="characters", aliases=["weapons", "roster"])
     async def weapons(self, ctx: commands.Context) -> None:
@@ -218,6 +291,11 @@ class Adventure(commands.Cog):
             else:
                 dealt = random.randint(*weapon["damage"])
                 action = "Basic attack"
+            race_data = RACES[profile["race"]]
+            multiplier = race_data["damage"]
+            if profile["race"] == "gojo" and profile["six_eyes_unlocked"]:
+                multiplier = 1.20
+            dealt = int(dealt * multiplier)
             boss = BOSSES[encounter["key"]]
             dealt = min(dealt, encounter["hp"])
             encounter["hp"] -= dealt
@@ -229,6 +307,8 @@ class Adventure(commands.Cog):
                     p = self.profile(uid)
                     p["xp"] += 100 + encounter["damage"].get(uid, 0) // 5
                     p["points"] += 1
+                    if encounter["key"] == "gojo":
+                        p["six_eyes"] += 1
                     while p["xp"] >= p["level"] * 250:
                         p["xp"] -= p["level"] * 250
                         p["level"] += 1
@@ -240,6 +320,10 @@ class Adventure(commands.Cog):
                 defeated = False
                 # The boss retaliates immediately after the active adventurer's turn.
                 incoming = random.randint(*boss["damage"])
+                reduction = RACES[profile["race"]]["reduction"]
+                if profile["race"] == "gojo" and profile["infinity_unlocked"]:
+                    reduction = 0.35
+                incoming = max(1, int(incoming * (1 - reduction)))
                 encounter["players"][ctx.author.id] = max(0, encounter["players"][ctx.author.id] - incoming)
                 player_hp = encounter["players"][ctx.author.id]
                 alive_after = [uid for uid in encounter["turns"] if encounter["players"].get(uid, 0) > 0]
