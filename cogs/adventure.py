@@ -50,7 +50,7 @@ RACES = {
  "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -65,10 +65,16 @@ def apply_level_ups(profile):
  return levels
 
 def swarm_value(count):
- return 10**100 if count == "googolplex" else int(count)
+ return 1 if count == "googolplex" else int(count)
 
 def swarm_label(count):
- return "googolplex (symbolic)" if count == "googolplex" else display_number(count)
+ return "10^(10^100) (googolplex)" if count == "googolplex" else display_number(count)
+
+def symbolic_quantity(coefficient, spent=0):
+ coefficient=int(coefficient); spent=int(spent)
+ if coefficient<=0: return "0"
+ base="10^(10^100)" if coefficient==1 else f"{display_number(coefficient)} × 10^(10^100)"
+ return f"{base} - {spent:,}" if spent else base
 
 def display_number(value):
  value=int(value)
@@ -174,6 +180,9 @@ class Adventure(commands.Cog):
   if p["character"] not in CHARACTERS: p["character"]="sukuna"
   if p["race"] not in RACES: p["race"]="human"
   p.setdefault("weapon",None)
+  p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
+  sr=p["symbolic_rewards"]
+  for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items(): sr.setdefault(key,value)
   return p
  def flush(self): save(self.data)
  def embed(self,title,desc="",color=None):
@@ -181,6 +190,18 @@ class Adventure(commands.Cog):
  def item(self,p,key,n):
   p["inventory"][key]=max(0,p["inventory"].get(key,0)+n)
   if not p["inventory"][key]: p["inventory"].pop(key,None)
+ def has_item(self,p,key,n):
+  if p["inventory"].get(key,0)>=n: return True
+  sr=p["symbolic_rewards"]; return sr["inventory"].get(key,0)>0
+ def consume_item(self,p,key,n):
+  normal=p["inventory"].get(key,0); take=min(normal,n)
+  if take: self.item(p,key,-take)
+  remaining=n-take
+  if remaining:
+   sr=p["symbolic_rewards"]
+   if sr["inventory"].get(key,0)<=0: return False
+   sr["inventory_spent"][key]=sr["inventory_spent"].get(key,0)+remaining
+  return True
 
  @commands.command(name="characters",aliases=["roster","weapons"])
  async def characters(self,ctx):
