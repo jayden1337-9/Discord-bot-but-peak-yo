@@ -180,7 +180,24 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=e,mention_author=False)
  @commands.group(name="boss",invoke_without_command=True)
  async def boss(self,ctx):
-  await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss status · ,join · ,attack [skill]"),mention_author=False)
+  await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss summon <key> <count> · ,boss status · ,join · ,attack [skill]"),mention_author=False)
+ @boss.command(name="summon")
+ @commands.guild_only()
+ @commands.is_owner()
+ async def summon(self,ctx,key:str,count:int):
+  key=key.lower().strip().replace(" ","_")
+  if key not in BOSSES:
+   await ctx.reply(embed=self.embed("UNKNOWN TARGET","Use ,bosses to view available bosses."),mention_author=False); return
+  if not 1<=count<=1000:
+   await ctx.reply(embed=self.embed("INVALID COUNT","You can summon between 1 and 1000 bosses."),mention_author=False); return
+  async with self.lock:
+   g=str(ctx.guild.id)
+   if g in self.data["raids"]:
+    await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
+   b=BOSSES[key]
+   self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"swarm_count":count,"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
+   self.flush()
+  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{count:,} {b[0]}**. Each attack damages every living boss for the same amount.\nPer-boss HP: {b[1]:,}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
  @boss.command(name="challenge")
  @commands.guild_only()
  async def challenge(self,ctx,*,key):
@@ -207,7 +224,9 @@ class Adventure(commands.Cog):
   r=self.data["raids"].get(str(ctx.guild.id))
   if not r: await ctx.reply(embed=self.embed("NO RAID","There is no active raid."),mention_author=False); return
   b=BOSSES[r["boss"]]; alive=[u for u in r["turns"] if r["players"].get(u,0)>0]; current=alive[r["turn"]%len(alive)] if alive else None
-  e=self.embed(b[0].upper(),f"{r['hp']:,} / {r['max_hp']:,} HP"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
+  count=r.get("swarm_count",1)
+  title=f"{count:,}x {b[0].upper()}" if count>1 else b[0].upper()
+  e=self.embed(title,f"{r['hp']:,} / {r['max_hp']:,} HP per boss · {count:,} remaining"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
   e.add_field(name="Party",value="\n".join(f"<@{u}> · {hp}/250 HP" for u,hp in r["players"].items())[:1024],inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="attack",aliases=["strike","hit"])
@@ -238,12 +257,15 @@ class Adventure(commands.Cog):
      damage=random.randint(*c[6]); action=c[4]
     else: damage=random.randint(*c[3]); action="Basic strike"
    race=RACES[p["race"]]; mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
-   damage=min(r["hp"],max(1,int(damage*mult))); r["hp"]-=damage; r["damage"][uid]=r["damage"].get(uid,0)+damage; p["damage"]+=damage
+   damage=min(r["hp"],max(1,int(damage*mult))); r["hp"]-=damage
+   swarm_count=r.get("swarm_count",1)
+   total_damage=damage*swarm_count
+   r["damage"][uid]=r["damage"].get(uid,0)+total_damage; p["damage"]+=total_damage
    b=BOSSES[r["boss"]]
    if r["hp"]<=0:
     drops=[]
     for player_id in list(r["players"]):
-     q=self.p(int(player_id)); q["xp"]+=b[3]+r["damage"].get(player_id,0)//4; q["points"]+=1; q["wins"]+=1
+     q=self.p(int(player_id)); q["xp"]+=b[3]*swarm_count+r["damage"].get(player_id,0)//4; q["points"]+=swarm_count; q["wins"]+=swarm_count
      while q["xp"]>=q["level"]*250: q["xp"]-=q["level"]*250; q["level"]+=1; q["points"]+=1
      got=[]
      for item,limits in b[4].items():
@@ -252,7 +274,7 @@ class Adventure(commands.Cog):
      if r["boss"]=="gojo": self.item(q,"six_eyes",1); got.append("Six Eyes x1")
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
-    await ctx.reply(embed=self.embed(f"RAID CLEARED / {b[0].upper()}","Every participant received XP and a skill point.\n\n"+ "\n".join(drops),discord.Color.green()),mention_author=False); return
+    await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_count:,}x {b[0].upper()}",f"Defeated {swarm_count:,} bosses. Rewards were multiplied by the boss count.\n\n"+ "\n".join(drops),discord.Color.green()),mention_author=False); return
    boss_hits=random.random()<0.72
    incoming=random.randint(*b[2]) if boss_hits else 0
    reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
@@ -263,8 +285,10 @@ class Adventure(commands.Cog):
     old=r["turns"].index(uid); seq=r["turns"][old+1:]+r["turns"][:old]; nxt=next((u for u in seq if r["players"].get(u,0)>0),None); r["turn"]=alive2.index(nxt) if nxt else 0; nextline=f"\nNext turn: <@{nxt}>"
    else: self.data["raids"].pop(g,None); nextline="\nThe party has fallen."
    self.flush()
-  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {damage:,} damage.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
-  if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{self.data['raids'][g]['hp']:,} / {r['max_hp']:,} HP",inline=False)
+  count=r.get("swarm_count",1)
+  target_line=f" every one of {count:,} bosses" if count>1 else ""
+  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {damage:,} damage to{target_line or ' the boss'}.\nTotal damage dealt: {total_damage:,}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
+  if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{self.data['raids'][g]['hp']:,} / {r['max_hp']:,} HP per boss · {count:,} remaining",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="skills")
  async def skills(self,ctx):
