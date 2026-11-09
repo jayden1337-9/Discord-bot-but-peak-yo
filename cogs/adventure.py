@@ -97,7 +97,7 @@ class Adventure(commands.Cog):
 
     @commands.command(name="bosses", aliases=["bestiary"])
     async def bosses(self, ctx: commands.Context) -> None:
-        embed = self.make_embed("CALAMITY REGISTER", "Threats recorded by the Hunter Guild. Each boss retaliates after every adventurer’s turn.")
+        embed = self.make_embed("CALAMITY REGISTER", "Anime raid targets. Each boss retaliates after every adventurer’s turn. Defeat Gojo for Six Eyes relics.")
         for key, boss in BOSSES.items():
             embed.add_field(name=f"{boss['name']}  /  {key}", value=f"{boss['description']}\n**{boss['hp']:,} HP**  ·  **{boss['damage'][0]}–{boss['damage'][1]} damage** per turn", inline=False)
         await ctx.reply(embed=embed, mention_author=False)
@@ -339,7 +339,10 @@ class Adventure(commands.Cog):
                 boss_text = f"\n\n**{boss['name']} retaliates**\n<@{ctx.author.id}> takes **{incoming} damage**. Remaining HP: **{player_hp}/250**.{next_text}"
         if defeated:
             ranking = "\n".join(f"**{i}.** <@{uid}> — {amount:,} damage" for i, (uid, amount) in enumerate(results[:5], 1))
-            embed = self.make_embed(f"TARGET ELIMINATED  /  {boss['name']}", f"The party defeated the target. Every participant receives **100+ XP** and **1 skill point**.", discord.Color.green())
+            reward_text = "The party defeated the target. Every participant receives **100+ XP** and **1 skill point**."
+            if encounter["key"] == "gojo":
+                reward_text += "\nEvery participant also received **1 Six Eyes**. Collect 6, choose the Gojo Clan race, then use `,eat six_eyes`."
+            embed = self.make_embed(f"TARGET ELIMINATED  /  {boss['name']}", reward_text, discord.Color.green())
             if ranking:
                 embed.add_field(name="Damage rankings", value=ranking, inline=False)
         else:
