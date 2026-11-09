@@ -719,8 +719,12 @@ class Adventure(commands.Cog):
    if missing:
     await ctx.reply(embed=self.embed("CRAFTING MATERIALS MISSING",", ".join(missing)),mention_author=False); return
    for item_key,amount in recipe["materials"].items(): self.item(p,item_key,-amount)
-   self.item(p,key,1); self.flush()
-   await ctx.reply(embed=self.embed("ITEM CRAFTED",f"Created {recipe['name']} x1."),mention_author=False); return
+   if key=="clan_token":
+    p["clan_rolls"]=p.get("clan_rolls",1)+1; result=f"Added one clan reroll. You now have {p['clan_rolls']}."
+   else:
+    self.item(p,key,1); result=f"Created {recipe['name']} x1."
+   self.flush()
+   await ctx.reply(embed=self.embed("ITEM CRAFTED",result),mention_author=False); return
   p=self.p(ctx.author.id); d=WEAPON_RECIPES.get(key)
   if not d:
    await ctx.reply(embed=self.embed("BLUEPRINT NOT FOUND","Use ,recipes or ,craft item <key>."),mention_author=False); return
@@ -906,8 +910,21 @@ class Adventure(commands.Cog):
  async def giveitem(self,ctx,member:discord.User,item:str,amount:int=1):
   key=item.lower().strip().replace(" ","_")
   if key not in ITEMS or not 1<=amount<=100000: await ctx.reply(embed=self.embed("INVALID ITEM","Use a listed item key and an amount from 1 to 100000."),mention_author=False); return
-  p=self.p(member.id); self.item(p,key,amount); self.flush()
-  await ctx.reply(embed=self.embed("OWNER ITEM GRANT",f"Granted {ITEMS[key]} x{amount} to {member.mention}."),mention_author=False)
+  p=self.p(member.id)
+  if key=="clan_token":
+   p["clan_rolls"]=p.get("clan_rolls",1)+amount; result=f"Granted {amount} clan rerolls to {member.mention}. Total: {p['clan_rolls']}."
+  else:
+   self.item(p,key,amount); result=f"Granted {ITEMS[key]} x{amount} to {member.mention}."
+  self.flush()
+  await ctx.reply(embed=self.embed("OWNER GRANT",result),mention_author=False)
+ @commands.command(name="addclanrolls",aliases=["clanrolls"])
+ @commands.is_owner()
+ async def addclanrolls(self,ctx,member:discord.User,amount:int):
+  if not 1<=amount<=1000000:
+   await ctx.reply(embed=self.embed("INVALID AMOUNT","Choose an amount from 1 to 1000000."),mention_author=False); return
+  p=self.p(member.id); p["clan_rolls"]=p.get("clan_rolls",1)+amount; self.flush()
+  await ctx.reply(embed=self.embed("CLAN REROLLS GRANTED",f"Added {amount:,} rerolls to {member.mention}. Total: {p['clan_rolls']:,}."),mention_author=False)
+
  @commands.command(name="addxp")
  @commands.is_owner()
  async def addxp(self,ctx,member:discord.User,amount:int):
