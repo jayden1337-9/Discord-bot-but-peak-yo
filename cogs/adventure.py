@@ -704,6 +704,8 @@ class Adventure(commands.Cog):
   key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if key not in self.data.get("custom_weapons",{}):
    await ctx.reply(embed=self.embed("WEAPON NOT FOUND","Check ,weapon list for available custom weapons."),mention_author=False); return
+  if key in WEAPON_RECIPES and key not in self.data.get("crafted_weapons",{}).get(str(ctx.author.id),[]):
+   await ctx.reply(embed=self.embed("WEAPON LOCKED","Craft this weapon yourself with ,craft "+key+"."),mention_author=False); return
   p["weapon"]=key; self.flush()
   await ctx.reply(embed=self.embed("WEAPON EQUIPPED",f"{self.data['custom_weapons'][key]['name']} is now equipped. Use ,attack or ,attack <ability name>."),mention_author=False)
  @weapon.command(name="unequip")
