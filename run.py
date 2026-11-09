@@ -10,27 +10,21 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 RESTART_FLAG = ROOT / ".restart_requested"
-LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
 
 logging.basicConfig(
-    level=LOG_LEVEL,
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 log = logging.getLogger("supervisor")
 
 
-def git_environment() -> tuple[dict[str, str], list[str]]:
-    env = os.environ.copy()
-    token = env.get("GITHUB_TOKEN")
-    remote = env.get("GITHUB_REPOSITORY", "jayden1337-9/Discord-bot-but-peak-yo")
-    branch = env.get("GITHUB_BRANCH", "main")
-
+def git_prefix() -> list[str]:
     command = ["git"]
+    token = os.getenv("GITHUB_TOKEN")
     if token:
         basic = base64.b64encode(f"x-access-token:{token}".encode()).decode()
         command += ["-c", f"http.extraheader=AUTHORIZATION: basic {basic}"]
-
-    return env, command + ["-C", str(ROOT), "pull", "--ff-only", "origin", branch]
+    return command + ["-C", str(ROOT)]
 
 
 def update_from_github() -> bool:
@@ -38,21 +32,29 @@ def update_from_github() -> bool:
         log.warning("No .git directory found; skipping GitHub update")
         return False
 
+    git = git_prefix()
+    previous = None
+
     try:
-        env, command = git_environment()
-        result = subprocess.run(
-            command,
+        previous = subprocess.check_output(
+            git + ["rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+
+        pull = subprocess.run(
+            git + [
+                "pull", "--ff-only", "origin",
+                os.getenv("GITHUB_BRANCH", "main"),
+            ],
             cwd=ROOT,
-            env=env,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             timeout=120,
         )
-        if result.stdout:
-            log.info("Git output:\n%s", result.stdout.strip())
-        if result.returncode != 0:
-            log.error("Git pull failed; keeping the currently installed version")
+        if pull.stdout:
+            log.info("Git output:\n%s", pull.stdout.strip())
+        if pull.returncode != 0:
+            log.error("Git pull failed; current version was left unchanged")
             return False
 
         check = subprocess.run(
@@ -62,22 +64,25 @@ def update_from_github() -> bool:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
         )
-        if check.returncode != 0:
-            log.error("Updated code failed its syntax check; not restarting into it")
+        install = None
+        if check.returncode == 0:
+            install = subprocess.run(
+                [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
+                cwd=ROOT,
+            )
+
+        if check.returncode != 0 or install is None or install.returncode != 0:
+            log.error("Update validation failed; restoring previous code")
+            subprocess.run(git + ["reset", "--hard", previous], cwd=ROOT, check=False)
             return False
 
-        install = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-r", "requirements.txt"],
-            cwd=ROOT,
-        )
-        if install.returncode != 0:
-            log.error("Dependency installation failed")
-            return False
-
-        log.info("Update checks completed")
+        log.info("GitHub update installed successfully")
         return True
+
     except Exception:
         log.exception("Update failed")
+        if previous:
+            subprocess.run(git + ["reset", "--hard", previous], cwd=ROOT, check=False)
         return False
 
 
