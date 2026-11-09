@@ -579,7 +579,9 @@ class Adventure(commands.Cog):
  @commands.command(name="bosses",aliases=["raids"])
  async def bosses(self,ctx):
   e=self.embed("RAID REGISTER","Each player acts once, then the boss retaliates. Every clear grants at least five guaranteed loot types, plus a chance at a Mythic Token.")
-  for k,b in BOSSES.items(): e.add_field(name=f"{b[0]} / {k}",value=f"{b[1]:,} HP · {b[2][0]}–{b[2][1]} damage · {b[3]:,} XP",inline=False)
+  for k,b in BOSSES.items():
+   world=BOSS_DIMENSIONS.get(k,"earth")
+   e.add_field(name=f"{b[0]} / {k}",value=f"{DIMENSIONS.get(world, DIMENSIONS['earth'])['name']} · {b[1]:,} base HP · {b[2][0]}–{b[2][1]} damage · {b[3]:,} XP",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.group(name="boss",invoke_without_command=True)
  async def boss(self,ctx):
@@ -615,9 +617,13 @@ class Adventure(commands.Cog):
   async with self.lock:
    g=str(ctx.guild.id)
    if g in self.data["raids"]: await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
-   b=BOSSES[key]; self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
+   p=self.p(ctx.author.id); world=BOSS_DIMENSIONS.get(key,"earth")
+   if p.get("active_dimension","earth")!=world:
+    await ctx.reply(embed=self.embed("WRONG ANIME WORLD",f"{b[0]} belongs to {DIMENSIONS.get(world,DIMENSIONS['earth'])['name']}. Travel there with ,dimension enter {world} first."),mention_author=False); return
+   dim=DIMENSIONS.get(world,DIMENSIONS["earth"]); hp=max(1,int(b[1]*dim.get("hp_mult",1)))
+   self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":dim.get("damage_mult",1.0),"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
    self.flush()
-  await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{b[1]:,} HP. First turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
+  await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{display_number(hp)} HP. World: {dim['name']}. First turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
  @boss.command(name="abandon")
  @commands.guild_only()
  async def abandon_raid(self,ctx):
@@ -814,7 +820,7 @@ class Adventure(commands.Cog):
     await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Rewards are multiplied by the selected swarm count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
    boss_hits=random.random() < {1:0.42,2:0.48,3:0.54,4:0.60}[phase]
    phase_multiplier={1:1.0,2:1.10,3:1.20,4:1.30}[phase]
-   incoming=int(random.randint(*b[2])*phase_multiplier) if boss_hits else 0
+   incoming=int(random.randint(*b[2])*phase_multiplier*r.get("damage_scale",1.0)) if boss_hits else 0
    reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
    try:
     from cogs.endgame import GEAR
@@ -969,8 +975,9 @@ class Adventure(commands.Cog):
   p=self.p(ctx.author.id); e=self.embed("DIMENSION GATEWAY",f"Current world: {DIMENSIONS.get(p['active_dimension'],DIMENSIONS['earth'])['name']}")
   for key,d in DIMENSIONS.items():
    state="UNLOCKED" if key in p["unlocked_dimensions"] else f"Level {d['level']} · {d['wins']} victories"
-   mats=", ".join(f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items()) or "None"
-   e.add_field(name=f"{d['name']} / {key} · {state}",value=f"{d['description']}\nEntry materials: {mats}\nDamage affinity: +{int((d['bonus']-1)*100)}%",inline=False)
+   mats=", ".join(f"{ITEM_ICONS.get(i,'📦')} {ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items()) or "None"
+   roster=", ".join(BOSSES[b][0] for b,world in BOSS_DIMENSIONS.items() if world==key) or "No raid bosses assigned yet"
+   e.add_field(name=f"🌌 {d['name']} / {key} · {state}",value=f"{d['description']}\nAnime: {d.get('anime',d['name'])}\nBoss roster: {roster}\nEntry materials: {mats}\nDamage affinity: +{int((d['bonus']-1)*100)}% · Boss HP x{display_number(d.get('hp_mult',1))}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
 
  @dimension.command(name="enter")
@@ -987,15 +994,66 @@ class Adventure(commands.Cog):
   p["active_dimension"]=key; self.flush()
   await ctx.reply(embed=self.embed("DIMENSION ENTERED",f"You entered {d['name']}. Damage affinity: +{int((d['bonus']-1)*100)}%."),mention_author=False)
 
+ @commands.group(name="chest",invoke_without_command=True)
+ async def chest(self,ctx):
+  await ctx.reply(embed=self.embed("BOSS CHEST VAULT","Every boss clear awards that boss's own chest. Open one with ,chest open <boss_key>. Chest contents stay tied to the boss that dropped it."),mention_author=False)
+
+ @chest.command(name="open")
+ async def chest_open(self,ctx,*,boss_key):
+  key=boss_key.lower().strip().replace(" ","_")
+  if key not in BOSSES:
+   await ctx.reply(embed=self.embed("UNKNOWN CHEST","Use ,bosses to find a boss key."),mention_author=False); return
+  p=self.p(ctx.author.id); chest_key=f"boss_chest_{key}"
+  if not self.has_item(p,chest_key,1):
+   await ctx.reply(embed=self.embed("CHEST MISSING",f"You need {ITEMS[chest_key]}. Defeat {BOSSES[key][0]} to earn its chest."),mention_author=False); return
+  self.consume_item(p,chest_key,1)
+  boss=BOSSES[key]; rewards=[]
+  pool=list(boss[4].items())
+  if pool:
+   for _ in range(min(3,len(pool))):
+    item,limits=random.choice(pool); amount=random.randint(*limits)
+    self.item(p,item,amount); rewards.append(f"{ITEM_ICONS.get(item,'📦')} {ITEMS.get(item,item)} x{amount}")
+  for item,chance in BOSS_RARE_DROPS.get(key,[]):
+   if random.random()<chance:
+    self.item(p,item,1); rewards.append(f"{ITEM_ICONS.get(item,'📦')} {ITEMS.get(item,item)} x1")
+  gold=max(50,boss[1]//4); p["gold"]=p.get("gold",0)+gold
+  rewards.append(f"🪙 {gold:,} Gold")
+  if random.random()<0.20:
+   gems=random.randint(1,3); p["gems"]=p.get("gems",0)+gems; rewards.append(f"💎 {gems} Gems")
+  self.flush()
+  await ctx.reply(embed=self.embed(f"🎁 {boss[0].upper()} CHEST OPENED","\\n".join(rewards)),mention_author=False)
+
+ @commands.command(name="wallet",aliases=["balance","bal"])
+ async def wallet(self,ctx):
+  p=self.p(ctx.author.id)
+  await ctx.reply(embed=self.embed("💰 WALLET",f"🪙 Gold: {display_number(p.get('gold',0))}\\n💎 Gems: {display_number(p.get('gems',0))}\\nEarn both by clearing raids and opening boss chests."),mention_author=False)
+
+ @commands.command(name="shop")
+ async def shop(self,ctx):
+  lines=["🧪 Healing Potion — 120 Gold","⚗️ Battle Tonic — 250 Gold + 1 Gem","🧿 Focus Elixir — 250 Gold + 1 Gem","🪶 Phoenix Feather — 1,200 Gold + 10 Gems"]
+  await ctx.reply(embed=self.embed("🛒 ITEM SHOP","\\n".join(lines)+"\\n\\nBuy with ,buy <item_key> [amount]."),mention_author=False)
+
+ @commands.command(name="buy")
+ async def buy(self,ctx,item:str,amount:int=1):
+  key=item.lower().strip().replace(" ","_")
+  prices={"healing_potion":(120,0),"battle_tonic":(250,1),"focus_elixir":(250,1),"phoenix_feather":(1200,10)}
+  if key not in prices or not 1<=amount<=100:
+   await ctx.reply(embed=self.embed("INVALID PURCHASE","Use ,shop and choose an item, with an amount from 1 to 100."),mention_author=False); return
+  p=self.p(ctx.author.id); gold_cost,gems_cost=prices[key]; gold_cost*=amount; gems_cost*=amount
+  if p.get("gold",0)<gold_cost or p.get("gems",0)<gems_cost:
+   await ctx.reply(embed=self.embed("NOT ENOUGH CURRENCY",f"Required: 🪙 {gold_cost:,} Gold and 💎 {gems_cost:,} Gems. Your balance: 🪙 {p.get('gold',0):,} Gold · 💎 {p.get('gems',0):,} Gems."),mention_author=False); return
+  p["gold"]-=gold_cost; p["gems"]-=gems_cost; self.item(p,key,amount); self.flush()
+  await ctx.reply(embed=self.embed("PURCHASE COMPLETE",f"{ITEM_ICONS.get(key,'📦')} {ITEMS[key]} x{amount}\\nPaid: 🪙 {gold_cost:,} Gold · 💎 {gems_cost:,} Gems."),mention_author=False)
+
  @commands.command(name="inventory",aliases=["inv","bag"])
  async def inventory(self,ctx,page:int=1):
   from cogs.render_ui import inventory_image
   p=self.p(ctx.author.id); sr=p["symbolic_rewards"]
   entries=sum(1 for v in p["inventory"].values() if v>0)+sum(1 for v in sr["inventory"].values() if v>0)
   pages=max(1,(entries+14)//15); page=max(1,min(page,pages))
-  image=inventory_image(p,ITEMS,page)
+  image=inventory_image(p,ITEMS,page,ITEM_ICONS)
   file=discord.File(image,filename="inventory.png")
-  e=self.embed("INVENTORY",f"{entries} item stacks · page {page}/{pages}\nUse ,inventory <page> to browse.")
+  e=self.embed("🎒 INVENTORY",f"{entries} item stacks · page {page}/{pages}\n🪙 Gold: {display_number(p.get('gold',0))}   💎 Gems: {display_number(p.get('gems',0))}\nUse ,inventory <page> to browse.")
   six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
   six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr["inventory_spent"].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
   finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
