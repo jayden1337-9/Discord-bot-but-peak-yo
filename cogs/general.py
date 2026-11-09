@@ -73,7 +73,10 @@ class General(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="roll")
-    async def roll(self, ctx: commands.Context, sides: commands.Range[int, 2, 1000000] = 6) -> None:
+    async def roll(self, ctx: commands.Context, sides: int = 6) -> None:
+        if not 2 <= sides <= 1000000:
+            await ctx.reply(embed=self.embed("Invalid dice", "Choose a number of sides between 2 and 1,000,000.", discord.Color.orange()), mention_author=False)
+            return
         value = random.randint(1, sides)
         await ctx.reply(embed=self.embed("Dice roll", f"{ctx.author.mention} rolled **{value}** on a **{sides}**-sided die.", discord.Color.blurple()), mention_author=False)
 
