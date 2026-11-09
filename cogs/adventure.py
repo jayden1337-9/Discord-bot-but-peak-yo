@@ -734,10 +734,51 @@ class Adventure(commands.Cog):
   e=self.embed("CHARACTER MASTERY",f"**{CHARACTERS[key][0]}**\nMastery tier: {level}/3\nDamage bonus: +{level*2}%\n{progress}")
   await ctx.reply(embed=e,mention_author=False)
 
+ @commands.command(name="equipskill")
+ async def equipskill(self,ctx,category,*,skill):
+  category=category.lower().strip(); key=skill.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
+  if category not in ATTACK_TYPES:
+   await ctx.reply(embed=self.embed("INVALID TYPE","Choose melee, sword or magic."),mention_author=False); return
+  c=CHARACTERS[p["character"]]
+  valid=(key in SKILL_TREE and key in p.get("unlocked_skills",[]) and SKILL_CATEGORIES.get(key)==category) or (key==c[5] and CHARACTER_ATTACK_TYPES.get(p["character"])==category and (key in p.get("unlocked",[]) or (p["race"]=="vessel" and p["character"]=="sukuna")))
+  custom=self.data.get("custom_weapons",{}).get(p.get("weapon"))
+  if custom and key==custom.get("ability_key"):
+   await ctx.reply(embed=self.embed("WEAPON SKILL READY","Your equipped weapon ability is automatically available in its weapon category."),mention_author=False); return
+  if not valid:
+   await ctx.reply(embed=self.embed("SKILL UNAVAILABLE",f"That skill is not unlocked or does not belong to {category}. Check ,skills and ,skilltree."),mention_author=False); return
+  equipped=p.setdefault("equipped_skills",{"melee":[],"sword":[],"magic":[]}).setdefault(category,[])
+  if key in equipped:
+   await ctx.reply(embed=self.embed("ALREADY EQUIPPED","That skill is already equipped."),mention_author=False); return
+  if len(equipped)>=3:
+   await ctx.reply(embed=self.embed("LOADOUT FULL","Each weapon type can hold up to three equipped skills. Unequip one first."),mention_author=False); return
+  equipped.append(key); self.flush()
+  label=SKILL_TREE[key]["name"] if key in SKILL_TREE else c[4]
+  await ctx.reply(embed=self.embed("SKILL EQUIPPED",f"{label} is equipped under {ATTACK_TYPES[category]}. Use ,attack to choose it in combat."),mention_author=False)
+ @commands.command(name="unequipskill")
+ async def unequipskill(self,ctx,category,*,skill):
+  category=category.lower().strip(); key=skill.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
+  if category not in ATTACK_TYPES or key not in p.get("equipped_skills",{}).get(category,[]):
+   await ctx.reply(embed=self.embed("SKILL NOT EQUIPPED","Check ,skillloadout for your current loadout."),mention_author=False); return
+  p["equipped_skills"][category].remove(key); self.flush()
+  await ctx.reply(embed=self.embed("SKILL UNEQUIPPED",f"{key.replace('_',' ').title()} removed from {ATTACK_TYPES[category]}."),mention_author=False)
+ @commands.command(name="skillloadout",aliases=["loadout"])
+ async def skillloadout(self,ctx):
+  options=self.attack_skill_options(ctx.author.id); e=self.embed("COMBAT LOADOUT","Only equipped skills appear in the attack selector.")
+  for category in ATTACK_TYPES:
+   items=options.get(category,[])
+   e.add_field(name=ATTACK_TYPES[category],value="\n".join(f"{label} ({key})" for key,label in items) or "No equipped skills",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+
  @commands.command(name="skills")
  async def skills(self,ctx):
   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; unlocked=c[5] in p["unlocked"] or(p["race"]=="vessel" and p["character"]=="sukuna")
-  await ctx.reply(embed=self.embed("TECHNIQUE RECORD",f"{c[0]} · {c[4]}\nDamage: {c[6][0]}–{c[6][1]}\nCost: {c[7]} points\nStatus: {'Unlocked' if unlocked else 'Locked'}"),mention_author=False)
+  options=self.attack_skill_options(ctx.author.id)
+  lines=[f"{c[0]} · {c[4]}",f"Damage: {c[6][0]}–{c[6][1]}",f"Cost: {c[7]} points",f"Status: {'Unlocked' if unlocked else 'Locked'}"]
+  for category in ATTACK_TYPES:
+   items=options.get(category,[])
+   lines.append(f"{ATTACK_TYPES[category]}: "+(", ".join(label for _,label in items) if items else "No equipped skills"))
+  lines.append("Equip: ,equipskill <type> <skill> · View: ,skillloadout")
+  await ctx.reply(embed=self.embed("TECHNIQUE RECORD","\n".join(lines)),mention_author=False)
  @commands.command(name="unlock")
  async def unlock(self,ctx,*,skill):
   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; key=skill.lower().strip().replace(" ","_")
