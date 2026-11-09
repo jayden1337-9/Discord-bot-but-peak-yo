@@ -49,7 +49,7 @@ RACES = {
  "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0}
 
 def save(data):
  ROOT.mkdir(parents=True,exist_ok=True)
@@ -249,6 +249,9 @@ class Adventure(commands.Cog):
       await ctx.reply(embed=self.embed("UNKNOWN ABILITY",f"This weapon uses {custom['ability']}."),mention_author=False); return
      damage=random.randint(*custom["ability_damage"]); action=custom["ability"]
     else: damage=random.randint(*custom["damage"]); action=custom["name"]+" strike"
+    override=p.get("weapon_damage_override")
+    if override is not None:
+     damage=override
    else:
     skill=c[5]
     if ability:
@@ -359,6 +362,23 @@ class Adventure(commands.Cog):
  async def weapon_unequip(self,ctx):
   p=self.p(ctx.author.id); p["weapon"]=None; self.flush()
   await ctx.reply(embed=self.embed("WEAPON UNEQUIPPED","Your character's standard attacks are active again."),mention_author=False)
+
+ @commands.command(name="setdamage")
+ @commands.is_owner()
+ async def setdamage(self,ctx,amount:str):
+  p=self.p(ctx.author.id)
+  if not p.get("weapon") or p["weapon"] not in self.data.get("custom_weapons",{}):
+   await ctx.reply(embed=self.embed("NO CUSTOM WEAPON EQUIPPED","Equip your custom weapon first with ,weapon equip <key>."),mention_author=False); return
+  if amount.lower() in {"off","reset","none"}:
+   p["weapon_damage_override"]=None; self.flush()
+   await ctx.reply(embed=self.embed("WEAPON DAMAGE RESET",f"{self.data['custom_weapons'][p['weapon']]['name']} is back to its normal damage ranges."),mention_author=False); return
+  try: value=int(amount.replace(",",""))
+  except ValueError:
+   await ctx.reply(embed=self.embed("INVALID DAMAGE","Use ,setdamage <amount> or ,setdamage off."),mention_author=False); return
+  if not 1<=value<=10**100:
+   await ctx.reply(embed=self.embed("INVALID DAMAGE","Damage must be a positive whole number."),mention_author=False); return
+  p["weapon_damage_override"]=value; self.flush()
+  await ctx.reply(embed=self.embed("WEAPON DAMAGE UPDATED",f"Your equipped weapon **{self.data['custom_weapons'][p['weapon']]['name']}** now deals **{value:,}** damage on every basic attack and ability. This only affects your profile."),mention_author=False)
 
  @commands.command(name="giveitem")
  @commands.is_owner()
