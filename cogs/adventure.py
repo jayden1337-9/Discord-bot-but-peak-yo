@@ -308,7 +308,7 @@ class AttackCategorySelect(discord.ui.Select):
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
   category=self.values[0]
   skills=self.attack_view.cog.attack_skill_options(self.attack_view.ctx.author.id,category)
-  await interaction.response.edit_message(embed=self.attack_view.cog.embed(f"{ATTACK_TYPES[category].upper()} SKILLS","Choose one equipped skill to use for this turn."),view=AttackSkillView(self.attack_view.cog,self.attack_view.ctx,category,skills))
+  await interaction.response.edit_message(embed=self.attack_view.cog.embed(f"{ATTACK_TYPES[category].upper()} SKILLS","Choose one equipped skill to use for this turn."),view=AttackSkillView(self.attack_view.cog,self.attack_view.ctx,category,skills,self.attack_view.attack_command))
 
 class AttackSkillSelect(discord.ui.Select):
  def __init__(self, view, skills):
@@ -332,8 +332,8 @@ class AttackCategoryView(discord.ui.View):
   return True
 
 class AttackSkillView(discord.ui.View):
- def __init__(self,cog,ctx,category,skills):
-  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.category=category
+ def __init__(self,cog,ctx,category,skills,attack_command=None):
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.category=category; self.attack_command=attack_command or cog.attack
   self.add_item(AttackSkillSelect(self,skills))
  async def interaction_check(self,interaction):
   if interaction.user.id!=self.ctx.author.id:
