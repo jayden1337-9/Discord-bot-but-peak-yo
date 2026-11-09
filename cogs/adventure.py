@@ -1,4 +1,4 @@
-import asyncio, json, os, random, sqlite3, tempfile
+import asyncio, json, os, random, shutil, sqlite3, tempfile
 from math import isqrt
 from pathlib import Path
 import discord
@@ -64,6 +64,13 @@ def apply_level_ups(profile):
  profile["points"]+=levels
  return levels
 
+def raid_phase(hp,max_hp):
+ if max_hp<=0: return 1
+ if hp*4<=max_hp: return 4
+ if hp*2<=max_hp: return 3
+ if hp*4<=max_hp*3: return 2
+ return 1
+
 def swarm_value(count):
  return 1 if count == "googolplex" else int(count)
 
@@ -96,6 +103,12 @@ def display_number(value):
 
 def save(data):
  ROOT.mkdir(parents=True,exist_ok=True)
+ if DB_FILE.exists():
+  try:
+   json.loads(DB_FILE.read_text(encoding="utf-8"))
+   shutil.copy2(DB_FILE,DB_FILE.with_suffix(".backup.json"))
+  except (OSError,json.JSONDecodeError):
+   pass
  fd,name=tempfile.mkstemp(dir=ROOT,prefix="peak-",suffix=".tmp")
  try:
   with os.fdopen(fd,"w",encoding="utf-8") as f:
@@ -259,7 +272,7 @@ class Adventure(commands.Cog):
    if g in self.data["raids"]:
     await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
    b=BOSSES[key]
-   self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
+   self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1}
    self.flush()
   await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {b[1]:,}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
  @boss.command(name="challenge")
@@ -305,7 +318,8 @@ class Adventure(commands.Cog):
   b=BOSSES[r["boss"]]; alive=[u for u in r["turns"] if r["players"].get(u,0)>0]; current=alive[r["turn"]%len(alive)] if alive else None
   count=r.get("swarm_count",1)
   title=f"{swarm_label(count)}x {b[0].upper()}" if count != 1 else b[0].upper()
-  e=self.embed(title,f"{display_number(r['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
+  phase=raid_phase(r['hp'],r['max_hp']); r['phase']=phase
+  e=self.embed(title,f"Phase {phase}/4 · {display_number(r['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
   e.add_field(name="Party",value="\n".join(f"<@{u}> · {hp}/250 HP" for u,hp in r["players"].items())[:1024],inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @boss.command(name="leave")
@@ -369,6 +383,9 @@ class Adventure(commands.Cog):
    race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
    level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
    damage=min(r["hp"],max(1,int(damage*race_mult*level_mult))); r["hp"]-=damage
+   previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
+   phase_line=""
+   if phase>previous_phase: phase_line=f"\nBoss phase increased to {phase}/4. Incoming attacks are stronger."
    swarm_count=r.get("swarm_count",1); symbolic_swarm=swarm_count=="googolplex"
    swarm_multiplier=1 if symbolic_swarm else swarm_value(swarm_count)
    total_damage=damage*swarm_multiplier
@@ -407,15 +424,16 @@ class Adventure(commands.Cog):
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
     await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Rewards are multiplied by the selected swarm count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
-   boss_hits=random.random()<0.48
-   incoming=random.randint(*b[2]) if boss_hits else 0
+   boss_hits=random.random() < {1:0.42,2:0.48,3:0.54,4:0.60}[phase]
+   phase_multiplier={1:1.0,2:1.10,3:1.20,4:1.30}[phase]
+   incoming=int(random.randint(*b[2])*phase_multiplier) if boss_hits else 0
    reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
    incoming=max(1,int(incoming*(1-reduction))) if boss_hits else 0
    r["players"][uid]=max(0,r["players"][uid]-incoming); hp=r["players"][uid]
    alive2=[u for u in r["turns"] if r["players"].get(u,0)>0]
    if alive2:
-    old=r["turns"].index(uid); seq=r["turns"][old+1:]+r["turns"][:old]; nxt=next((u for u in seq if r["players"].get(u,0)>0),None); r["turn"]=alive2.index(nxt) if nxt else 0; nextline=f"\nNext turn: <@{nxt}>"
-   else: self.data["raids"].pop(g,None); nextline="\nThe party has fallen."
+    old=r["turns"].index(uid); seq=r["turns"][old+1:]+r["turns"][:old]; nxt=next((u for u in seq if r["players"].get(u,0)>0),None); r["turn"]=alive2.index(nxt) if nxt else 0; nextline=phase_line+f"\nNext turn: <@{nxt}>"
+   else: self.data["raids"].pop(g,None); nextline=phase_line+"\nThe party has fallen."
    self.flush()
   count=r.get("swarm_count",1)
   target_line=f" every one of {swarm_label(count)} bosses" if count != 1 else ""
@@ -489,7 +507,9 @@ class Adventure(commands.Cog):
   if sr["points"]: symbolic_lines.append(f"Symbolic skill points: {symbolic_quantity(sr['points'],sr['points_spent'])}")
   if sr["wins"]: symbolic_lines.append(f"Symbolic victories: {symbolic_quantity(sr['wins'])}")
   if sr["damage"]: symbolic_lines.append(f"Symbolic damage: {symbolic_quantity(sr['damage'])}")
-  desc=(f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
+  equipped_title=p.get("equipped_title")
+  title_name={"rookie":"Rookie","slayer":"Boss Slayer","conqueror":"Conqueror","calamity":"Calamity","limitless":"Limitless","king_of_curses":"King of Curses"}.get(equipped_title,"None")
+  desc=(f"Title: {title_name}\nCharacter: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
   e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
