@@ -9,7 +9,11 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
 - Character-specific signature abilities, a material-and-level gated universal skill tree, race passives and character mastery
 - Five craftable weapons with distinct damage ranges and signature abilities
-- Seven unlockable dimensions with victory, level and material requirements; each grants a different damage affinity
+- Ten unlockable dimensions with victory, level and material requirements; each grants a different damage affinity
+- Fifteen raid bosses, including Kenpachi, Kaido, Kaguya, Six Paths Madara and Anti-Spiral
+- Nine forgeable signature weapons and ten universal combat skills
+- Eight permanent relic pieces across armor, relic and core slots, with attack and defense bonuses
+- A persistent ten-floor solo Rift Tower with escalating bosses, floor rewards and saved best records
 - Collectible boss materials, healing potions, battle tonics, focus elixirs and awakening crystals
 - Cooperative turn-based boss raids with party turns, escalating boss phases, retaliation and rewards
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
@@ -80,6 +84,9 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,races` and `,race <key>`
 - `,skills`, `,skilltree`, `,mastery` and `,unlock <skill>`
 - `,recipes` and `,craft <key>` — forge permanent weapons from boss materials
+- `,forge list` / `,forge craft <key>` — create permanent armor, relics and cores
+- `,gear`, `,equipgear <key>`, `,unequipgear <slot>` — manage equipment
+- `,tower start`, `,tower attack`, `,tower`, `,tower retreat` — challenge the ten-floor solo tower
 - `,dimension list` and `,dimension enter <key>` — unlock and travel between worlds
 - `,use <item>` — use raid potions, combat boosts, awakening crystals and Phoenix Feathers
 - `,bosses`
