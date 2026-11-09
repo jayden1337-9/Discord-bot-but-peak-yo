@@ -617,10 +617,14 @@ class Adventure(commands.Cog):
    g=str(ctx.guild.id)
    if g in self.data["raids"]:
     await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
-   b=BOSSES[key]
-   self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1}
+   b=BOSSES[key]; p=self.p(ctx.author.id); world=BOSS_DIMENSIONS.get(key,"earth")
+   dim=DIMENSIONS.get(world,DIMENSIONS["earth"])
+   scaled=p.get("active_dimension","earth")==world
+   hp=max(1,int(b[1]*dim.get("hp_mult",1))) if scaled else b[1]
+   damage_scale=dim.get("damage_mult",1.0) if scaled else 1.0
+   self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":damage_scale,"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1}
    self.flush()
-  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {b[1]:,}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
+  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {display_number(hp)}\nWorld scaling: {'enabled' if scaled else 'base stats (switch to '+world+' for dimension scaling)'}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
  @boss.command(name="challenge")
  @commands.guild_only()
  async def challenge(self,ctx,*,key):
