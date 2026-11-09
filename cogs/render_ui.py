@@ -1,5 +1,5 @@
 from io import BytesIO
-from math import ceil
+from math import ceil, floor, log10
 from PIL import Image, ImageDraw, ImageFont
 
 BG = (13, 17, 27)
@@ -37,7 +37,9 @@ def _number(value):
     try:
         value = int(value)
         if value.bit_length() > 256:
-            return f"{value:.3e}"
+            exponent = floor(log10(value))
+            mantissa = value / (10 ** exponent)
+            return f"{mantissa:.2f}e{exponent}"
         return f"{value:,}"
     except (TypeError, ValueError, OverflowError):
         return str(value)
