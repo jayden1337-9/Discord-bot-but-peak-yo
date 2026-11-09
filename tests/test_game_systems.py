@@ -1,9 +1,9 @@
 import unittest
 
-from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, CLANS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
-from cogs.render_ui import inventory_image, gear_image
+from cogs.render_ui import inventory_image, gear_image\nfrom cogs.expeditions import ROUTES, expedition_scale, daily_login_reward
 from PIL import Image
 
 
@@ -133,6 +133,32 @@ class GameSystemTests(unittest.TestCase):
         image = Image.open(image_file)
         self.assertEqual(image.format, "PNG")
         self.assertEqual(image.size, (900, 520))
+
+    def test_rift_expeditions_have_three_valid_stages(self):
+        self.assertEqual(len(ROUTES), 4)
+        for route in ROUTES.values():
+            self.assertEqual(len(route["stages"]), 3)
+            for stage in route["stages"]:
+                self.assertIn(stage[3], ITEMS)
+            self.assertIn(route["bonus"], ITEMS)
+
+    def test_expedition_scaling_is_bounded(self):
+        self.assertEqual(expedition_scale(1), 1.0)
+        self.assertGreater(expedition_scale(20), expedition_scale(5))
+        self.assertEqual(expedition_scale(999999), expedition_scale(51))
+
+    def test_companions_have_balanced_attack_and_defense_bonuses(self):
+        self.assertGreaterEqual(len(PETS), 5)
+        for pet in PETS.values():
+            self.assertGreaterEqual(pet["attack"], 0)
+            self.assertLessEqual(pet["attack"], 0.15)
+            self.assertGreaterEqual(pet["defense"], 0)
+            self.assertLessEqual(pet["defense"], 0.12)
+
+    def test_daily_login_streak_reward_caps_at_seven(self):
+        self.assertEqual(daily_login_reward(1), {"xp": 200, "points": 1, "token": False})
+        self.assertEqual(daily_login_reward(7), {"xp": 500, "points": 3, "token": True})
+        self.assertEqual(daily_login_reward(99), daily_login_reward(7))
 
     def test_level_up_math(self):
         profile = {"level": 1, "xp": 250, "points": 0}
