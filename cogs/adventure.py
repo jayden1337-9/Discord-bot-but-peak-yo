@@ -332,14 +332,19 @@ def display_number(value):
   leading=value*100//power
   return f"{leading/100:.2f}e{exponent}"
 
+_BACKUP_CREATED = False
+
 def save(data):
+ global _BACKUP_CREATED
  ROOT.mkdir(parents=True,exist_ok=True)
- if DB_FILE.exists():
+ # Keep one recovery snapshot per process instead of rereading and copying
+ # the entire database on every command save.
+ if not _BACKUP_CREATED and DB_FILE.exists():
   try:
-   json.loads(DB_FILE.read_text(encoding="utf-8"))
    shutil.copy2(DB_FILE,DB_FILE.with_suffix(".backup.json"))
-  except (OSError,json.JSONDecodeError):
+  except OSError:
    pass
+  _BACKUP_CREATED = True
  fd,name=tempfile.mkstemp(dir=ROOT,prefix="peak-",suffix=".tmp")
  try:
   with os.fdopen(fd,"w",encoding="utf-8") as f:
@@ -1292,12 +1297,12 @@ class Adventure(commands.Cog):
  @commands.is_owner()
  async def giveitem(self,ctx,member:discord.User,item:str,amount:int=1):
   key=item.lower().strip().replace(" ","_")
-  if key not in ITEMS or not 1<=amount<=100000: await ctx.reply(embed=self.embed("INVALID ITEM","Use a listed item key and an amount from 1 to 100000."),mention_author=False); return
+  if key not in ITEMS or amount<1: await ctx.reply(embed=self.embed("INVALID ITEM","Use a listed item key and an amount greater than zero. There is no maximum grant amount."),mention_author=False); return
   p=self.p(member.id)
   if key=="clan_token":
    p["clan_rolls"]=p.get("clan_rolls",1)+amount; result=f"Granted {amount} clan rerolls to {member.mention}. Total: {p['clan_rolls']}."
   else:
-   self.item(p,key,amount); result=f"Granted {ITEMS[key]} x{amount} to {member.mention}."
+   self.item(p,key,amount); result=f"Granted {ITEMS[key]} x{display_number(amount)} to {member.mention}."
   self.flush()
   await ctx.reply(embed=self.embed("OWNER GRANT",result),mention_author=False)
  @commands.command(name="addclanrolls",aliases=["clanrolls"])
