@@ -52,11 +52,28 @@ BOSSES = {
  "kaguya":("Kaguya Otsutsuki",14800,(105,158),4300,{"chakra_crystal":(2,5),"six_paths_essence":(2,4),"god_tree_seed":(1,3),"dimensional_eye":(1,2)}),
  "madara_six_paths":("Six Paths Madara",17200,(118,176),5100,{"uchiha_relic":(2,5),"rinnegan_shard":(1,3),"six_paths_essence":(2,5),"ten_tails_core":(1,2)}),
  "anti_spiral":("Anti-Spiral",24000,(145,210),7200,{"void_ore":(3,6),"ancient_core":(2,4),"time_rift_fragment":(2,5),"dimension_key":(1,3),"spiral_core":(1,2)}),
+ "jogo":("Jogo",3000,(38,58),720,{"cursed_ash":(2,4),"soul_fragment":(1,2),"cursed_fingers":(1,1)}),
+ "hanami":("Hanami",3100,(36,56),740,{"cursed_ash":(2,4),"soul_fragment":(1,2),"cursed_fingers":(1,1)}),
+ "toji":("Toji Fushiguro",2800,(42,64),780,{"uchiha_relic":(1,2),"soul_fragment":(1,3),"cursed_fingers":(1,1)}),
+ "jjk_sukuna":("Sukuna: King of Curses",5200,(62,94),1600,{"cursed_fingers":(2,4),"malevolent_essence":(1,3),"sukuna_relic":(1,2)}),
+ "jjk_gojo":("Gojo: Honored One",4900,(58,90),1500,{"six_eyes":(1,2),"limitless_core":(1,3),"blue_orb":(1,2)}),
+ "jjk_mahito":("Mahito: Soul Manipulator",4300,(54,82),1300,{"transfigured_soul":(2,4),"cursed_ash":(2,4),"soul_fragment":(2,3)}),
+ "dio":("DIO",4200,(54,82),1250,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
+ "pucci":("Enrico Pucci",4600,(58,86),1400,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
+ "diavolo":("Diavolo",4400,(56,84),1350,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
+ "kira":("Yoshikage Kira",3900,(50,78),1150,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
+ "dio_vampire":("DIO Vampire",5000,(64,96),1550,{"dio_bone":(1,2),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
+ "itachi":("Itachi Uchiha",4100,(52,80),1200,{"uchiha_relic":(2,4),"chakra_crystal":(2,4),"six_paths_essence":(1,1)}),
+ "hashirama":("Hashirama Senju",4700,(58,88),1450,{"chakra_crystal":(3,5),"god_tree_seed":(1,2),"uchiha_relic":(1,2)}),
+ "momoshiki":("Momoshiki Otsutsuki",6200,(72,108),1900,{"dimensional_eye":(1,2),"chakra_crystal":(3,5),"six_paths_essence":(1,3)}),
+ "isshiki":("Isshiki Otsutsuki",6800,(78,116),2200,{"dimensional_eye":(2,3),"chakra_crystal":(3,5),"ten_tails_core":(1,2)}),
+ "naruto_six_paths":("Naruto: Six Paths",5600,(68,102),1750,{"chakra_crystal":(2,4),"six_paths_essence":(1,3),"ten_tails_core":(1,1)}),
 }
 ITEMS = {k:k.replace("_"," ").title() for b in BOSSES.values() for k in b[4]}
 ITEMS.update({"limitless_core":"Limitless Core","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
 
 ITEMS.update({"void_ore":"Void Ore","starsteel":"Starsteel","dragon_scale":"Dragon Scale","spirit_silk":"Spirit Silk","ancient_core":"Ancient Core","dimension_key":"Dimension Key","awakening_crystal":"Awakening Crystal","celestial_dust":"Celestial Dust","zanpakuto_core":"Zanpakuto Core","oni_horn":"Oni Horn","dimensional_eye":"Dimensional Eye","ten_tails_core":"Ten Tails Core","spiral_core":"Spiral Core","rift_crystal":"Rift Crystal","phoenix_ash":"Phoenix Ash","abyssal_pearl":"Abyssal Pearl"})
+ITEMS.update({"jjk_key":"JJK Key","jojo_key":"JoJo Key","naruto_key":"Naruto Key","clan_token":"Clan Reroll","six_eyes":"Six Eyes","dio_bone":"Dio Bone","dio_diary":"Dio Diary","green_baby":"Green Baby","stand_arrow":"Stand Arrow","itachi_soul":"Itachi Soul","uchiha_soul":"Uchiha Soul","chakra_fruit":"Chakra Fruit","fruit_chest":"Fruit Chest","luffy_soul":"Luffy Soul","one_piece_soul":"One Piece Soul","imu_key":"IMU Key","joyboy_key":"Joyboy Key","katana":"Katana"})
 WEAPON_RECIPES = {
  "cursed_katana":{"name":"Cursed Katana","damage":[125,175],"ability":"Cleave","ability_key":"cleave","ability_damage":[230,300],"description":"A blade tempered with cursed energy.","level":8,"materials":{"cursed_ash":12,"soul_fragment":8,"void_ore":3}},
  "sixfold_spear":{"name":"Sixfold Spear","damage":[160,215],"ability":"Blue Impact","ability_key":"blue_impact","ability_damage":[290,370],"description":"A spear that bends space.","level":15,"materials":{"limitless_core":2,"blue_orb":8,"starsteel":5}},
@@ -102,8 +119,31 @@ RACES = {
  "curse":("Cursed Spirit",1.12,-.05,"+12% damage, takes 5% more damage."),
  "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
+ "sorcerer":("Sorcerer",1.18,-.02,"JJK bloodline: +18% damage, 2% less damage taken."),
+ "cursed_race":("Cursed",1.22,-.05,"Cursed body: +22% damage, takes 5% less damage."),
+ "uchiha":("Uchiha",1.30,.05,"Rare bloodline: +30% damage and 5% damage reduction."),
+ "senju":("Senju",1.20,.04,"Vitality and chakra: +20% damage and 4% damage reduction."),
+ "uzumaki":("Uzumaki",1.15,.03,"Strong life force: +15% damage and 3% damage reduction."),
+ "fallen":("The Fallen",1.32,.06,"Mythic race: +32% damage and 6% damage reduction."),
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+CLANS = {
+ "satoru":{"name":"Satoru","melee":0.50,"sword":0.50,"magic":1.50,"rarity":"0.5%"},
+ "zenin":{"name":"Zenin","melee":1.00,"sword":1.00,"magic":0.0,"rarity":"0.5%"},
+ "kamo":{"name":"Kamo","melee":1.50,"sword":0.0,"magic":0.50,"rarity":"0.5%"},
+ "akatsuki":{"name":"Akatsuki","melee":1.00,"sword":0.70,"magic":0.50,"rarity":"0.1%"},
+ "konoha":{"name":"Konoha","melee":0.50,"sword":0.70,"magic":1.00,"rarity":"0.1%"},
+ "otogakure":{"name":"Otogakure","melee":0.0,"sword":0.70,"magic":0.50,"rarity":"3%"},
+ "king":{"name":"King","melee":1.00,"sword":1.00,"magic":1.00,"rarity":"0.02%"},
+}
+CHARACTER_ATTACK_TYPES = {"sukuna":"magic","gojo":"magic","yuji":"melee","naruto":"magic","sasuke":"sword","luffy":"melee","zoro":"sword","ichigo":"sword","aizen":"magic","goku":"melee","vegeta":"melee","tanjiro":"sword","asta":"sword","deku":"melee","eren":"melee","rimuru":"magic"}
+BOSS_KEY_POOLS = {"jjk_key":["jogo","hanami","toji","jjk_sukuna","jjk_gojo","jjk_mahito"],"jojo_key":["dio","pucci","dio_vampire","diavolo","kira"],"naruto_key":["itachi","hashirama","momoshiki","isshiki","naruto_six_paths"]}
+ITEM_RECIPES = {
+ "jjk_key":{"name":"JJK Key","materials":{"cursed_ash":12,"soul_fragment":8,"six_eyes":1}},
+ "jojo_key":{"name":"JoJo Key","materials":{"starsteel":12,"devil_fruit_shard":8,"soul_fragment":8}},
+ "naruto_key":{"name":"Naruto Key","materials":{"chakra_crystal":12,"uchiha_relic":8,"dimensional_eye":2}},
+ "clan_token":{"name":"Clan Reroll","materials":{"chakra_crystal":4,"cursed_ash":4,"soul_fragment":4}},
+}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -250,6 +290,8 @@ class Adventure(commands.Cog):
   if p["character"] not in CHARACTERS: p["character"]="sukuna"
   if p["race"] not in RACES: p["race"]="human"
   p.setdefault("weapon",None)
+  p.setdefault("clan",None)
+  p.setdefault("clan_rolls",1)
   p.setdefault("mastery",{})
   p.setdefault("active_dimension","earth")
   p.setdefault("unlocked_dimensions",["earth"])
