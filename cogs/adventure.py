@@ -77,7 +77,7 @@ RACES = {
  "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -228,6 +228,8 @@ class Adventure(commands.Cog):
   p.setdefault("active_dimension","earth")
   p.setdefault("unlocked_dimensions",["earth"])
   p.setdefault("unlocked_skills",[])
+  p.setdefault("damage_boosts",0)
+  p.setdefault("focus_boosts",0)
   p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
   sr=p["symbolic_rewards"]
   for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items(): sr.setdefault(key,value)
@@ -421,7 +423,11 @@ class Adventure(commands.Cog):
     level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
     mastery=p.setdefault("mastery",{}); mastery_xp=int(mastery.get(p["character"],0)); mastery_level=mastery_tier(mastery_xp)
     mastery_mult=1+0.02*mastery_level
-    dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
+    if p.get("damage_boosts",0)>0:
+    damage=int(damage*1.5); p["damage_boosts"]-=1
+   if p.get("focus_boosts",0)>0:
+    damage*=2; p["focus_boosts"]-=1
+   dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
     damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
    mastery[p["character"]]=mastery_xp+damage
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
@@ -614,19 +620,43 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("CANNOT CONSUME","That item has no consumption effect."),mention_author=False)
  @commands.command(name="use")
  async def use_item(self,ctx,*,item):
-  key=item.lower().strip().replace(" ","_")
-  if key not in {"phoenix_feather","phoenix"}:
-   await ctx.reply(embed=self.embed("ITEM NOT USABLE","Phoenix Feathers can revive you during an active raid."),mention_author=False); return
+  key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   g=str(ctx.guild.id) if ctx.guild else ""
   async with self.lock:
    r=self.data["raids"].get(g)
-   uid=str(ctx.author.id); p=self.p(ctx.author.id)
-   if not r or uid not in r["players"] or r["players"][uid]>0:
-    await ctx.reply(embed=self.embed("CANNOT USE","You must be a defeated party member in an active raid."),mention_author=False); return
-   if not self.has_item(p,"phoenix_feather",1):
-    await ctx.reply(embed=self.embed("ITEM MISSING","You need a Phoenix Feather."),mention_author=False); return
-   self.consume_item(p,"phoenix_feather",1); r["players"][uid]=150; self.flush()
-  await ctx.reply(embed=self.embed("PHOENIX REVIVAL","Phoenix Feather consumed. You have returned with 150 HP."),mention_author=False)
+   uid=str(ctx.author.id)
+   if key in {"phoenix_feather","phoenix"}:
+    if not r or uid not in r["players"] or r["players"][uid]>0:
+     await ctx.reply(embed=self.embed("CANNOT USE","You must be a defeated party member in an active raid."),mention_author=False); return
+    if not self.has_item(p,"phoenix_feather",1):
+     await ctx.reply(embed=self.embed("ITEM MISSING","You need a Phoenix Feather."),mention_author=False); return
+    self.consume_item(p,"phoenix_feather",1); r["players"][uid]=150; self.flush()
+    await ctx.reply(embed=self.embed("PHOENIX REVIVAL","You returned to the raid with 150 HP."),mention_author=False); return
+   if key=="healing_potion":
+    if not r or uid not in r["players"] or r["players"][uid]<=0:
+     await ctx.reply(embed=self.embed("CANNOT USE","Healing Potions can only be used by a living raid member."),mention_author=False); return
+    if r["players"][uid]>=250:
+     await ctx.reply(embed=self.embed("HEALTH FULL","You already have full HP."),mention_author=False); return
+    if not self.has_item(p,key,1):
+     await ctx.reply(embed=self.embed("ITEM MISSING","You do not have a Healing Potion."),mention_author=False); return
+    self.consume_item(p,key,1); r["players"][uid]=min(250,r["players"][uid]+100); hp=r["players"][uid]; self.flush()
+    await ctx.reply(embed=self.embed("POTION USED",f"Restored up to 100 HP. Current HP: {hp}/250."),mention_author=False); return
+   if key in {"battle_tonic","focus_elixir"}:
+    if not r or uid not in r["players"] or r["players"][uid]<=0:
+     await ctx.reply(embed=self.embed("CANNOT USE","Combat tonics can only be prepared during an active raid while alive."),mention_author=False); return
+    if not self.has_item(p,key,1):
+     await ctx.reply(embed=self.embed("ITEM MISSING",f"You do not have {ITEMS[key]}."),mention_author=False); return
+    self.consume_item(p,key,1)
+    if key=="battle_tonic": p["damage_boosts"]+=1; effect="Your next attack deals 50% bonus damage."
+    else: p["focus_boosts"]+=1; effect="Your next attack deals double damage."
+    self.flush()
+    await ctx.reply(embed=self.embed(f"{ITEMS[key].upper()} ACTIVE",effect),mention_author=False); return
+   if key=="awakening_crystal":
+    if not self.has_item(p,key,1):
+     await ctx.reply(embed=self.embed("ITEM MISSING","You do not have an Awakening Crystal."),mention_author=False); return
+    self.consume_item(p,key,1); p["points"]+=5; self.flush()
+    await ctx.reply(embed=self.embed("CRYSTAL CONSUMED","You gained 5 skill points."),mention_author=False); return
+  await ctx.reply(embed=self.embed("ITEM NOT USABLE","Try Healing Potion, Battle Tonic, Focus Elixir, Awakening Crystal or Phoenix Feather."),mention_author=False)
 
  @commands.command(name="stats",aliases=["me"])
  async def stats(self,ctx,member:discord.Member=None):
