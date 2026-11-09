@@ -413,22 +413,26 @@ class Adventure(commands.Cog):
    else:
     skill=c[5]
     if ability:
-     if ability.lower().strip().replace(" ","_")!=skill and ability.lower().strip().replace(" ","_") not in p["unlocked_skills"] or (ability.lower().strip().replace(" ","_")==skill and skill not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna")):
-      await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
-     damage=random.randint(*c[6]); action=c[4]
+     ability_key=ability.lower().strip().replace(" ","_")
+     if ability_key==skill:
+      if skill not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna"):
+       await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
+      damage=random.randint(*c[6]); action=c[4]
+     elif ability_key in p["unlocked_skills"]:
+      sk=SKILL_TREE[ability_key]; damage=int(random.randint(*c[3])*sk["multiplier"]); action=sk["name"]
+     else:
+      await ctx.reply(embed=self.embed("SKILL LOCKED","Unlock that ability with ,unlock <skill>."),mention_author=False); return
     else: damage=random.randint(*c[3]); action="Basic strike"
-    if ability and not custom and ability.lower().strip().replace(" ","_") in p["unlocked_skills"]:
-     sk=SKILL_TREE[ability.lower().strip().replace(" ","_")]; damage=int(random.randint(*c[3])*sk["multiplier"]); action=sk["name"]
-    race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
-    level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
-    mastery=p.setdefault("mastery",{}); mastery_xp=int(mastery.get(p["character"],0)); mastery_level=mastery_tier(mastery_xp)
-    mastery_mult=1+0.02*mastery_level
-    if p.get("damage_boosts",0)>0:
+   race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
+   level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
+   mastery=p.setdefault("mastery",{}); mastery_xp=int(mastery.get(p["character"],0)); mastery_level=mastery_tier(mastery_xp)
+   mastery_mult=1+0.02*mastery_level
+   if p.get("damage_boosts",0)>0:
     damage=int(damage*1.5); p["damage_boosts"]-=1
    if p.get("focus_boosts",0)>0:
     damage*=2; p["focus_boosts"]-=1
    dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
-    damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
+   damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
    mastery[p["character"]]=mastery_xp+damage
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
    phase_line=""
