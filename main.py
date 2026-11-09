@@ -20,6 +20,7 @@ class PeakBot(commands.Bot):
     async def setup_hook(self) -> None:
         await self.load_extension("cogs.general")
         await self.load_extension("cogs.adventure")
+        await self.load_extension("cogs.progression")
         log.info("Extensions loaded")
 
     async def on_ready(self) -> None:
