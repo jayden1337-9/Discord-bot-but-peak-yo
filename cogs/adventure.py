@@ -277,7 +277,7 @@ ITEM_RECIPES = {
  "naruto_key":{"name":"Naruto Key","materials":{"chakra_crystal":12,"uchiha_relic":8,"dimensional_eye":2}},
  "clan_token":{"name":"Clan Reroll","materials":{"chakra_crystal":4,"cursed_ash":4,"soul_fragment":4}},
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"gold":0,"gems":0,"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_inventory":{},"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"gold":0,"gems":0,"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -403,7 +403,8 @@ class WeaponBuilderModal(discord.ui.Modal, title="Create a custom weapon"):
   name=self.weapon_name.value.strip(); key=name.lower().replace(" ","_")
   if not key or key in self.cog.data["custom_weapons"] or key in CHARACTERS:
    await interaction.response.send_message("That weapon name is empty or already in use.",ephemeral=True); return
-  self.cog.data["custom_weapons"][key]={"name":name,"damage":[low,high],"ability":self.ability.value.strip(),"ability_key":self.ability.value.strip().lower().replace(" ","_"),"ability_damage":[skill_low,skill_high],"description":self.description.value.strip() or "A custom weapon forged by the bot owner."}
+  self.cog.data["custom_weapons"][key]={"name":name,"damage":[low,high],"ability":self.ability.value.strip(),"ability_key":self.ability.value.strip().lower().replace(" ","_"),"ability_damage":[skill_low,skill_high],"description":self.description.value.strip() or "A custom weapon forged by the bot owner.","creator_id":self.owner_id}
+  owner_profile=self.cog.p(self.owner_id); owner_profile.setdefault("weapon_inventory",{})[key]=owner_profile.setdefault("weapon_inventory",{}).get(key,0)+1
   self.cog.flush()
   await interaction.response.send_message(embed=self.cog.embed("WEAPON CREATED",f"**{name}** is now in the weapon archive.\nBasic damage: {low}-{high}\n{self.ability.value}: {skill_low}-{skill_high}\nPlayers can equip it with ,weapon equip {key}."),ephemeral=True)
 
@@ -1276,8 +1277,12 @@ class Adventure(commands.Cog):
   key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if key not in self.data.get("custom_weapons",{}):
    await ctx.reply(embed=self.embed("WEAPON NOT FOUND","Check ,weapon list for available custom weapons."),mention_author=False); return
-  if key in WEAPON_RECIPES and key not in self.data.get("crafted_weapons",{}).get(str(ctx.author.id),[]):
-   await ctx.reply(embed=self.embed("WEAPON LOCKED","Craft this weapon yourself with ,craft "+key+"."),mention_author=False); return
+  owned_count=int(p.get("weapon_inventory",{}).get(key,0))
+  crafted=key in self.data.get("crafted_weapons",{}).get(str(ctx.author.id),[])
+  weapon_data=self.data["custom_weapons"][key]
+  requires_ownership=("creator_id" in weapon_data) or (key in WEAPON_RECIPES)
+  if requires_ownership and not crafted and owned_count<1:
+   await ctx.reply(embed=self.embed("WEAPON NOT OWNED","You need to receive this weapon with ,giveitem or craft its blueprint before equipping it."),mention_author=False); return
   p["weapon"]=key; self.flush()
   await ctx.reply(embed=self.embed("WEAPON EQUIPPED",f"{self.data['custom_weapons'][key]['name']} is now equipped. Use ,attack or ,attack <ability name>."),mention_author=False)
  @weapon.command(name="unequip")
@@ -1309,9 +1314,17 @@ class Adventure(commands.Cog):
  @commands.is_owner()
  async def giveitem(self,ctx,member:discord.User,item:str,amount:int=1):
   key=item.lower().strip().replace(" ","_")
-  if key not in ITEMS or amount<1: await ctx.reply(embed=self.embed("INVALID ITEM","Use a listed item key and an amount greater than zero. There is no maximum grant amount."),mention_author=False); return
+  if amount<1:
+   await ctx.reply(embed=self.embed("INVALID AMOUNT","Choose an amount greater than zero."),mention_author=False); return
   p=self.p(member.id)
-  if key=="clan_token":
+  if key in self.data.get("custom_weapons",{}):
+   p.setdefault("weapon_inventory",{})
+   p["weapon_inventory"][key]=p["weapon_inventory"].get(key,0)+amount
+   weapon_name=self.data["custom_weapons"][key]["name"]
+   result=f"Granted **{weapon_name}** x{display_number(amount)} to {member.mention}. They can equip it with ,weapon equip {key}."
+  elif key not in ITEMS:
+   await ctx.reply(embed=self.embed("INVALID ITEM","Use an item key or a custom weapon key from ,weapon list."),mention_author=False); return
+  elif key=="clan_token":
    p["clan_rolls"]=p.get("clan_rolls",1)+amount; result=f"Granted {amount} clan rerolls to {member.mention}. Total: {p['clan_rolls']}."
   else:
    self.item(p,key,amount); result=f"Granted {ITEMS[key]} x{display_number(amount)} to {member.mention}."
