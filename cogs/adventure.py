@@ -208,7 +208,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=e,mention_author=False)
  @commands.group(name="boss",invoke_without_command=True)
  async def boss(self,ctx):
-  await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss summon <key> <count> · ,boss status · ,join · ,attack [skill]"),mention_author=False)
+  await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss summon <key> <count> · ,boss status · ,join · ,boss leave · ,attack [skill] · ,use phoenix_feather"),mention_author=False)
  @boss.command(name="summon")
  @commands.guild_only()
  @commands.is_owner()
@@ -265,6 +265,31 @@ class Adventure(commands.Cog):
   e=self.embed(title,f"{display_number(r['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
   e.add_field(name="Party",value="\n".join(f"<@{u}> · {hp}/250 HP" for u,hp in r["players"].items())[:1024],inline=False)
   await ctx.reply(embed=e,mention_author=False)
+ @boss.command(name="leave")
+ @commands.guild_only()
+ async def leave_raid(self,ctx):
+  g=str(ctx.guild.id); uid=str(ctx.author.id)
+  async with self.lock:
+   r=self.data["raids"].get(g)
+   if not r or uid not in r["players"]:
+    await ctx.reply(embed=self.embed("NOT IN RAID","You are not part of the active raid."),mention_author=False); return
+   alive=[u for u in r["turns"] if r["players"].get(u,0)>0]
+   current=alive[r["turn"]%len(alive)] if alive else None
+   turns=r["turns"][:]; idx=turns.index(uid)
+   following=next((u for u in turns[idx+1:]+turns[:idx] if u!=uid and r["players"].get(u,0)>0),None)
+   r["turns"].remove(uid); r["players"].pop(uid,None); r["damage"].pop(uid,None)
+   if not r["players"]:
+    self.data["raids"].pop(g,None); self.flush()
+    await ctx.reply(embed=self.embed("RAID CLOSED","The last party member left. The raid has been closed."),mention_author=False); return
+   alive_now=[u for u in r["turns"] if r["players"].get(u,0)>0]
+   if alive_now:
+    next_user=following if current==uid and following in alive_now else (current if current in alive_now else alive_now[0])
+    r["turn"]=alive_now.index(next_user)
+   else:
+    r["turn"]=0
+   self.flush()
+  await ctx.reply(embed=self.embed("LEFT RAID","You left the active party. Your raid contribution has been removed."),mention_author=False)
+
  @commands.command(name="attack",aliases=["strike","hit"])
  @commands.guild_only()
  @commands.cooldown(1,1,commands.BucketType.user)
@@ -313,6 +338,8 @@ class Adventure(commands.Cog):
      for item,limits in b[4].items():
       amount=random.randint(*limits)*swarm_multiplier
       self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
+     if random.random()<0.08:
+      self.item(q,"phoenix_feather",1); got.append("Phoenix Feather x1")
      if random.random()<0.10:
       amount=swarm_multiplier
       self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{amount}")
@@ -366,6 +393,22 @@ class Adventure(commands.Cog):
    self.item(p,"cursed_fingers",-20); p["sukuna_race_unlocked"]=True; p["race"]="sukuna"; self.flush()
    await ctx.reply(embed=self.embed("KING OF CURSES AWAKENED","20 fingers consumed. Secret race unlocked and equipped: +25% damage and 15% damage reduction."),mention_author=False); return
   await ctx.reply(embed=self.embed("CANNOT CONSUME","That item has no consumption effect."),mention_author=False)
+ @commands.command(name="use")
+ async def use_item(self,ctx,*,item):
+  key=item.lower().strip().replace(" ","_")
+  if key not in {"phoenix_feather","phoenix"}:
+   await ctx.reply(embed=self.embed("ITEM NOT USABLE","Phoenix Feathers can revive you during an active raid."),mention_author=False); return
+  g=str(ctx.guild.id) if ctx.guild else ""
+  async with self.lock:
+   r=self.data["raids"].get(g)
+   uid=str(ctx.author.id); p=self.p(ctx.author.id)
+   if not r or uid not in r["players"] or r["players"][uid]>0:
+    await ctx.reply(embed=self.embed("CANNOT USE","You must be a defeated party member in an active raid."),mention_author=False); return
+   if p["inventory"].get("phoenix_feather",0)<1:
+    await ctx.reply(embed=self.embed("ITEM MISSING","You need a Phoenix Feather."),mention_author=False); return
+   self.item(p,"phoenix_feather",-1); r["players"][uid]=150; self.flush()
+  await ctx.reply(embed=self.embed("PHOENIX REVIVAL","Phoenix Feather consumed. You have returned with 150 HP."),mention_author=False)
+
  @commands.command(name="stats",aliases=["me"])
  async def stats(self,ctx,member:discord.Member=None):
   member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
@@ -375,7 +418,7 @@ class Adventure(commands.Cog):
  @commands.command(name="leaderboard",aliases=["top"])
  async def leaderboard(self,ctx):
   top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("level",1),x[1].get("xp",0)),reverse=True)[:10]
-  lines=[f"{i}. <@{uid}> · Level {p['level']} · {p['xp']} XP" for i,(uid,p) in enumerate(top,1)]
+  lines=[f"{i}. <@{uid}> · Level {display_number(p['level'])} · {display_number(p['xp'])} XP" for i,(uid,p) in enumerate(top,1)]
   await ctx.reply(embed=self.embed("ADVENTURER RANKINGS","\n".join(lines) or "No players yet."),mention_author=False)
 
  @commands.command(name="createweapon")
