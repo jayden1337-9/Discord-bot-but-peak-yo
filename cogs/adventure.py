@@ -369,19 +369,36 @@ class Adventure(commands.Cog):
    race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
    level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
    damage=min(r["hp"],max(1,int(damage*race_mult*level_mult))); r["hp"]-=damage
-   swarm_count=r.get("swarm_count",1); swarm_multiplier=swarm_value(swarm_count)
+   swarm_count=r.get("swarm_count",1); symbolic_swarm=swarm_count=="googolplex"
+   swarm_multiplier=1 if symbolic_swarm else swarm_value(swarm_count)
    total_damage=damage*swarm_multiplier
-   r["damage"][uid]=r["damage"].get(uid,0)+total_damage; p["damage"]+=total_damage
+   if symbolic_swarm:
+    r["damage"][uid]=r["damage"].get(uid,0)+damage
+    p["symbolic_rewards"]["damage"]+=damage
+    total_damage_label=f"{display_number(damage)} × 10^(10^100)"
+   else:
+    r["damage"][uid]=r["damage"].get(uid,0)+total_damage
+    p["damage"]+=total_damage
+    total_damage_label=display_number(total_damage)
    b=BOSSES[r["boss"]]
    if r["hp"]<=0:
     drops=[]
     for player_id in list(r["players"]):
-     q=self.p(int(player_id)); q["xp"]+=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4; q["points"]+=swarm_multiplier; q["wins"]+=swarm_multiplier
-     apply_level_ups(q)
-     got=[]
-     for item,limits in b[4].items():
-      amount=random.randint(*limits)*swarm_multiplier
-      self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
+     q=self.p(int(player_id)); got=[]
+     if symbolic_swarm:
+      sr=q["symbolic_rewards"]
+      xp_reward=b[3]+r["damage"].get(player_id,0)//4
+      sr["xp"]+=xp_reward; sr["points"]+=1; sr["wins"]+=1
+      got.extend([f"XP x{symbolic_quantity(xp_reward)}",f"Skill Points x{symbolic_quantity(1)}",f"Victories x{symbolic_quantity(1)}"])
+      for item,limits in b[4].items():
+       amount=random.randint(*limits); sr["inventory"][item]=sr["inventory"].get(item,0)+amount
+       got.append(f"{ITEMS.get(item,item)} x{symbolic_quantity(amount)}")
+     else:
+      q["xp"]+=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4; q["points"]+=swarm_multiplier; q["wins"]+=swarm_multiplier
+      apply_level_ups(q)
+      for item,limits in b[4].items():
+       amount=random.randint(*limits)*swarm_multiplier
+       self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
      if random.random()<0.08:
       self.item(q,"phoenix_feather",1); got.append("Phoenix Feather x1")
      if random.random()<0.10:
@@ -402,7 +419,7 @@ class Adventure(commands.Cog):
    self.flush()
   count=r.get("swarm_count",1)
   target_line=f" every one of {swarm_label(count)} bosses" if count != 1 else ""
-  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {display_number(damage)} damage to{target_line or ' the boss'}.\nTotal damage dealt: {display_number(total_damage)}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
+  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {display_number(damage)} damage to{target_line or ' the boss'}.\nTotal damage dealt: {total_damage_label}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
   if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{display_number(self.data['raids'][g]['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="skills")
