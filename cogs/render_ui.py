@@ -38,7 +38,7 @@ def _number(value):
         value = int(value)
         if value.bit_length() > 256:
             exponent = floor(log10(value))
-            mantissa = value / (10 ** exponent)
+            mantissa = 10 ** (log10(value) - exponent)
             return f"{mantissa:.2f}e{exponent}"
         return f"{value:,}"
     except (TypeError, ValueError, OverflowError):
