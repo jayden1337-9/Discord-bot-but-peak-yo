@@ -140,6 +140,7 @@ class GameSystemTests(unittest.TestCase):
         self.assertEqual(set(SKILL_CATEGORIES.values()), {"melee", "sword", "magic"})
         self.assertEqual(set(WEAPON_CATEGORIES.values()), {"melee", "sword", "magic"})
         self.assertEqual(DEFAULT["equipped_skills"], {"melee": [], "sword": [], "magic": []})
+        self.assertEqual(DEFAULT["weapon_inventory"], {})
 
     def test_tower_enemy_scales_with_floor(self):
         game = Endgame(None)
