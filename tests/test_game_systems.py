@@ -3,6 +3,8 @@ import unittest
 from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
+from cogs.render_ui import inventory_image, gear_image
+from PIL import Image
 
 
 class GameSystemTests(unittest.TestCase):
@@ -69,6 +71,27 @@ class GameSystemTests(unittest.TestCase):
         self.assertEqual(first["hp"], 650)
         self.assertEqual(tenth["hp"], 65000)
         self.assertGreater(tenth["damage"][1], first["damage"][1])
+
+    def test_pillow_inventory_image_renders_huge_and_symbolic_stacks(self):
+        profile = {
+            "inventory": {"cursed_ash": 12, "dragon_scale": 10 ** 1991},
+            "symbolic_rewards": {
+                "inventory": {"void_ore": 2},
+                "inventory_spent": {"void_ore": 1},
+            },
+        }
+        image_file = inventory_image(profile, {"cursed_ash": "Cursed Ash", "dragon_scale": "Dragon Scale", "void_ore": "Void Ore"})
+        image = Image.open(image_file)
+        self.assertEqual(image.format, "PNG")
+        self.assertGreater(image.width, 500)
+        self.assertGreater(image.height, 200)
+
+    def test_pillow_gear_image_renders_empty_and_equipped_slots(self):
+        profile = {"gear_owned": ["cursed_mantle"], "gear_equipped": {"armor": "cursed_mantle", "relic": None, "core": None}}
+        image_file = gear_image(profile, GEAR)
+        image = Image.open(image_file)
+        self.assertEqual(image.format, "PNG")
+        self.assertEqual(image.size, (900, 520))
 
     def test_level_up_math(self):
         profile = {"level": 1, "xp": 250, "points": 0}
