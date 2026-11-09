@@ -74,7 +74,7 @@ BOSSES = {
  "naruto_six_paths":("Naruto: Six Paths",5600,(68,102),1750,{"chakra_crystal":(2,4),"six_paths_essence":(1,3),"ten_tails_core":(1,1)}),
 }
 ITEMS = {k:k.replace("_"," ").title() for b in BOSSES.values() for k in b[4]}
-ITEMS.update({"limitless_core":"Limitless Core","hollow_purple_shard":"Hollow Purple Shard","sukuna_relic":"Sukuna Relic","malevolent_essence":"Malevolent Essence","shrine_fragment":"Shrine Fragment","king_of_curses_seal":"King of Curses Seal","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
+ITEMS.update({"limitless_core":"Limitless Core","hollow_purple_shard":"Hollow Purple Shard","sukuna_relic":"Sukuna Relic","malevolent_essence":"Malevolent Essence","shrine_fragment":"Shrine Fragment","king_of_curses_seal":"King of Curses Seal","cursed_fingers":"Cursed Fingers","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
 
 ITEMS.update({"void_ore":"Void Ore","starsteel":"Starsteel","dragon_scale":"Dragon Scale","spirit_silk":"Spirit Silk","ancient_core":"Ancient Core","dimension_key":"Dimension Key","awakening_crystal":"Awakening Crystal","celestial_dust":"Celestial Dust","zanpakuto_core":"Zanpakuto Core","oni_horn":"Oni Horn","dimensional_eye":"Dimensional Eye","ten_tails_core":"Ten Tails Core","spiral_core":"Spiral Core","rift_crystal":"Rift Crystal","phoenix_ash":"Phoenix Ash","abyssal_pearl":"Abyssal Pearl"})
 ITEMS.update({"jjk_key":"JJK Key","jojo_key":"JoJo Key","naruto_key":"Naruto Key","clan_token":"Clan Reroll","six_eyes":"Six Eyes","dio_bone":"Dio Bone","dio_diary":"Dio Diary","green_baby":"Green Baby","stand_arrow":"Stand Arrow","itachi_soul":"Itachi Soul","uchiha_soul":"Uchiha Soul","chakra_fruit":"Chakra Fruit","fruit_chest":"Fruit Chest","luffy_soul":"Luffy Soul","one_piece_soul":"One Piece Soul","imu_key":"IMU Key","joyboy_key":"Joyboy Key","katana":"Katana"})
@@ -579,8 +579,12 @@ class Adventure(commands.Cog):
    g=str(ctx.guild.id)
    if g in self.data["raids"]:
     await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid before opening another key."),mention_author=False); return
-   self.consume_item(p,key,1); boss_key=random.choice(BOSS_KEY_POOLS[key]); b=BOSSES[boss_key]
-   self.data["raids"][g]={"boss":boss_key,"hp":b[1],"max_hp":b[1],"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1,"key_type":key}
+   boss_key=random.choice(BOSS_KEY_POOLS[key]); b=BOSSES[boss_key]; world=BOSS_DIMENSIONS.get(boss_key,"earth")
+   if p.get("active_dimension","earth")!=world:
+    await ctx.reply(embed=self.embed("WRONG ANIME WORLD",f"This key rolled {b[0]}, who belongs to {DIMENSIONS.get(world,DIMENSIONS['earth'])['name']}. Travel there before using the key."),mention_author=False); return
+   self.consume_item(p,key,1)
+   dim=DIMENSIONS.get(world,DIMENSIONS["earth"]); hp=max(1,int(b[1]*dim.get("hp_mult",1)))
+   self.data["raids"][g]={"boss":boss_key,"hp":hp,"max_hp":hp,"damage_scale":dim.get("damage_mult",1.0),"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1,"key_type":key}
    self.flush()
   await ctx.reply(embed=self.embed(f"{ITEMS[key].upper()} OPENED",f"The key summoned **{b[0]}**.\n{b[1]:,} HP · {b[2][0]}–{b[2][1]} damage · {b[3]:,} XP\nOthers can join with ,join."),mention_author=False)
 
@@ -626,7 +630,7 @@ class Adventure(commands.Cog):
    g=str(ctx.guild.id)
    if g in self.data["raids"]: await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
    b=BOSSES[key]; p=self.p(ctx.author.id); world=BOSS_DIMENSIONS.get(key,"earth")
-   if p.get("active_dimension","earth")!=world:
+   if p.get("active_dimension","earth")!=world and not (p.get("active_dimension","earth")=="earth" and b[1]<=1350):
     await ctx.reply(embed=self.embed("WRONG ANIME WORLD",f"{b[0]} belongs to {DIMENSIONS.get(world,DIMENSIONS['earth'])['name']}. Travel there with ,dimension enter {world} first."),mention_author=False); return
    dim=DIMENSIONS.get(world,DIMENSIONS["earth"]); hp=max(1,int(b[1]*dim.get("hp_mult",1)))
    self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":dim.get("damage_mult",1.0),"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
