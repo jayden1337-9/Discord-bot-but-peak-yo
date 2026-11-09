@@ -49,7 +49,7 @@ RACES = {
  "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0}
 
 def save(data):
  ROOT.mkdir(parents=True,exist_ok=True)
@@ -67,11 +67,11 @@ def load():
   try:
    d=json.loads(DB_FILE.read_text(encoding="utf-8"))
    if isinstance(d,dict) and isinstance(d.get("profiles"),dict):
-    d.setdefault("raids",{}); d.setdefault("version",1); return d
+    d.setdefault("raids",{}); d.setdefault("custom_weapons",{}); d.setdefault("version",1); return d
   except (OSError,json.JSONDecodeError):
    try: DB_FILE.replace(DB_FILE.with_suffix(".broken.json"))
    except OSError: pass
- d={"version":1,"profiles":{},"raids":{}}
+ d={"version":1,"profiles":{},"raids":{},"custom_weapons":{}}
  if OLD_DB.exists():
   try:
    con=sqlite3.connect(OLD_DB)
@@ -90,6 +90,41 @@ def load():
   except sqlite3.Error: pass
  save(d); return d
 
+class WeaponBuilderModal(discord.ui.Modal, title="Create a custom weapon"):
+ def __init__(self, cog, owner_id):
+  super().__init__(timeout=300); self.cog=cog; self.owner_id=owner_id
+  self.weapon_name=discord.ui.TextInput(label="Weapon name",placeholder="e.g. World Splitter",max_length=40)
+  self.damage=discord.ui.TextInput(label="Basic damage range",placeholder="Example: 100-150",max_length=15)
+  self.ability=discord.ui.TextInput(label="Ability name",placeholder="e.g. Reality Sever",max_length=40)
+  self.ability_damage=discord.ui.TextInput(label="Ability damage range",placeholder="Example: 200-300",max_length=15)
+  self.description=discord.ui.TextInput(label="Description",style=discord.TextStyle.paragraph,required=False,max_length=180)
+  for item in (self.weapon_name,self.damage,self.ability,self.ability_damage,self.description): self.add_item(item)
+ async def on_submit(self, interaction):
+  if interaction.user.id!=self.owner_id:
+   await interaction.response.send_message("Only the command owner can submit this builder.",ephemeral=True); return
+  try:
+   low,high=[int(x.strip()) for x in self.damage.value.split("-",1)]
+   skill_low,skill_high=[int(x.strip()) for x in self.ability_damage.value.split("-",1)]
+   if not (1<=low<=high<=100000 and 1<=skill_low<=skill_high<=200000): raise ValueError
+  except (ValueError,TypeError):
+   await interaction.response.send_message("Damage ranges must use MIN-MAX format and stay within the allowed limits.",ephemeral=True); return
+  name=self.weapon_name.value.strip(); key=name.lower().replace(" ","_")
+  if not key or key in self.cog.data["custom_weapons"] or key in CHARACTERS:
+   await interaction.response.send_message("That weapon name is empty or already in use.",ephemeral=True); return
+  self.cog.data["custom_weapons"][key]={"name":name,"damage":[low,high],"ability":self.ability.value.strip(),"ability_key":self.ability.value.strip().lower().replace(" ","_"),"ability_damage":[skill_low,skill_high],"description":self.description.value.strip() or "A custom weapon forged by the bot owner."}
+  self.cog.flush()
+  await interaction.response.send_message(embed=self.cog.embed("WEAPON CREATED",f"**{name}** is now in the weapon archive.\nBasic damage: {low}-{high}\n{self.ability.value}: {skill_low}-{skill_high}\nPlayers can equip it with ,weapon equip {key}."),ephemeral=True)
+
+class WeaponBuilderView(discord.ui.View):
+ def __init__(self,cog,owner_id):
+  super().__init__(timeout=180); self.cog=cog; self.owner_id=owner_id
+ @discord.ui.button(label="Open weapon builder",style=discord.ButtonStyle.primary)
+ async def open_builder(self,interaction,button):
+  if interaction.user.id!=self.owner_id:
+   await interaction.response.send_message("Only the bot owner can use this builder.",ephemeral=True); return
+  await interaction.response.send_modal(WeaponBuilderModal(self.cog,self.owner_id))
+
+
 class Adventure(commands.Cog):
  def __init__(self,bot):
   self.bot=bot; self.data=load(); self.lock=asyncio.Lock()
@@ -101,6 +136,7 @@ class Adventure(commands.Cog):
   for key,value in DEFAULT.items(): p.setdefault(key,json.loads(json.dumps(value)))
   if p["character"] not in CHARACTERS: p["character"]="sukuna"
   if p["race"] not in RACES: p["race"]="human"
+  p.setdefault("weapon",None)
   return p
  def flush(self): save(self.data)
  def embed(self,title,desc="",color=None):
@@ -186,12 +222,21 @@ class Adventure(commands.Cog):
    if not alive: self.data["raids"].pop(g,None); self.flush(); await ctx.reply(embed=self.embed("PARTY DEFEATED","Raid ended."),mention_author=False); return
    r["turn"]%=len(alive); current=alive[r["turn"]]
    if current!=uid: await ctx.reply(embed=self.embed("NOT YOUR TURN",f"It is <@{current}>'s turn."),mention_author=False); return
-   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; skill=c[5]
-   if ability:
-    if ability.lower().strip()!=skill or (skill not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna")):
-     await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
-    damage=random.randint(*c[6]); action=c[4]
-   else: damage=random.randint(*c[3]); action="Basic strike"
+   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; custom=self.data.get("custom_weapons",{}).get(p.get("weapon"))
+   if custom:
+    skill=custom["ability_key"]
+    if ability:
+     if ability.lower().strip().replace(" ","_")!=skill:
+      await ctx.reply(embed=self.embed("UNKNOWN ABILITY",f"This weapon uses {custom['ability']}."),mention_author=False); return
+     damage=random.randint(*custom["ability_damage"]); action=custom["ability"]
+    else: damage=random.randint(*custom["damage"]); action=custom["name"]+" strike"
+   else:
+    skill=c[5]
+    if ability:
+     if ability.lower().strip()!=skill or (skill not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna")):
+      await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
+     damage=random.randint(*c[6]); action=c[4]
+    else: damage=random.randint(*c[3]); action="Basic strike"
    race=RACES[p["race"]]; mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
    damage=min(r["hp"],max(1,int(damage*mult))); r["hp"]-=damage; r["damage"][uid]=r["damage"].get(uid,0)+damage; p["damage"]+=damage
    b=BOSSES[r["boss"]]
@@ -208,8 +253,11 @@ class Adventure(commands.Cog):
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
     await ctx.reply(embed=self.embed(f"RAID CLEARED / {b[0].upper()}","Every participant received XP and a skill point.\n\n"+ "\n".join(drops),discord.Color.green()),mention_author=False); return
-   incoming=random.randint(*b[2]); reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
-   incoming=max(1,int(incoming*(1-reduction))); r["players"][uid]=max(0,r["players"][uid]-incoming); hp=r["players"][uid]
+   boss_hits=random.random()<0.72
+   incoming=random.randint(*b[2]) if boss_hits else 0
+   reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
+   incoming=max(1,int(incoming*(1-reduction))) if boss_hits else 0
+   r["players"][uid]=max(0,r["players"][uid]-incoming); hp=r["players"][uid]
    alive2=[u for u in r["turns"] if r["players"].get(u,0)>0]
    if alive2:
     old=r["turns"].index(uid); seq=r["turns"][old+1:]+r["turns"][:old]; nxt=next((u for u in seq if r["players"].get(u,0)>0),None); r["turn"]=alive2.index(nxt) if nxt else 0; nextline=f"\nNext turn: <@{nxt}>"
@@ -257,6 +305,34 @@ class Adventure(commands.Cog):
   top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("level",1),x[1].get("xp",0)),reverse=True)[:10]
   lines=[f"{i}. <@{uid}> · Level {p['level']} · {p['xp']} XP" for i,(uid,p) in enumerate(top,1)]
   await ctx.reply(embed=self.embed("ADVENTURER RANKINGS","\n".join(lines) or "No players yet."),mention_author=False)
+
+ @commands.command(name="createweapon")
+ @commands.is_owner()
+ async def createweapon(self,ctx):
+  e=self.embed("CUSTOM WEAPON FORGE","Open the builder to define a weapon name, description, basic damage and ability damage. Created weapons are stored in the JSON database.")
+  await ctx.reply(embed=e,view=WeaponBuilderView(self,ctx.author.id),mention_author=False)
+ @commands.group(name="weapon",invoke_without_command=True)
+ async def weapon(self,ctx):
+  await ctx.reply(embed=self.embed("WEAPON ARCHIVE","Use ,weapon list or ,weapon equip <key>."),mention_author=False)
+ @weapon.command(name="list")
+ async def weapon_list(self,ctx):
+  custom=self.data.get("custom_weapons",{})
+  if not custom: await ctx.reply(embed=self.embed("WEAPON ARCHIVE","No custom weapons have been forged yet."),mention_author=False); return
+  e=self.embed("CUSTOM WEAPON ARCHIVE")
+  for key,w in custom.items():
+   e.add_field(name=f"{w['name']} / {key}",value=f"{w['damage'][0]}-{w['damage'][1]} basic damage\n{w['ability']}: {w['ability_damage'][0]}-{w['ability_damage'][1]}\n{w.get('description','')}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+ @weapon.command(name="equip")
+ async def weapon_equip(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
+  if key not in self.data.get("custom_weapons",{}):
+   await ctx.reply(embed=self.embed("WEAPON NOT FOUND","Check ,weapon list for available custom weapons."),mention_author=False); return
+  p["weapon"]=key; self.flush()
+  await ctx.reply(embed=self.embed("WEAPON EQUIPPED",f"{self.data['custom_weapons'][key]['name']} is now equipped. Use ,attack or ,attack <ability name>."),mention_author=False)
+ @weapon.command(name="unequip")
+ async def weapon_unequip(self,ctx):
+  p=self.p(ctx.author.id); p["weapon"]=None; self.flush()
+  await ctx.reply(embed=self.embed("WEAPON UNEQUIPPED","Your character's standard attacks are active again."),mention_author=False)
 
  @commands.command(name="giveitem")
  @commands.is_owner()
