@@ -188,8 +188,8 @@ class Adventure(commands.Cog):
   key=key.lower().strip().replace(" ","_")
   if key not in BOSSES:
    await ctx.reply(embed=self.embed("UNKNOWN TARGET","Use ,bosses to view available bosses."),mention_author=False); return
-  if not 1<=count<=1000:
-   await ctx.reply(embed=self.embed("INVALID COUNT","You can summon between 1 and 1000 bosses."),mention_author=False); return
+  if count < 1:
+   await ctx.reply(embed=self.embed("INVALID COUNT","Boss count must be at least 1."),mention_author=False); return
   async with self.lock:
    g=str(ctx.guild.id)
    if g in self.data["raids"]:
