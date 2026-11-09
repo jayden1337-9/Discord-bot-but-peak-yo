@@ -417,10 +417,18 @@ class Adventure(commands.Cog):
        amount=random.randint(*limits)*swarm_multiplier
        self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
      if random.random()<0.08:
-      self.item(q,"phoenix_feather",1); got.append("Phoenix Feather x1")
+      if symbolic_swarm:
+       sr=q["symbolic_rewards"]; sr["inventory"]["phoenix_feather"]=sr["inventory"].get("phoenix_feather",0)+1
+       got.append(f"Phoenix Feather x{symbolic_quantity(1)}")
+      else:
+       self.item(q,"phoenix_feather",1); got.append("Phoenix Feather x1")
      if random.random()<0.10:
-      amount=swarm_multiplier
-      self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{amount}")
+      if symbolic_swarm:
+       sr=q["symbolic_rewards"]; sr["inventory"]["mythic_token"]=sr["inventory"].get("mythic_token",0)+1
+       got.append(f"Mythic Token x{symbolic_quantity(1)}")
+      else:
+       amount=swarm_multiplier
+       self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{display_number(amount)}")
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
     await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Rewards are multiplied by the selected swarm count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
