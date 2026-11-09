@@ -16,6 +16,7 @@ BOSSES = {
     "madara": {"name": "MADARA UCHIHA", "hp": 4600, "reward": 1400, "damage": (50, 78), "description": "The legendary Uchiha who brings the power of the Sharingan and Susanoo to the battlefield."},
     "frieza": {"name": "FRIEZA", "hp": 7200, "reward": 2200, "damage": (65, 95), "description": "The emperor of the universe. His overwhelming power makes this a final-tier raid."},
     "gojo": {"name": "SATORU GOJO", "hp": 1900, "reward": 500, "damage": (30, 48), "description": "The honoured one. Defeat this special encounter to obtain a Six Eyes relic."},
+    "sukuna": {"name": "RYOMEN SUKUNA", "hp": 5200, "reward": 1800, "damage": (55, 88), "description": "The King of Curses. Defeat him for a chance at Cursed Fingers and other rare relics."},
 }
 
 WEAPONS = {
@@ -37,6 +38,8 @@ RACES = {
     "fishman": {"name": "Fish-Man", "description": "Tough bodies. 20% less incoming damage.", "damage": 1.0, "reduction": 0.20},
     "shinobi": {"name": "Shinobi", "description": "Quick and tactical. +7% damage and 8% less incoming damage.", "damage": 1.07, "reduction": 0.08},
     "curse": {"name": "Cursed Spirit", "description": "Cursed energy. +12% damage, but takes 5% more damage.", "damage": 1.12, "reduction": -0.05},
+    "vessel": {"name": "Sukuna Vessel", "description": "A compatible vessel. +12% damage. Unlocks Sukuna signature technique for free when using his character.", "damage": 1.12, "reduction": 0.0},
+    "sukuna": {"name": "King of Curses", "description": "Secret awakening. +25% damage and 15% less incoming damage.", "damage": 1.25, "reduction": 0.15},
 }
 
 class Adventure(commands.Cog):
@@ -56,13 +59,17 @@ class Adventure(commands.Cog):
             "six_eyes": "INTEGER NOT NULL DEFAULT 0",
             "infinity_unlocked": "INTEGER NOT NULL DEFAULT 0",
             "six_eyes_unlocked": "INTEGER NOT NULL DEFAULT 0",
+            "cursed_fingers": "INTEGER NOT NULL DEFAULT 0",
+            "cursed_ash": "INTEGER NOT NULL DEFAULT 0",
+            "sukuna_relics": "INTEGER NOT NULL DEFAULT 0",
+            "sukuna_race_unlocked": "INTEGER NOT NULL DEFAULT 0",
         }.items():
             if column not in columns:
                 self.db.execute(f"ALTER TABLE profiles ADD COLUMN {column} {definition}")
         self.db.commit()
 
     def profile(self, user_id: int):
-        row = self.db.execute("SELECT xp, level, skill_points, weapon, unlocked, race, six_eyes, infinity_unlocked, six_eyes_unlocked FROM profiles WHERE user_id=?", (user_id,)).fetchone()
+        row = self.db.execute("SELECT xp, level, skill_points, weapon, unlocked, race, six_eyes, infinity_unlocked, six_eyes_unlocked, cursed_fingers, cursed_ash, sukuna_relics, sukuna_race_unlocked FROM profiles WHERE user_id=?", (user_id,)).fetchone()
         if row is None:
             self.db.execute("INSERT INTO profiles(user_id) VALUES(?)", (user_id,))
             self.db.commit()
@@ -71,14 +78,14 @@ class Adventure(commands.Cog):
         weapon = legacy.get(row[3], row[3])
         if weapon not in WEAPONS:
             weapon = "sukuna"
-        profile = {"xp": row[0], "level": row[1], "points": row[2], "weapon": weapon, "unlocked": set(filter(None, row[4].split(","))), "race": row[5] if row[5] in RACES else "human", "six_eyes": row[6], "infinity_unlocked": bool(row[7]), "six_eyes_unlocked": bool(row[8])}
+        profile = {"xp": row[0], "level": row[1], "points": row[2], "weapon": weapon, "unlocked": set(filter(None, row[4].split(","))), "race": row[5] if row[5] in RACES else "human", "six_eyes": row[6], "infinity_unlocked": bool(row[7]), "six_eyes_unlocked": bool(row[8]), "cursed_fingers": row[9], "cursed_ash": row[10], "sukuna_relics": row[11], "sukuna_race_unlocked": bool(row[12])}
         if weapon != row[3]:
             self.save_profile(user_id, profile)
         return profile
 
     def save_profile(self, user_id: int, profile: dict) -> None:
-        self.db.execute("UPDATE profiles SET xp=?, level=?, skill_points=?, weapon=?, unlocked=?, race=?, six_eyes=?, infinity_unlocked=?, six_eyes_unlocked=? WHERE user_id=?",
-                        (profile["xp"], profile["level"], profile["points"], profile["weapon"], ",".join(sorted(profile["unlocked"])), profile["race"], profile["six_eyes"], int(profile["infinity_unlocked"]), int(profile["six_eyes_unlocked"]), user_id))
+        self.db.execute("UPDATE profiles SET xp=?, level=?, skill_points=?, weapon=?, unlocked=?, race=?, six_eyes=?, infinity_unlocked=?, six_eyes_unlocked=?, cursed_fingers=?, cursed_ash=?, sukuna_relics=?, sukuna_race_unlocked=? WHERE user_id=?",
+                        (profile["xp"], profile["level"], profile["points"], profile["weapon"], ",".join(sorted(profile["unlocked"])), profile["race"], profile["six_eyes"], int(profile["infinity_unlocked"]), int(profile["six_eyes_unlocked"]), profile["cursed_fingers"], profile["cursed_ash"], profile["sukuna_relics"], int(profile["sukuna_race_unlocked"]), user_id))
         self.db.commit()
 
     def make_embed(self, title: str, description: str = "", color: discord.Color = discord.Color.from_rgb(77, 54, 92)) -> discord.Embed:
@@ -160,6 +167,8 @@ class Adventure(commands.Cog):
         profile = self.profile(ctx.author.id)
         embed = self.make_embed("RACE REGISTRY", "Choose a race to gain its passive bonuses. Your current race is **" + RACES[profile["race"]]["name"] + "**.")
         for key, race in RACES.items():
+            if key == "sukuna" and not profile["sukuna_race_unlocked"]:
+                continue
             state = "CURRENT" if profile["race"] == key else "AVAILABLE"
             embed.add_field(name=f"{race['name']} · {state}", value=f"{race['description']}\nSelect with `,race {key}`.", inline=False)
         await ctx.reply(embed=embed, mention_author=False)
@@ -169,8 +178,8 @@ class Adventure(commands.Cog):
         key = name.lower().strip().replace(" ", "_").replace("-", "_")
         aliases = {"gojo clan": "gojo", "cursed spirit": "curse", "fish man": "fishman"}
         key = aliases.get(name.lower().strip(), key)
-        if key not in RACES:
-            await ctx.reply(embed=self.make_embed("Race not found", "Use `,races` to view the available races."), mention_author=False)
+        if key not in RACES or (key == "sukuna" and not self.profile(ctx.author.id)["sukuna_race_unlocked"]):
+            await ctx.reply(embed=self.make_embed("Race locked", "The secret race requires 20 Cursed Fingers while using the Vessel race.", discord.Color.orange()), mention_author=False)
             return
         profile = self.profile(ctx.author.id)
         profile["race"] = key
@@ -264,7 +273,7 @@ class Adventure(commands.Cog):
         async with self.lock:
             encounter = self.encounters.get(ctx.guild.id)
             if not encounter:
-                await ctx.reply(embed=self.make_embed("No active target", f"Summon a boss with `{ctx.clean_prefix}boss challenge hollowfang`."), mention_author=False)
+                await ctx.reply(embed=self.make_embed("No active target", f"Summon a boss with `{ctx.clean_prefix}boss challenge mahito`."), mention_author=False)
                 return
             if ctx.author.id not in encounter["players"]:
                 await ctx.reply(embed=self.make_embed("Not enlisted", f"Use `{ctx.clean_prefix}join` before attacking."), mention_author=False)
