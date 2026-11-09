@@ -159,7 +159,8 @@ class GameSystemTests(unittest.TestCase):
     def test_daily_login_streak_reward_caps_at_seven(self):
         self.assertEqual(daily_login_reward(1), {"xp": 200, "points": 1, "token": False})
         self.assertEqual(daily_login_reward(7), {"xp": 500, "points": 3, "token": True})
-        self.assertEqual(daily_login_reward(99), daily_login_reward(7))
+        self.assertEqual(daily_login_reward(8), daily_login_reward(1))
+        self.assertEqual(daily_login_reward(14), daily_login_reward(7))
 
     def test_level_up_math(self):
         profile = {"level": 1, "xp": 250, "points": 0}
