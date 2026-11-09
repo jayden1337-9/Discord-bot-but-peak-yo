@@ -75,9 +75,17 @@ def load():
  if OLD_DB.exists():
   try:
    con=sqlite3.connect(OLD_DB)
-   rows=con.execute("SELECT user_id,xp,level,skill_points,weapon,unlocked FROM profiles").fetchall(); con.close()
-   for uid,xp,level,points,char,unlocked in rows:
-    p=dict(DEFAULT); p.update(xp=xp,level=level,points=points,character=char if char in CHARACTERS else "sukuna",unlocked=list(filter(None,(unlocked or "").split(","))))
+   columns={row[1] for row in con.execute("PRAGMA table_info(profiles)").fetchall()}
+   wanted=["user_id","xp","level","skill_points","weapon","unlocked"]
+   for col in ["race","six_eyes","infinity_unlocked","six_eyes_unlocked"]:
+    if col in columns: wanted.append(col)
+   rows=con.execute("SELECT "+",".join(wanted)+" FROM profiles").fetchall(); con.close()
+   for row in rows:
+    values=dict(zip(wanted,row)); uid=values["user_id"]; char=values["weapon"]
+    p=dict(DEFAULT); p.update(xp=values["xp"],level=values["level"],points=values["skill_points"],character=char if char in CHARACTERS else "sukuna",unlocked=list(filter(None,(values["unlocked"] or "").split(","))))
+    p["race"]=values.get("race") if values.get("race") in RACES else "human"
+    if values.get("six_eyes",0): p["inventory"]["six_eyes"]=values["six_eyes"]
+    p["infinity_unlocked"]=bool(values.get("infinity_unlocked",0)); p["six_eyes_unlocked"]=bool(values.get("six_eyes_unlocked",0))
     d["profiles"][str(uid)]=p
   except sqlite3.Error: pass
  save(d); return d
