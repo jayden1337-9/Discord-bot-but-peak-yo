@@ -250,8 +250,10 @@ class Adventure(commands.Cog):
    r=self.data["raids"].get(str(ctx.guild.id)); uid=str(ctx.author.id)
    if not r: await ctx.reply(embed=self.embed("NO RAID","Start a raid with ,boss challenge <key>."),mention_author=False); return
    if uid in r["players"]: await ctx.reply(embed=self.embed("ALREADY JOINED","You are already in this raid."),mention_author=False); return
-   r["players"][uid]=250; r["turns"].append(uid); self.flush()
-  await ctx.reply(embed=self.embed("PLAYER JOINED",f"{ctx.author.mention} entered with 250 HP."),mention_author=False)
+   if len(r["players"])>=6: await ctx.reply(embed=self.embed("PARTY FULL","Raids support up to 6 players."),mention_author=False); return
+   r["players"][uid]=250; r["turns"].append(uid)
+   added=max(1,int(BOSSES[r["boss"]][1]*0.25)); r["hp"]+=added; r["max_hp"]+=added; self.flush()
+  await ctx.reply(embed=self.embed("PLAYER JOINED",f"{ctx.author.mention} entered with 250 HP. Boss health scaled by 25% for the extra party member."),mention_author=False)
  @boss.command(name="status")
  @commands.guild_only()
  async def status(self,ctx):
@@ -295,8 +297,9 @@ class Adventure(commands.Cog):
       await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
      damage=random.randint(*c[6]); action=c[4]
     else: damage=random.randint(*c[3]); action="Basic strike"
-   race=RACES[p["race"]]; mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
-   damage=min(r["hp"],max(1,int(damage*mult))); r["hp"]-=damage
+   race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
+   level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
+   damage=min(r["hp"],max(1,int(damage*race_mult*level_mult))); r["hp"]-=damage
    swarm_count=r.get("swarm_count",1); swarm_multiplier=swarm_value(swarm_count)
    total_damage=damage*swarm_multiplier
    r["damage"][uid]=r["damage"].get(uid,0)+total_damage; p["damage"]+=total_damage
@@ -315,8 +318,8 @@ class Adventure(commands.Cog):
       self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{amount}")
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
-    await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Symbolic googolplex mode uses a 10^100 gameplay reward multiplier.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
-   boss_hits=random.random()<0.72
+    await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Rewards are multiplied by the selected swarm count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
+   boss_hits=random.random()<0.48
    incoming=random.randint(*b[2]) if boss_hits else 0
    reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
    incoming=max(1,int(incoming*(1-reduction))) if boss_hits else 0
@@ -328,7 +331,7 @@ class Adventure(commands.Cog):
    self.flush()
   count=r.get("swarm_count",1)
   target_line=f" every one of {swarm_label(count)} bosses" if count != 1 else ""
-  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {damage:,} damage to{target_line or ' the boss'}.\nTotal damage dealt: {total_damage:,}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
+  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {display_number(damage)} damage to{target_line or ' the boss'}.\nTotal damage dealt: {display_number(total_damage)}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
   if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{display_number(self.data['raids'][g]['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="skills")
