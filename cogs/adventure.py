@@ -85,7 +85,7 @@ BOSS_RARE_DROPS = {
  "sukuna":[("cursed_fingers",0.025),("sukuna_relic",0.08),("malevolent_essence",0.12),("shrine_fragment",0.08),("king_of_curses_seal",0.025)],
  "jjk_sukuna":[("cursed_fingers",0.025),("sukuna_relic",0.08),("malevolent_essence",0.12),("shrine_fragment",0.08),("king_of_curses_seal",0.025)],
 }
-JJK_BOSSES = {"mahito","jogo","hanami","toji","maki","jjk_sukuna","jjk_gojo","jjk_mahito","low_rank_curse"}
+JJK_BOSSES = {"mahito","jogo","hanami","toji","maki","gojo","sukuna","jjk_sukuna","jjk_gojo","jjk_mahito","low_rank_curse"}
 JJK_NO_CURSED_ENERGY = {"toji","maki"}
 
 # One anime per world. The roster is grouped by the anime each boss comes from.
