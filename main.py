@@ -22,6 +22,7 @@ class PeakBot(commands.Bot):
         await self.load_extension("cogs.adventure")
         await self.load_extension("cogs.progression")
         await self.load_extension("cogs.endgame")
+        await self.load_extension("cogs.expeditions")
         log.info("Extensions loaded")
 
     async def on_ready(self) -> None:
