@@ -8,6 +8,35 @@ from discord.ext import commands
 RESTART_FLAG = Path(__file__).resolve().parent.parent / ".restart_requested"
 
 
+class PollView(discord.ui.View):
+    def __init__(self, question: str) -> None:
+        super().__init__(timeout=86400)
+        self.question = question
+        self.votes = {}
+
+    def build_embed(self) -> discord.Embed:
+        yes = sum(1 for vote in self.votes.values() if vote)
+        no = sum(1 for vote in self.votes.values() if not vote)
+        embed = discord.Embed(title="Community poll", description=self.question, color=discord.Color.blurple())
+        embed.add_field(name="Yes", value=str(yes), inline=True)
+        embed.add_field(name="No", value=str(no), inline=True)
+        embed.add_field(name="Total votes", value=str(len(self.votes)), inline=True)
+        embed.set_footer(text="PEAK  /  POLLS")
+        return embed
+
+    async def record(self, interaction: discord.Interaction, vote: bool) -> None:
+        self.votes[interaction.user.id] = vote
+        await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+    @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
+    async def yes_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        await self.record(interaction, True)
+
+    @discord.ui.button(label="No", style=discord.ButtonStyle.danger)
+    async def no_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        await self.record(interaction, False)
+
+
 class General(commands.Cog):
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
@@ -130,11 +159,8 @@ class General(commands.Cog):
         if len(question) > 250:
             await ctx.reply(embed=self.embed("Poll too long", "Keep the question under 250 characters.", discord.Color.orange()), mention_author=False)
             return
-        embed = self.embed("Community poll", question, discord.Color.blurple())
-        embed.add_field(name="Voting", value="React with the options below to cast your vote.", inline=False)
-        message = await ctx.send(embed=embed)
-        for reaction in ("👍", "👎"):
-            await message.add_reaction(reaction)
+        view = PollView(question)
+        await ctx.send(embed=view.build_embed(), view=view)
 
     @commands.command(name="purge", aliases=["clear"])
     @commands.guild_only()
