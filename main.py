@@ -46,7 +46,7 @@ class PeakBot(commands.Bot):
         owner_id = os.getenv("BOT_OWNER_ID")
         if owner_id and owner_id.isdigit():
             return user.id == int(owner_id)
-        return await super().is_owner(user)
+        return False
 
 
 async def main() -> None:
