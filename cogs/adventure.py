@@ -133,6 +133,9 @@ for _item_key in ITEMS:
   elif any(x in _item_key for x in ("potion","tonic","elixir")): ITEM_ICONS[_item_key]="🧪"
   else: ITEM_ICONS[_item_key]="📦"
 
+for _item_key,_item_name in list(ITEMS.items()):
+ ITEMS[_item_key]=f"{ITEM_ICONS.get(_item_key,'📦')} {_item_name}"
+
 WEAPON_RECIPES = {
  "cursed_katana":{"name":"Cursed Katana","damage":[125,175],"ability":"Cleave","ability_key":"cleave","ability_damage":[230,300],"description":"A blade tempered with cursed energy.","level":8,"materials":{"cursed_ash":12,"soul_fragment":8,"void_ore":3}},
  "sixfold_spear":{"name":"Sixfold Spear","damage":[160,215],"ability":"Blue Impact","ability_key":"blue_impact","ability_damage":[290,370],"description":"A spear that bends space.","level":15,"materials":{"limitless_core":2,"blue_orb":8,"starsteel":5}},
