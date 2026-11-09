@@ -1,6 +1,6 @@
 import unittest
 
-from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, CLANS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 from cogs.render_ui import inventory_image, gear_image
@@ -65,6 +65,30 @@ class GameSystemTests(unittest.TestCase):
             self.assertEqual(BOSSES[key][1], hp)
             self.assertLess(BOSSES[key][2][1], 30)
             self.assertTrue(BOSSES[key][4])
+
+    def test_clan_and_boss_key_systems_are_connected(self):
+        self.assertEqual(set(BOSS_KEY_POOLS), {"jjk_key", "jojo_key", "naruto_key"})
+        self.assertEqual(set(CLANS), {"satoru", "zenin", "kamo", "akatsuki", "konoha", "otogakure", "king"})
+        self.assertIsNone(DEFAULT["clan"])
+        self.assertEqual(DEFAULT["clan_rolls"], 1)
+        for key, bosses in BOSS_KEY_POOLS.items():
+            self.assertIn(key, ITEMS)
+            self.assertTrue(bosses)
+            for boss in bosses:
+                self.assertIn(boss, BOSSES)
+        for key, recipe in ITEM_RECIPES.items():
+            self.assertIn(key, ITEMS)
+            for material in recipe["materials"]:
+                self.assertIn(material, ITEMS)
+
+    def test_new_anime_bosses_have_valid_drops(self):
+        expected = {"jogo", "hanami", "toji", "jjk_sukuna", "jjk_gojo", "jjk_mahito",
+                    "dio", "pucci", "dio_vampire", "diavolo", "kira",
+                    "itachi", "hashirama", "momoshiki", "isshiki", "naruto_six_paths"}
+        self.assertTrue(expected.issubset(BOSSES))
+        for key in expected:
+            for item in BOSSES[key][4]:
+                self.assertIn(item, ITEMS)
 
     def test_expansion_content_is_connected(self):
         self.assertGreaterEqual(len(BOSSES), 15)
