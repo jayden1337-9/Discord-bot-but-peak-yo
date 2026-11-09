@@ -7,10 +7,11 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Dark, text-first Discord embeds with no decorative emoji spam
 - Community tools, polls, moderation utilities and random tools
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
-- Character-specific signature abilities, a material-and-level gated universal skill tree, race passives and character mastery
+- Character-specific signature abilities, a material-and-level gated universal skill tree, race passives, clan-based melee/sword/magic bonuses and character mastery
+- Three craftable anime boss keys for JJK, JoJo and Naruto boss pools, plus clan rerolls and expanded bloodlines
 - Five craftable weapons with distinct damage ranges and signature abilities
 - Ten unlockable dimensions with victory, level and material requirements; each grants a different damage affinity
-- Twenty-three raid bosses across Jujutsu Kaisen, One Piece, Naruto, Bleach, Demon Slayer, My Hero Academia, Dragon Ball and more, including eight beginner-friendly encounters
+- Thirty-nine raid bosses across Jujutsu Kaisen, JoJo's Bizarre Adventure, Naruto, One Piece, Bleach, Demon Slayer, My Hero Academia, Dragon Ball and more, including eight beginner-friendly encounters
 - Nine forgeable signature weapons and ten universal combat skills
 - Eight permanent relic pieces across armor, relic and core slots, with attack and defense bonuses
 - A persistent ten-floor solo Rift Tower with escalating bosses, floor rewards and saved best records
@@ -82,6 +83,9 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,characters` / `,roster`
 - `,character <key>`
 - `,races` and `,race <key>`
+- `,clans`, `,clan`, `,clan roll` — view and reroll clan bonuses
+- `,bosskey use <jjk|jojo|naruto>` — consume an anime key to summon a boss from that series
+- `,craft item <key>` / `,craft i <key>` — craft boss keys and clan rerolls
 - `,skills`, `,skilltree`, `,mastery` and `,unlock <skill>`
 - `,recipes` and `,craft <key>` — forge permanent weapons from boss materials
 - `,forge list` / `,forge craft <key>` — create permanent armor, relics and cores
