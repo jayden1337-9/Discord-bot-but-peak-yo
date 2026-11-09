@@ -444,7 +444,7 @@ class Adventure(commands.Cog):
   lines=[f"{ITEMS.get(k,k)} x{display_number(v)}" for k,v in sorted(p["inventory"].items()) if v>0]
   sr=p["symbolic_rewards"]
   for k,v in sorted(sr["inventory"].items()):
-   if v>0: lines.append(f"{ITEMS.get(k,k)} x{symbolic_quantity(v,sr["inventory_spent"].get(k,0))}")
+   if v>0: lines.append(f"{ITEMS.get(k,k)} x{symbolic_quantity(v,sr['inventory_spent'].get(k,0))}")
   if not lines: lines=["Your inventory is empty."]
   e=self.embed("INVENTORY","\n".join(lines)[:4000])
   six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
@@ -494,7 +494,7 @@ class Adventure(commands.Cog):
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
  async def leaderboard(self,ctx):
-  top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("level",1),x[1].get("xp",0)),reverse=True)[:10]
+  top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("symbolic_rewards",{}).get("xp",0)>0,x[1].get("level",1),x[1].get("xp",0)),reverse=True)[:10]
   lines=[f"{i}. <@{uid}> · Level {display_number(p['level'])} · {display_number(p['xp'])} XP" for i,(uid,p) in enumerate(top,1)]
   await ctx.reply(embed=self.embed("ADVENTURER RANKINGS","\n".join(lines) or "No players yet."),mention_author=False)
 
