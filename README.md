@@ -7,7 +7,7 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Dark, text-first Discord embeds with no decorative emoji spam
 - Community tools, polls, moderation utilities and random tools
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
-- Character-specific signature abilities, a material-and-level gated universal skill tree, race passives, clan-based melee/sword/magic bonuses and character mastery
+- Character-specific signature abilities, a material-and-level gated universal skill tree, race passives, clan-based melee/sword/magic bonuses and character mastery\n- Tactical raid combat with separate melee, sword and magic loadouts; each turn requires selecting a weapon type and an equipped skill
 - Three craftable anime boss keys for JJK, JoJo and Naruto boss pools, plus clan rerolls and expanded bloodlines
 - Five craftable weapons with distinct damage ranges and signature abilities
 - Ten unlockable dimensions with victory, level and material requirements; each grants a different damage affinity
@@ -100,7 +100,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,boss status`
 - `,boss leave` / `,boss abandon`
 - `,join`
-- `,attack [ability]`
+- `,attack` — select Melee, Sword or Magic, then choose an equipped skill to take your turn\n- `,equipskill <melee|sword|magic> <skill>` / `,unequipskill <type> <skill>` — manage up to three equipped skills per category\n- `,skillloadout` — inspect equipped combat skills
 - `,inventory` / `,inv` / `,bag`
 - `,eat <item>` — bloodline awakenings
 - `,use phoenix_feather` — revive during a raid
