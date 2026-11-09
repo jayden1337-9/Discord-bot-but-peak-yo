@@ -625,19 +625,20 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("DIMENSION ENTERED",f"You entered {d['name']}. Damage affinity: +{int((d['bonus']-1)*100)}%."),mention_author=False)
 
  @commands.command(name="inventory",aliases=["inv","bag"])
- async def inventory(self,ctx):
-  p=self.p(ctx.author.id)
-  lines=[f"{ITEMS.get(k,k)} x{display_number(v)}" for k,v in sorted(p["inventory"].items()) if v>0]
-  sr=p["symbolic_rewards"]
-  for k,v in sorted(sr["inventory"].items()):
-   if v>0: lines.append(f"{ITEMS.get(k,k)} x{symbolic_quantity(v,sr['inventory_spent'].get(k,0))}")
-  if not lines: lines=["Your inventory is empty."]
-  e=self.embed("INVENTORY","\n".join(lines)[:4000])
+ async def inventory(self,ctx,page:int=1):
+  from cogs.render_ui import inventory_image
+  p=self.p(ctx.author.id); sr=p["symbolic_rewards"]
+  entries=sum(1 for v in p["inventory"].values() if v>0)+sum(1 for v in sr["inventory"].values() if v>0)
+  pages=max(1,(entries+14)//15); page=max(1,min(page,pages))
+  image=inventory_image(p,ITEMS,page)
+  file=discord.File(image,filename="inventory.png")
+  e=self.embed("INVENTORY",f"{entries} item stacks · page {page}/{pages}\nUse ,inventory <page> to browse.")
   six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
-  six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr['inventory_spent'].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
-  finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr['inventory_spent'].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
+  six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr["inventory_spent"].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
+  finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
   e.add_field(name="Awakening progress",value=f"Six Eyes: {six_label}/6\nCursed Fingers: {finger_label}/20\nRace: {RACES[p['race']][0]}",inline=False)
-  await ctx.reply(embed=e,mention_author=False)
+  e.set_image(url="attachment://inventory.png")
+  await ctx.reply(embed=e,file=file,mention_author=False)
  @commands.command(name="eat",aliases=["consume"])
  async def eat(self,ctx,*,item):
   key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
