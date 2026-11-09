@@ -433,6 +433,38 @@ class AttackSkillView(discord.ui.View):
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return False
   return True
 
+class BossRegisterView(discord.ui.View):
+ def __init__(self,cog,owner_id):
+  super().__init__(timeout=180); self.cog=cog; self.owner_id=owner_id
+  self.entries=list(BOSSES.items()); self.page=0; self.page_size=12
+  self.refresh()
+ def refresh(self):
+  self.previous_button.disabled=self.page<=0
+  self.next_button.disabled=self.page>=(len(self.entries)-1)//self.page_size
+ def build_embed(self):
+  pages=max(1,(len(self.entries)+self.page_size-1)//self.page_size)
+  start=self.page*self.page_size
+  embed=self.cog.embed(f"⚔️ ANIME RAID REGISTER · {self.page+1}/{pages}","Every boss is assigned to its anime dimension. Defeat one to earn its own boss chest.")
+  for key,boss in self.entries[start:start+self.page_size]:
+   world=BOSS_DIMENSIONS.get(key,"earth")
+   dim=DIMENSIONS.get(world,DIMENSIONS["earth"])
+   hp=int(boss[1]*dim.get("hp_mult",1))
+   embed.add_field(name=f"{boss[0]} / {key}",value=f"🌌 {dim['name']} · {display_number(hp)} HP · {boss[2][0]}–{boss[2][1]} base damage · {boss[3]:,} XP",inline=False)
+  return embed
+ async def interaction_check(self,interaction):
+  if interaction.user.id!=self.owner_id:
+   await interaction.response.send_message("These controls belong to the person who opened the boss register.",ephemeral=True); return False
+  return True
+ @discord.ui.button(label="Previous",style=discord.ButtonStyle.secondary)
+ async def previous_button(self,interaction,button):
+  self.page=max(0,self.page-1); self.refresh()
+  await interaction.response.edit_message(embed=self.build_embed(),view=self)
+ @discord.ui.button(label="Next",style=discord.ButtonStyle.primary)
+ async def next_button(self,interaction,button):
+  self.page=min((len(self.entries)-1)//self.page_size,self.page+1); self.refresh()
+  await interaction.response.edit_message(embed=self.build_embed(),view=self)
+
+
 class Adventure(commands.Cog):
  def __init__(self,bot):
   self.bot=bot; self.data=load(); self.lock=asyncio.Lock()
@@ -590,11 +622,8 @@ class Adventure(commands.Cog):
 
  @commands.command(name="bosses",aliases=["raids"])
  async def bosses(self,ctx):
-  e=self.embed("RAID REGISTER","Each player acts once, then the boss retaliates. Every clear grants at least five guaranteed loot types, plus a chance at a Mythic Token.")
-  for k,b in BOSSES.items():
-   world=BOSS_DIMENSIONS.get(k,"earth")
-   e.add_field(name=f"{b[0]} / {k}",value=f"{DIMENSIONS.get(world, DIMENSIONS['earth'])['name']} · {b[1]:,} base HP · {b[2][0]}–{b[2][1]} damage · {b[3]:,} XP",inline=False)
-  await ctx.reply(embed=e,mention_author=False)
+  view=BossRegisterView(self,ctx.author.id)
+  await ctx.reply(embed=view.build_embed(),view=view,mention_author=False)
  @commands.group(name="boss",invoke_without_command=True)
  async def boss(self,ctx):
   await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss summon <key> <count> · ,boss status · ,join · ,boss leave · ,boss abandon · ,attack [skill] · ,use phoenix_feather"),mention_author=False)
