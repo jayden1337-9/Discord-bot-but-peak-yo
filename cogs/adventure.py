@@ -50,7 +50,7 @@ RACES = {
  "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
  "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -63,6 +63,10 @@ def apply_level_ups(profile):
  profile["level"]=level+levels
  profile["points"]+=levels
  return levels
+
+def mastery_tier(xp):
+ xp=int(xp)
+ return 3 if xp>=20000 else 2 if xp>=5000 else 1 if xp>=1000 else 0
 
 def raid_phase(hp,max_hp):
  if max_hp<=0: return 1
@@ -193,6 +197,7 @@ class Adventure(commands.Cog):
   if p["character"] not in CHARACTERS: p["character"]="sukuna"
   if p["race"] not in RACES: p["race"]="human"
   p.setdefault("weapon",None)
+  p.setdefault("mastery",{})
   p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
   sr=p["symbolic_rewards"]
   for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items(): sr.setdefault(key,value)
@@ -382,7 +387,10 @@ class Adventure(commands.Cog):
     else: damage=random.randint(*c[3]); action="Basic strike"
    race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
    level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
-   damage=min(r["hp"],max(1,int(damage*race_mult*level_mult))); r["hp"]-=damage
+   mastery=p.setdefault("mastery",{}); mastery_xp=int(mastery.get(p["character"],0)); mastery_level=mastery_tier(mastery_xp)
+   mastery_mult=1+0.02*mastery_level
+   damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult))); r["hp"]-=damage
+   mastery[p["character"]]=mastery_xp+damage
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
    phase_line=""
    if phase>previous_phase: phase_line=f"\nBoss phase increased to {phase}/4. Incoming attacks are stronger."
@@ -448,6 +456,16 @@ class Adventure(commands.Cog):
   e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {display_number(damage)} damage to{target_line or ' the boss'}.\nTotal damage dealt: {total_damage_label}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
   if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{display_number(self.data['raids'][g]['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining",inline=False)
   await ctx.reply(embed=e,mention_author=False)
+ @commands.command(name="mastery")
+ async def mastery(self,ctx):
+  p=self.p(ctx.author.id); key=p["character"]; xp=int(p.get("mastery",{}).get(key,0)); level=mastery_tier(xp)
+  thresholds=[1000,5000,20000]; next_target=thresholds[level] if level<3 else None
+  progress=f"{display_number(xp)} mastery XP"
+  if next_target is not None: progress+=f"\\nNext tier: {display_number(next_target-xp)} XP remaining"
+  else: progress+="\\nMaximum mastery reached"
+  e=self.embed("CHARACTER MASTERY",f"**{CHARACTERS[key][0]}**\\nMastery tier: {level}/3\\nDamage bonus: +{level*2}%\\n{progress}")
+  await ctx.reply(embed=e,mention_author=False)
+
  @commands.command(name="skills")
  async def skills(self,ctx):
   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; unlocked=c[5] in p["unlocked"] or(p["race"]=="vessel" and p["character"]=="sukuna")
