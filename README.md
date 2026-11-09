@@ -7,7 +7,10 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Dark, text-first Discord embeds with no decorative emoji spam
 - Community tools, polls, moderation utilities and random tools
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
-- Character-specific signature abilities, unlockable skills, race passives and character mastery
+- Character-specific signature abilities, a material-and-level gated universal skill tree, race passives and character mastery
+- Five craftable weapons with distinct damage ranges and signature abilities
+- Seven unlockable dimensions with victory, level and material requirements; each grants a different damage affinity
+- Collectible boss materials, healing potions, battle tonics, focus elixirs and awakening crystals
 - Cooperative turn-based boss raids with party turns, escalating boss phases, retaliation and rewards
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
 - Custom weapon builder and owner-only damage controls
@@ -75,7 +78,10 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,characters` / `,roster`
 - `,character <key>`
 - `,races` and `,race <key>`
-- `,skills`, `,mastery` and `,unlock <skill>`
+- `,skills`, `,skilltree`, `,mastery` and `,unlock <skill>`
+- `,recipes` and `,craft <key>` — forge permanent weapons from boss materials
+- `,dimension list` and `,dimension enter <key>` — unlock and travel between worlds
+- `,use <item>` — use raid potions, combat boosts, awakening crystals and Phoenix Feathers
 - `,bosses`
 - `,boss challenge <key>`
 - `,boss summon <key> <count>` — owner only
