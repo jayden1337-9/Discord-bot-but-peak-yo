@@ -1,6 +1,6 @@
 import unittest
 
-from cogs.adventure import apply_level_ups, raid_phase, symbolic_quantity, swarm_label
+from cogs.adventure import apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
 
 
 class GameSystemTests(unittest.TestCase):
@@ -15,6 +15,12 @@ class GameSystemTests(unittest.TestCase):
         self.assertEqual(swarm_label("googolplex"), "10^(10^100) (googolplex)")
         self.assertEqual(symbolic_quantity(1), "10^(10^100)")
         self.assertEqual(symbolic_quantity(3), "3 × 10^(10^100)")
+
+    def test_character_mastery_tiers(self):
+        self.assertEqual(mastery_tier(0), 0)
+        self.assertEqual(mastery_tier(1000), 1)
+        self.assertEqual(mastery_tier(5000), 2)
+        self.assertEqual(mastery_tier(20000), 3)
 
     def test_level_up_math(self):
         profile = {"level": 1, "xp": 250, "points": 0}
