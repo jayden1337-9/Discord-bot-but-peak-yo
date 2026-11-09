@@ -53,7 +53,7 @@ async def main() -> None:
     intents = discord.Intents.default()
     intents.message_content = True
     bot = PeakBot(
-        command_prefix=os.getenv("COMMAND_PREFIX", "!"),
+        command_prefix=os.getenv("COMMAND_PREFIX", ","),
         intents=intents,
         help_command=None,
     )
