@@ -461,9 +461,9 @@ class Adventure(commands.Cog):
   p=self.p(ctx.author.id); key=p["character"]; xp=int(p.get("mastery",{}).get(key,0)); level=mastery_tier(xp)
   thresholds=[1000,5000,20000]; next_target=thresholds[level] if level<3 else None
   progress=f"{display_number(xp)} mastery XP"
-  if next_target is not None: progress+=f"\\nNext tier: {display_number(next_target-xp)} XP remaining"
-  else: progress+="\\nMaximum mastery reached"
-  e=self.embed("CHARACTER MASTERY",f"**{CHARACTERS[key][0]}**\\nMastery tier: {level}/3\\nDamage bonus: +{level*2}%\\n{progress}")
+  if next_target is not None: progress+=f"\nNext tier: {display_number(next_target-xp)} XP remaining"
+  else: progress+="\nMaximum mastery reached"
+  e=self.embed("CHARACTER MASTERY",f"**{CHARACTERS[key][0]}**\nMastery tier: {level}/3\nDamage bonus: +{level*2}%\n{progress}")
   await ctx.reply(embed=e,mention_author=False)
 
  @commands.command(name="skills")
