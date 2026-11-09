@@ -1,6 +1,6 @@
 import unittest
 
-from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, BOSS_RARE_DROPS, BOSS_DIMENSIONS, JJK_BOSSES, JJK_NO_CURSED_ENERGY, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, BOSS_RARE_DROPS, BOSS_DIMENSIONS, CHEST_TIERS, CHEST_LOOT, JJK_BOSSES, JJK_NO_CURSED_ENERGY, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label, boss_chest_weights
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 from cogs.render_ui import inventory_image, gear_image
@@ -91,10 +91,15 @@ class GameSystemTests(unittest.TestCase):
             for item in BOSSES[key][4]:
                 self.assertIn(item, ITEMS)
 
-    def test_boss_worlds_chests_and_currency_are_complete(self):
+    def test_boss_worlds_and_five_chest_tiers_are_complete(self):
         self.assertEqual(set(BOSS_DIMENSIONS), set(BOSSES))
-        for key in BOSSES:
-            self.assertIn(f"boss_chest_{key}", ITEMS)
+        self.assertEqual(set(CHEST_TIERS), {"common", "rare", "diamond", "ruby", "mythic"})
+        for key in CHEST_TIERS:
+            self.assertIn(f"{key}_chest", ITEMS)
+            self.assertTrue(CHEST_LOOT[key], key)
+            self.assertTrue(all(item in ITEMS for item in CHEST_LOOT[key]), key)
+            self.assertAlmostEqual(sum(boss_chest_weights("bandit")), 100.0)
+        self.assertGreater(boss_chest_weights("rimuru_demon_lord")[-1], boss_chest_weights("bandit")[-1])
         self.assertEqual(DEFAULT["gold"], 0)
         self.assertEqual(DEFAULT["gems"], 0)
 
