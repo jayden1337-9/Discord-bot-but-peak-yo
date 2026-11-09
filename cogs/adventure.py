@@ -14,6 +14,7 @@ BOSSES = {
     "hollowfang": {"name": "HOLLOWFANG, THE DEVOURER", "hp": 1400, "reward": 350, "damage": (25, 43), "description": "A calamity-born beast that feeds on the battle spirit of fallen warriors."},
     "tideemperor": {"name": "THE TIDE EMPEROR", "hp": 2600, "reward": 700, "damage": (36, 59), "description": "An exiled sea monarch who commands pressure, storms and crushing waves."},
     "eclipse": {"name": "THE ECLIPSE TYRANT", "hp": 4600, "reward": 1400, "damage": (50, 78), "description": "An ancient warlord whose aura can silence an entire battlefield."},
+    "starbreaker": {"name": "STARBREAKER, THE LAST CALAMITY", "hp": 7200, "reward": 2200, "damage": (65, 95), "description": "A world-ending challenger who defeated an entire generation of champions."},
 }
 
 WEAPONS = {
@@ -62,8 +63,6 @@ class Adventure(commands.Cog):
     async def boss(self, ctx: commands.Context) -> None:
         p = ctx.clean_prefix
         await ctx.reply(embed=self.make_embed("HUNTER GUILD", f"`{p}bosses` view calamities  ·  `{p}boss challenge <name>` start a raid\\n`{p}join` enter  ·  `{p}attack [technique]` take your turn\\n`{p}boss status` inspect the battlefield"), mention_author=False)
-`{p}join` enter  ·  `{p}attack [ability]` take your turn
-`{p}boss status` encounter status"), mention_author=False)
 
     @commands.command(name="bosses", aliases=["bestiary"])
     async def bosses(self, ctx: commands.Context) -> None:
@@ -110,7 +109,7 @@ class Adventure(commands.Cog):
     async def status(self, ctx: commands.Context) -> None:
         encounter = self.encounters.get(ctx.guild.id)
         if not encounter:
-            await ctx.reply(embed=self.make_embed("No active target", f"Summon one with `{ctx.clean_prefix}boss challenge warden`."), mention_author=False)
+            await ctx.reply(embed=self.make_embed("No active target", f"Summon one with `{ctx.clean_prefix}boss challenge hollowfang`."), mention_author=False)
             return
         boss = BOSSES[encounter["key"]]
         hp = max(0, encounter["hp"])
@@ -181,7 +180,7 @@ class Adventure(commands.Cog):
         async with self.lock:
             encounter = self.encounters.get(ctx.guild.id)
             if not encounter:
-                await ctx.reply(embed=self.make_embed("No active target", f"Summon a boss with `{ctx.clean_prefix}boss challenge warden`."), mention_author=False)
+                await ctx.reply(embed=self.make_embed("No active target", f"Summon a boss with `{ctx.clean_prefix}boss challenge hollowfang`."), mention_author=False)
                 return
             if ctx.author.id not in encounter["players"]:
                 await ctx.reply(embed=self.make_embed("Not enlisted", f"Use `{ctx.clean_prefix}join` before attacking."), mention_author=False)
