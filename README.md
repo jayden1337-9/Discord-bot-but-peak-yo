@@ -1,44 +1,56 @@
-# Peak
+# Peak / Anime Chronicles
 
-A modular Python Discord bot designed for Wispbyte. The default command prefix is a comma.
+A comma-prefix Discord bot for community tools and a persistent anime-themed RPG. Built with Python and discord.py for lightweight hosting such as Wispbyte.
 
 ## Features
 
-- Consistent dark, text-first embeds
-- Community information and role tools
-- Reaction polls and moderator message cleanup
-- Random utilities
-- Cooperative boss encounters with health bars and contributor rankings
-- Owner-only GitHub update and restart
-- Supervisor restart loop with update validation and rollback
+- Dark, text-first Discord embeds with no decorative emoji spam
+- Community tools, polls, moderation utilities and random tools
+- Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
+- Character-specific signature abilities, unlockable skills and race passives
+- Cooperative turn-based boss raids with party turns, boss retaliation and rewards
+- Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
+- Custom weapon builder and owner-only damage controls
+- Persistent JSON player profiles, inventories, weapons and active raids
+- Huge-number display for existing high-level profiles
+- Owner-only GitHub update/restart with validation and rollback
 
 ## Requirements
 
 - Python 3.10+
 - Git installed on the host
 - A Discord bot token
+- Message Content Intent enabled in the Discord Developer Portal
 
-## Environment variables
+## Environment
 
-Set these in Wispbyte's environment/settings panel. Never commit real tokens.
+Set these in the Wispbyte environment/settings panel. Never commit real tokens.
 
 - `DISCORD_TOKEN` — required Discord bot token
-- `BOT_OWNER_ID` — Discord user ID allowed to use `,reload`
+- `BOT_OWNER_ID` — numeric Discord user ID allowed to use owner commands
 - `COMMAND_PREFIX` — command prefix (default: `,`)
-- `GITHUB_TOKEN` — fine-grained GitHub token with Contents: Read-only
+- `GITHUB_TOKEN` — GitHub token with repository Contents read access, used by the supervisor to pull updates
 - `GITHUB_BRANCH` — branch to pull (default: `main`)
+- `BOT_DATA_DIR` — optional persistent data directory (default: `/home/container/data`)
+- `LOG_LEVEL` — logging level (default: `INFO`)
 
 ## Startup
 
-Install dependencies with `pip install -r requirements.txt`, then use:
+Install dependencies:
+
+```sh
+pip install -r requirements.txt
+```
+
+Start the supervisor:
 
 ```sh
 python run.py
 ```
 
-Enable **Message Content Intent** in the Discord Developer Portal for prefix commands.
+The supervisor restarts the bot after unexpected exits. The owner-only `,reload` command requests a controlled GitHub pull, validates Python files, installs requirements and rolls back if validation fails.
 
-## Command index
+## Commands
 
 ### System
 - `,ping` / `,latency`
@@ -46,12 +58,12 @@ Enable **Message Content Intent** in the Discord Developer Portal for prefix com
 - `,help` / `,commands`
 
 ### Community
-- `,userinfo [member]` / `,profile`
-- `,serverinfo` / `,server`
-- `,avatar [member]` / `,pfp`
+- `,userinfo [member]`
+- `,serverinfo`
+- `,avatar [member]`
 - `,roleinfo <role>`
 - `,poll <question>`
-- `,purge <amount>` (Manage Messages permission)
+- `,purge <amount>` — requires Manage Messages
 
 ### Tools
 - `,roll [sides]`
@@ -60,12 +72,39 @@ Enable **Message Content Intent** in the Discord Developer Portal for prefix com
 - `,8ball <question>`
 
 ### Adventure
-- `,bosses` / `,bestiary`
-- `,boss challenge <warden|leviathan|sovereign>`
+- `,characters` / `,roster`
+- `,character <key>`
+- `,races` and `,race <key>`
+- `,skills` and `,unlock <skill>`
+- `,bosses`
+- `,boss challenge <key>`
+- `,boss summon <key> <count>` — owner only
 - `,boss status`
-- `,attack` / `,strike`
+- `,boss leave` / `,boss abandon`
+- `,join`
+- `,attack [ability]`
+- `,inventory` / `,inv` / `,bag`
+- `,eat <item>` — bloodline awakenings
+- `,use phoenix_feather` — revive during a raid
+- `,stats [member]` / `,me`
+- `,leaderboard` / `,top`
+- `,weapon list`, `,weapon equip <key>`, `,weapon unequip`
 
 ### Owner
-- `,reload` — pull GitHub updates and restart (owner only)
+- `,createweapon`
+- `,setdamage <amount|googolplex|off>`
+- `,giveitem <member> <item> [amount]`
+- `,addxp <member> <amount>`
+- `,addpoints <member> <amount>`
+- `,setlevel <member> <level>`
+- `,setcharacter <member> <character>`
+- `,setrace <member> <race>`
+- `,resetprofile <member>`
+- `,gamedb`
+- `,reload`
 
-Boss encounters are currently in-memory and reset if the bot process restarts. Rewards are displayed as a reward pool only; no economy or currency is granted yet.
+## Data
+
+The game database is stored in `peak_game.json` inside `BOT_DATA_DIR`. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save.
+
+Large player values are displayed in scientific notation. The owner-only damage override and swarm tools are intentionally separate from normal player progression.
