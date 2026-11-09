@@ -41,7 +41,7 @@ BOSSES = {
  "doflamingo":("Donquixote Doflamingo",2800,(38,62),650,{"string_core":(1,3),"devil_fruit_shard":(1,2),"birdcage_thread":(1,2),"celestial_blood":(1,1),"ito_essence":(1,2),"flamingo_feather":(1,3),"starsteel":(1,2)}),
  "madara":("Madara Uchiha",4700,(52,82),1200,{"six_paths_essence":(1,2),"chakra_crystal":(1,3),"susanoo_fragment":(1,2),"rinnegan_shard":(1,1),"god_tree_seed":(1,2),"uchiha_relic":(1,3),"awakening_crystal":(1,2)}),
  "frieza":("Frieza",7000,(65,98),1900,{"dragon_ball":(1,2),"cosmic_core":(1,2),"frozen_pod":(1,3),"saiyan_armor":(1,2),"tyrant_emblem":(1,1),"zenkai_cell":(1,2),"dragon_scale":(1,3),"battle_tonic":(1,2)}),
- "gojo":("Satoru Gojo",2200,(32,52),550,{"blue_orb":(1,2),"red_orb":(1,2),"blindfold_fabric":(1,3),"focus_elixir":(1,2)}),
+ "gojo":("Satoru Gojo",2200,(32,52),550,{"blue_orb":(1,2),"red_orb":(1,2),"blindfold_fabric":(1,3),"focus_elixir":(1,2),"black_flash_residue":(1,2)}),
  "sukuna":("Ryomen Sukuna",5600,(58,92),1650,{"cursed_ash":(1,2),"spirit_silk":(1,2),"black_flash_residue":(1,2)}),
  "muzan":("Muzan Kibutsuji",3900,(48,76),1050,{"demon_blood":(1,2),"sunsteel":(1,2),"blue_spider_lily":(1,1),"flesh_core":(1,3),"demon_cell":(1,2),"nightmare_ash":(1,2),"ancient_core":(1,1)}),
  "meruem":("Meruem",6200,(62,94),1800,{"chimera_essence":(1,2),"royal_core":(1,1),"nen_crystal":(1,3),"chimera_scale":(1,2),"royal_guard_token":(1,1),"kingly_aura":(1,2),"celestial_dust":(1,2)}),
@@ -57,7 +57,7 @@ BOSSES = {
  "toji":("Toji Fushiguro",2800,(42,64),780,{"heavenly_relic":(1,2),"soul_fragment":(1,3)}),
  "maki":("Maki Zenin",3200,(44,68),850,{"maki_tool":(1,2),"heavenly_relic":(1,2),"cursed_ash":(1,2)}),
  "jjk_sukuna":("Sukuna: King of Curses",5200,(62,94),1600,{"cursed_ash":(2,4),"black_flash_residue":(1,2)}),
- "jjk_gojo":("Gojo: Honored One",4900,(58,90),1500,{"blue_orb":(1,2),"blindfold_fabric":(1,2)}),
+ "jjk_gojo":("Gojo: Honored One",4900,(58,90),1500,{"blue_orb":(1,2),"blindfold_fabric":(1,2),"black_flash_residue":(1,2)}),
  "jjk_mahito":("Mahito: Soul Manipulator",4300,(54,82),1300,{"transfigured_soul":(2,4),"cursed_ash":(2,4),"soul_fragment":(2,3),"black_flash_residue":(1,2)}),
  "dio":("DIO",4200,(54,82),1250,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
  "pucci":("Enrico Pucci",4600,(58,86),1400,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
@@ -71,7 +71,7 @@ BOSSES = {
  "naruto_six_paths":("Naruto: Six Paths",5600,(68,102),1750,{"chakra_crystal":(2,4),"six_paths_essence":(1,3),"ten_tails_core":(1,1)}),
 }
 ITEMS = {k:k.replace("_"," ").title() for b in BOSSES.values() for k in b[4]}
-ITEMS.update({"limitless_core":"Limitless Core","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
+ITEMS.update({"limitless_core":"Limitless Core","hollow_purple_shard":"Hollow Purple Shard","sukuna_relic":"Sukuna Relic","malevolent_essence":"Malevolent Essence","shrine_fragment":"Shrine Fragment","king_of_curses_seal":"King of Curses Seal","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
 
 ITEMS.update({"void_ore":"Void Ore","starsteel":"Starsteel","dragon_scale":"Dragon Scale","spirit_silk":"Spirit Silk","ancient_core":"Ancient Core","dimension_key":"Dimension Key","awakening_crystal":"Awakening Crystal","celestial_dust":"Celestial Dust","zanpakuto_core":"Zanpakuto Core","oni_horn":"Oni Horn","dimensional_eye":"Dimensional Eye","ten_tails_core":"Ten Tails Core","spiral_core":"Spiral Core","rift_crystal":"Rift Crystal","phoenix_ash":"Phoenix Ash","abyssal_pearl":"Abyssal Pearl"})
 ITEMS.update({"jjk_key":"JJK Key","jojo_key":"JoJo Key","naruto_key":"Naruto Key","clan_token":"Clan Reroll","six_eyes":"Six Eyes","dio_bone":"Dio Bone","dio_diary":"Dio Diary","green_baby":"Green Baby","stand_arrow":"Stand Arrow","itachi_soul":"Itachi Soul","uchiha_soul":"Uchiha Soul","chakra_fruit":"Chakra Fruit","fruit_chest":"Fruit Chest","luffy_soul":"Luffy Soul","one_piece_soul":"One Piece Soul","imu_key":"IMU Key","joyboy_key":"Joyboy Key","katana":"Katana"})
