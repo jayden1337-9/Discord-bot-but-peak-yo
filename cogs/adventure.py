@@ -1128,7 +1128,7 @@ class Adventure(commands.Cog):
   lines.extend(f"{ITEM_ICONS.get(item,'📦')} **{ITEMS.get(item,item)}** x{display_number(amount)}" for item,amount in loot_totals.items())
   lines.append(f"🪙 **Gold:** +{display_number(total_gold)}")
   if total_gems: lines.append(f"💎 **Gems:** +{display_number(total_gems)}")
-  embed=self.embed(f"CHEST OPENING COMPLETE · {sum(opened.values())} OPENED","\n".join(lines),0xC28BFF if key=="all" else CHEST_TIERS[key]["color"])
+  embed=self.embed(f"CHEST OPENING COMPLETE · {display_number(sum(opened.values()))} OPENED","\n".join(lines),0xC28BFF if key=="all" else CHEST_TIERS[key]["color"])
   await ctx.reply(embed=embed,mention_author=False)
 
  @commands.group(name="chest",invoke_without_command=True)
