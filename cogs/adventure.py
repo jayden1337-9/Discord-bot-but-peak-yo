@@ -26,16 +26,16 @@ CHARACTERS = {
  "rimuru":("Rimuru Tempest","That Time I Got Reincarnated as a Slime",18,(145,195),"Predator","predator",(330,420),5),
 }
 BOSSES = {
- "mahito":("Mahito",1600,(28,46),350,{"cursed_ash":(1,2),"cursed_fingers":(1,2)}),
- "doflamingo":("Donquixote Doflamingo",2800,(38,62),650,{"string_core":(1,2),"devil_fruit_shard":(1,2)}),
- "madara":("Madara Uchiha",4700,(52,82),1200,{"six_paths_essence":(1,2),"chakra_crystal":(1,3)}),
- "frieza":("Frieza",7000,(65,98),1900,{"dragon_ball":(1,2),"cosmic_core":(1,2)}),
- "gojo":("Satoru Gojo",2200,(32,52),550,{"six_eyes":(1,1)}),
- "sukuna":("Ryomen Sukuna",5600,(58,92),1650,{"cursed_fingers":(1,3),"cursed_ash":(1,2),"sukuna_relic":(1,1)}),
- "muzan":("Muzan Kibutsuji",3900,(48,76),1050,{"demon_blood":(1,2),"sunsteel":(1,2)}),
- "meruem":("Meruem",6200,(62,94),1800,{"chimera_essence":(1,2),"royal_core":(1,1)}),
- "all_for_one":("All For One",5100,(55,86),1450,{"quirk_catalyst":(1,2),"all_for_one_core":(1,1)}),
- "zeref":("Zeref",8200,(72,108),2400,{"ether_core":(1,2),"curse_book":(1,1)}),
+ "mahito":("Mahito",1600,(28,46),350,{"cursed_ash":(1,3),"cursed_fingers":(1,2),"transfigured_soul":(1,2),"idle_transfiguration":(1,1),"soul_fragment":(1,3),"black_flash_residue":(1,2)}),
+ "doflamingo":("Donquixote Doflamingo",2800,(38,62),650,{"string_core":(1,3),"devil_fruit_shard":(1,2),"birdcage_thread":(1,2),"celestial_blood":(1,1),"ito_essence":(1,2),"flamingo_feather":(1,3)}),
+ "madara":("Madara Uchiha",4700,(52,82),1200,{"six_paths_essence":(1,2),"chakra_crystal":(1,3),"susanoo_fragment":(1,2),"rinnegan_shard":(1,1),"god_tree_seed":(1,2),"uchiha_relic":(1,3)}),
+ "frieza":("Frieza",7000,(65,98),1900,{"dragon_ball":(1,2),"cosmic_core":(1,2),"frozen_pod":(1,3),"saiyan_armor":(1,2),"tyrant_emblem":(1,1),"zenkai_cell":(1,2)}),
+ "gojo":("Satoru Gojo",2200,(32,52),550,{"six_eyes":(1,1),"limitless_core":(1,2),"blue_orb":(1,2),"red_orb":(1,2),"hollow_purple_shard":(1,1),"blindfold_fabric":(1,3)}),
+ "sukuna":("Ryomen Sukuna",5600,(58,92),1650,{"cursed_fingers":(1,3),"cursed_ash":(1,2),"sukuna_relic":(1,1),"malevolent_essence":(1,2),"shrine_fragment":(1,2),"king_of_curses_seal":(1,1)}),
+ "muzan":("Muzan Kibutsuji",3900,(48,76),1050,{"demon_blood":(1,2),"sunsteel":(1,2),"blue_spider_lily":(1,1),"flesh_core":(1,3),"demon_cell":(1,2),"nightmare_ash":(1,2)}),
+ "meruem":("Meruem",6200,(62,94),1800,{"chimera_essence":(1,2),"royal_core":(1,1),"nen_crystal":(1,3),"chimera_scale":(1,2),"royal_guard_token":(1,1),"kingly_aura":(1,2)}),
+ "all_for_one":("All For One",5100,(55,86),1450,{"quirk_catalyst":(1,2),"all_for_one_core":(1,1),"stolen_quirk_shard":(1,3),"nomu_tissue":(1,2),"alliance_emblem":(1,1),"impact_relic":(1,2)}),
+ "zeref":("Zeref",8200,(72,108),2400,{"ether_core":(1,2),"curse_book":(1,1),"fairy_heart_shard":(1,2),"black_magic_ash":(1,3),"immortality_seal":(1,1),"time_rift_fragment":(1,2)}),
 }
 ITEMS = {k:k.replace("_"," ").title() for b in BOSSES.values() for k in b[4]}
 ITEMS.update({"limitless_core":"Limitless Core","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
@@ -175,7 +175,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("RACE CHANGED",f"Your race is now {RACES[key][0]}. {RACES[key][3]}"),mention_author=False)
  @commands.command(name="bosses",aliases=["raids"])
  async def bosses(self,ctx):
-  e=self.embed("RAID REGISTER","Each player acts once, then the boss retaliates. Loot is rolled separately.")
+  e=self.embed("RAID REGISTER","Each player acts once, then the boss retaliates. Every clear grants at least five guaranteed loot types, plus a chance at a Mythic Token.")
   for k,b in BOSSES.items(): e.add_field(name=f"{b[0]} / {k}",value=f"{b[1]:,} HP · {b[2][0]}–{b[2][1]} damage · {b[3]:,} XP",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.group(name="boss",invoke_without_command=True)
@@ -269,9 +269,11 @@ class Adventure(commands.Cog):
      while q["xp"]>=q["level"]*250: q["xp"]-=q["level"]*250; q["level"]+=1; q["points"]+=1
      got=[]
      for item,limits in b[4].items():
-      if random.random()<(.70 if item=="cursed_fingers" else .28):
-       amount=random.randint(*limits); self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{amount}")
-     if r["boss"]=="gojo": self.item(q,"six_eyes",1); got.append("Six Eyes x1")
+      amount=random.randint(*limits)*swarm_count
+      self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{amount}")
+     if random.random()<0.10:
+      amount=swarm_count
+      self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{amount}")
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
     self.data["raids"].pop(g,None); self.flush()
     await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_count:,}x {b[0].upper()}",f"Defeated {swarm_count:,} bosses. Rewards were multiplied by the boss count.\n\n"+ "\n".join(drops),discord.Color.green()),mention_author=False); return
