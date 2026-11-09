@@ -11,17 +11,21 @@ from discord.ext import commands
 DB_PATH = Path("/home/container/peak_adventure.sqlite3")
 
 BOSSES = {
-    "hollowfang": {"name": "HOLLOWFANG, THE DEVOURER", "hp": 1400, "reward": 350, "damage": (25, 43), "description": "A calamity-born beast that feeds on the battle spirit of fallen warriors."},
-    "tideemperor": {"name": "THE TIDE EMPEROR", "hp": 2600, "reward": 700, "damage": (36, 59), "description": "An exiled sea monarch who commands pressure, storms and crushing waves."},
-    "eclipse": {"name": "THE ECLIPSE TYRANT", "hp": 4600, "reward": 1400, "damage": (50, 78), "description": "An ancient warlord whose aura can silence an entire battlefield."},
-    "starbreaker": {"name": "STARBREAKER, THE LAST CALAMITY", "hp": 7200, "reward": 2200, "damage": (65, 95), "description": "A world-ending challenger who defeated an entire generation of champions."},
+    "mahito": {"name": "MAHITO", "hp": 1400, "reward": 350, "damage": (25, 43), "description": "The curse born from humanity's hatred. His Idle Transfiguration makes every exchange dangerous."},
+    "doflamingo": {"name": "DONQUIXOTE DOFLAMINGO", "hp": 2600, "reward": 700, "damage": (36, 59), "description": "The Heavenly Demon. His strings control the battlefield and punish careless fighters."},
+    "madara": {"name": "MADARA UCHIHA", "hp": 4600, "reward": 1400, "damage": (50, 78), "description": "The legendary Uchiha who brings the power of the Sharingan and Susanoo to the battlefield."},
+    "frieza": {"name": "FRIEZA", "hp": 7200, "reward": 2200, "damage": (65, 95), "description": "The emperor of the universe. His overwhelming power makes this a final-tier raid."},
 }
 
 WEAPONS = {
-    "ironblade": {"name": "Ironblade", "level": 1, "damage": (75, 110), "ability": "cleave", "ability_name": "Rising Cleave", "ability_damage": (145, 190), "cost": 1},
-    "frostfang": {"name": "Frostfang", "level": 3, "damage": (65, 125), "ability": "frostbite", "ability_name": "Winter Prison", "ability_damage": (175, 220), "cost": 2},
-    "stormcaller": {"name": "Stormcaller", "level": 6, "damage": (90, 135), "ability": "thunderfall", "ability_name": "Heaven’s Breaker", "ability_damage": (210, 270), "cost": 2},
-    "voidreaper": {"name": "Voidreaper", "level": 10, "damage": (115, 160), "ability": "soulrend", "ability_name": "Abyssal Sever", "ability_damage": (270, 340), "cost": 3},
+    "sukuna": {"name": "Ryomen Sukuna", "level": 1, "damage": (75, 110), "ability": "malevolent_shrine", "ability_name": "Malevolent Shrine", "ability_damage": (145, 190), "cost": 1, "series": "Jujutsu Kaisen", "moves": "Dismantle · Cleave · Furnace"},
+    "gojo": {"name": "Satoru Gojo", "level": 3, "damage": (65, 125), "ability": "hollow_purple", "ability_name": "Hollow Purple", "ability_damage": (175, 220), "cost": 2, "series": "Jujutsu Kaisen", "moves": "Infinity · Blue · Red"},
+    "naruto": {"name": "Naruto Uzumaki", "level": 5, "damage": (90, 135), "ability": "rasenshuriken", "ability_name": "Wind Style: Rasenshuriken", "ability_damage": (195, 245), "cost": 2, "series": "Naruto", "moves": "Shadow Clone Jutsu · Rasengan · Kurama Chakra"},
+    "luffy": {"name": "Monkey D. Luffy", "level": 7, "damage": (95, 140), "ability": "bajrang_gun", "ability_name": "Bajrang Gun", "ability_damage": (220, 280), "cost": 2, "series": "One Piece", "moves": "Gear Second · Gear Fourth · Gear Fifth"},
+    "ichigo": {"name": "Ichigo Kurosaki", "level": 9, "damage": (105, 150), "ability": "getsuga_tensho", "ability_name": "Getsuga Tensho", "ability_damage": (240, 300), "cost": 3, "series": "Bleach", "moves": "Shikai · Bankai · Hollowfication"},
+    "zoro": {"name": "Roronoa Zoro", "level": 11, "damage": (110, 155), "ability": "asura", "ability_name": "Ashura", "ability_damage": (250, 315), "cost": 3, "series": "One Piece", "moves": "Three Sword Style · Oni Giri · King of Hell"},
+    "aizen": {"name": "Sosuke Aizen", "level": 13, "damage": (120, 165), "ability": "kyoka_suigetsu", "ability_name": "Kyoka Suigetsu", "ability_damage": (270, 335), "cost": 3, "series": "Bleach", "moves": "Kido · Complete Hypnosis · Hogyoku"},
+    "goku": {"name": "Son Goku", "level": 15, "damage": (130, 175), "ability": "spirit_bomb", "ability_name": "Spirit Bomb", "ability_damage": (300, 380), "cost": 4, "series": "Dragon Ball", "moves": "Kaioken · Super Saiyan · Instant Transmission"},
 }
 
 class Adventure(commands.Cog):
@@ -33,7 +37,7 @@ class Adventure(commands.Cog):
         self.db.execute("""CREATE TABLE IF NOT EXISTS profiles (
             user_id INTEGER PRIMARY KEY, xp INTEGER NOT NULL DEFAULT 0,
             level INTEGER NOT NULL DEFAULT 1, skill_points INTEGER NOT NULL DEFAULT 0,
-            weapon TEXT NOT NULL DEFAULT 'ironblade', unlocked TEXT NOT NULL DEFAULT ''
+            weapon TEXT NOT NULL DEFAULT 'sukuna', unlocked TEXT NOT NULL DEFAULT ''
         )""")
         self.db.commit()
 
@@ -43,7 +47,14 @@ class Adventure(commands.Cog):
             self.db.execute("INSERT INTO profiles(user_id) VALUES(?)", (user_id,))
             self.db.commit()
             return self.profile(user_id)
-        return {"xp": row[0], "level": row[1], "points": row[2], "weapon": row[3], "unlocked": set(filter(None, row[4].split(",")))}
+        legacy = {"ironblade": "sukuna", "frostfang": "gojo", "stormcaller": "naruto", "voidreaper": "ichigo"}
+        weapon = legacy.get(row[3], row[3])
+        if weapon not in WEAPONS:
+            weapon = "sukuna"
+        profile = {"xp": row[0], "level": row[1], "points": row[2], "weapon": weapon, "unlocked": set(filter(None, row[4].split(",")))}
+        if weapon != row[3]:
+            self.save_profile(user_id, profile)
+        return profile
 
     def save_profile(self, user_id: int, profile: dict) -> None:
         self.db.execute("UPDATE profiles SET xp=?, level=?, skill_points=?, weapon=?, unlocked=? WHERE user_id=?",
@@ -62,7 +73,7 @@ class Adventure(commands.Cog):
     @commands.group(name="boss", invoke_without_command=True, aliases=["hunt"])
     async def boss(self, ctx: commands.Context) -> None:
         p = ctx.clean_prefix
-        await ctx.reply(embed=self.make_embed("HUNTER GUILD", f"`{p}bosses` view calamities  ·  `{p}boss challenge <name>` start a raid\\n`{p}join` enter  ·  `{p}attack [technique]` take your turn\\n`{p}boss status` inspect the battlefield"), mention_author=False)
+        await ctx.reply(embed=self.make_embed("HUNTER GUILD", f"`{p}bosses` view anime raid bosses  ·  `{p}boss challenge <name>` start a raid\\n`{p}join` enter  ·  `{p}attack [technique]` take your turn\\n`{p}boss status` inspect the battlefield"), mention_author=False)
 
     @commands.command(name="bosses", aliases=["bestiary"])
     async def bosses(self, ctx: commands.Context) -> None:
@@ -109,7 +120,7 @@ class Adventure(commands.Cog):
     async def status(self, ctx: commands.Context) -> None:
         encounter = self.encounters.get(ctx.guild.id)
         if not encounter:
-            await ctx.reply(embed=self.make_embed("No active target", f"Summon one with `{ctx.clean_prefix}boss challenge hollowfang`."), mention_author=False)
+            await ctx.reply(embed=self.make_embed("No active target", f"Summon one with `{ctx.clean_prefix}boss challenge mahito`."), mention_author=False)
             return
         boss = BOSSES[encounter["key"]]
         hp = max(0, encounter["hp"])
@@ -123,22 +134,22 @@ class Adventure(commands.Cog):
         embed.add_field(name="Party", value=roster[:1024] or "No players", inline=False)
         await ctx.reply(embed=embed, mention_author=False)
 
-    @commands.command(name="weapons")
+    @commands.command(name="characters", aliases=["weapons", "roster"])
     async def weapons(self, ctx: commands.Context) -> None:
         profile = self.profile(ctx.author.id)
         lines = []
         for key, weapon in WEAPONS.items():
             state = "equipped" if profile["weapon"] == key else "unlocked" if profile["level"] >= weapon["level"] else f"locked · level {weapon['level']}"
-            lines.append(f"**{weapon['name']}** — {weapon['damage'][0]}–{weapon['damage'][1]} damage\nAbility: **{weapon['ability_name']}** ({weapon['ability_damage'][0]}–{weapon['ability_damage'][1]} damage, {weapon['cost']} skill points)\n{state}")
-        await ctx.reply(embed=self.make_embed("Armoury", "\n\n".join(lines)), mention_author=False)
+            lines.append(f"**{weapon['name']}** · {weapon['series']}\nMoves: {weapon['moves']}\nSignature: **{weapon['ability_name']}** ({weapon['ability_damage'][0]}–{weapon['ability_damage'][1]} damage, {weapon['cost']} skill points)\n{state}")
+        await ctx.reply(embed=self.make_embed("ANIME CHARACTER ROSTER", "\n\n".join(lines)), mention_author=False)
 
-    @commands.command(name="weapon")
+    @commands.command(name="character", aliases=["weapon", "equip"])
     async def weapon(self, ctx: commands.Context, *, name: str) -> None:
         key = name.lower().strip()
         profile = self.profile(ctx.author.id)
         weapon = WEAPONS.get(key)
         if not weapon:
-            await ctx.reply(embed=self.make_embed("Weapon not found", "Use `,weapons` to view weapon names."), mention_author=False)
+            await ctx.reply(embed=self.make_embed("Weapon not found", "Use `,characters` to view the roster."), mention_author=False)
             return
         if profile["level"] < weapon["level"]:
             await ctx.reply(embed=self.make_embed("Weapon locked", f"Reach level **{weapon['level']}** to equip {weapon['name']}.", discord.Color.orange()), mention_author=False)
