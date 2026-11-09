@@ -84,6 +84,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,character <key>`
 - `,races` and `,race <key>`
 - `,clans`, `,clan`, `,clan roll` — view and reroll clan bonuses
+- Owner-only: `,clan set <key>` (aliases: `choose`, `select`) — select any clan directly; use `,clan set off` to clear
 - `,bosskey use <jjk|jojo|naruto>` — consume an anime key to summon a boss from that series
 - `,craft item <key>` / `,craft i <key>` — craft boss keys and clan rerolls
 - `,skills`, `,skilltree`, `,mastery` and `,unlock <skill>`
