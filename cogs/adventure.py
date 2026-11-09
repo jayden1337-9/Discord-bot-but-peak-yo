@@ -68,7 +68,7 @@ class Adventure(commands.Cog):
 
     def weapon_for(self, user_id: int):
         profile = self.profile(user_id)
-        return WEAPONS.get(profile["weapon"], WEAPONS["ironblade"])
+        return WEAPONS.get(profile["weapon"], WEAPONS["sukuna"])
 
     @commands.group(name="boss", invoke_without_command=True, aliases=["hunt"])
     async def boss(self, ctx: commands.Context) -> None:
