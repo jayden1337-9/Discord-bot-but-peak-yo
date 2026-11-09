@@ -1,6 +1,7 @@
 import unittest
 
 from cogs.adventure import apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.progression import TITLE_RULES
 
 
 class GameSystemTests(unittest.TestCase):
@@ -21,6 +22,11 @@ class GameSystemTests(unittest.TestCase):
         self.assertEqual(mastery_tier(1000), 1)
         self.assertEqual(mastery_tier(5000), 2)
         self.assertEqual(mastery_tier(20000), 3)
+
+    def test_symbolic_rewards_unlock_high_tier_titles(self):
+        profile = {"wins": 0, "damage": 0, "race": "human", "symbolic_rewards": {"wins": 1, "damage": 1}}
+        self.assertTrue(TITLE_RULES["conqueror"][2](profile))
+        self.assertTrue(TITLE_RULES["calamity"][2](profile))
 
     def test_level_up_math(self):
         profile = {"level": 1, "xp": 250, "points": 0}
