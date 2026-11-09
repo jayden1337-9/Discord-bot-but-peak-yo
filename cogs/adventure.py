@@ -366,7 +366,8 @@ class Adventure(commands.Cog):
  @commands.command(name="stats",aliases=["me"])
  async def stats(self,ctx,member:discord.Member=None):
   member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
-  desc=(f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}")\n  e=self.embed("ADVENTURER PROFILE",desc[:4000])
+  desc=(f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}")
+  e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
  async def leaderboard(self,ctx):
