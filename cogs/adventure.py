@@ -335,6 +335,29 @@ class Adventure(commands.Cog):
    await ctx.reply(embed=self.embed("Character unavailable","Unknown character or your level is too low."),mention_author=False); return
   p["character"]=key; self.flush()
   await ctx.reply(embed=self.embed("CHARACTER EQUIPPED",f"You equipped {c[0]} from {c[1]}."),mention_author=False)
+ @commands.command(name="clans")
+ async def clans(self,ctx):
+  p=self.p(ctx.author.id); current=CLANS.get(p.get("clan"))
+  e=self.embed("CLAN ARCHIVE",f"Current clan: {current['name'] if current else 'Unassigned'}\nRerolls available: {p.get('clan_rolls',0)}\nUse ,clan roll to roll a new clan.")
+  for key,d in CLANS.items():
+   e.add_field(name=f"{d['name']} / {key}",value=f"Melee +{int(d['melee']*100)}% · Sword +{int(d['sword']*100)}% · Magic +{int(d['magic']*100)}%\nListed rarity: {d['rarity']}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+
+ @commands.group(name="clan",invoke_without_command=True)
+ async def clan(self,ctx):
+  p=self.p(ctx.author.id); d=CLANS.get(p.get("clan"))
+  await ctx.reply(embed=self.embed("CLAN STATUS",f"Current clan: {d['name'] if d else 'Unassigned'}\nRerolls: {p.get('clan_rolls',0)}\nUse ,clans to view bonuses or ,clan roll to reroll."),mention_author=False)
+
+ @clan.command(name="roll")
+ async def clan_roll(self,ctx):
+  p=self.p(ctx.author.id)
+  if p.get("clan_rolls",0)<1:
+   await ctx.reply(embed=self.embed("NO CLAN REROLLS","Earn one clan reroll every 5 boss victories, or craft one with ,craft item clan_token."),mention_author=False); return
+  choices=[("otogakure",35),("satoru",18),("zenin",18),("kamo",18),("akatsuki",5),("konoha",5),("king",1)]
+  result=random.choices([x[0] for x in choices],weights=[x[1] for x in choices],k=1)[0]
+  p["clan_rolls"]-=1; p["clan"]=result; self.flush(); d=CLANS[result]
+  await ctx.reply(embed=self.embed("CLAN AWAKENED",f"You rolled **{d['name']}**.\nMelee +{int(d['melee']*100)}% · Sword +{int(d['sword']*100)}% · Magic +{int(d['magic']*100)}%\nRerolls remaining: {p['clan_rolls']}"),mention_author=False)
+
  @commands.command(name="races")
  async def races(self,ctx):
   p=self.p(ctx.author.id); e=self.embed("RACE REGISTRY",f"Current race: {RACES[p['race']][0]}")
@@ -349,6 +372,29 @@ class Adventure(commands.Cog):
    await ctx.reply(embed=self.embed("RACE LOCKED","The secret King of Curses race requires 20 Cursed Fingers while using Vessel."),mention_author=False); return
   p["race"]=key; self.flush()
   await ctx.reply(embed=self.embed("RACE CHANGED",f"Your race is now {RACES[key][0]}. {RACES[key][3]}"),mention_author=False)
+ @commands.group(name="bosskey",invoke_without_command=True)
+ async def bosskey(self,ctx):
+  await ctx.reply(embed=self.embed("BOSS KEY VAULT","Craft keys with ,craft item <key>, then use ,bosskey use <key>.\nJJK Key · JoJo Key · Naruto Key"),mention_author=False)
+
+ @bosskey.command(name="use")
+ @commands.guild_only()
+ async def bosskey_use(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_")
+  key={"jjk":"jjk_key","jojo":"jojo_key","naruto":"naruto_key"}.get(key,key)
+  if key not in BOSS_KEY_POOLS:
+   await ctx.reply(embed=self.embed("UNKNOWN KEY","Available keys: jjk_key, jojo_key, naruto_key."),mention_author=False); return
+  p=self.p(ctx.author.id)
+  if not self.has_item(p,key,1):
+   await ctx.reply(embed=self.embed("KEY MISSING",f"You need {ITEMS[key]}. Craft it with ,craft item {key}."),mention_author=False); return
+  async with self.lock:
+   g=str(ctx.guild.id)
+   if g in self.data["raids"]:
+    await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid before opening another key."),mention_author=False); return
+   self.consume_item(p,key,1); boss_key=random.choice(BOSS_KEY_POOLS[key]); b=BOSSES[boss_key]
+   self.data["raids"][g]={"boss":boss_key,"hp":b[1],"max_hp":b[1],"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1,"key_type":key}
+   self.flush()
+  await ctx.reply(embed=self.embed(f"{ITEMS[key].upper()} OPENED",f"The key summoned **{b[0]}**.\n{b[1]:,} HP · {b[2][0]}–{b[2][1]} damage · {b[3]:,} XP\nOthers can join with ,join."),mention_author=False)
+
  @commands.command(name="bosses",aliases=["raids"])
  async def bosses(self,ctx):
   e=self.embed("RAID REGISTER","Each player acts once, then the boss retaliates. Every clear grants at least five guaranteed loot types, plus a chance at a Mythic Token.")
@@ -492,6 +538,8 @@ class Adventure(commands.Cog):
       await ctx.reply(embed=self.embed("SKILL LOCKED","Unlock that ability with ,unlock <skill>."),mention_author=False); return
     else: damage=random.randint(*c[3]); action="Basic strike"
    race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
+   clan=CLANS.get(p.get("clan")); attack_type=CHARACTER_ATTACK_TYPES.get(p["character"],"magic")
+   clan_mult=1+(clan.get(attack_type,0) if clan else 0)
    level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
    mastery=p.setdefault("mastery",{}); mastery_xp=int(mastery.get(p["character"],0)); mastery_level=mastery_tier(mastery_xp)
    mastery_mult=1+0.02*mastery_level
@@ -507,7 +555,7 @@ class Adventure(commands.Cog):
    except ImportError: pass
    damage+=gear_attack
    dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
-   damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
+   damage=min(r["hp"],max(1,int(damage*race_mult*clan_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
    mastery[p["character"]]=mastery_xp+damage
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
    phase_line=""
@@ -537,7 +585,8 @@ class Adventure(commands.Cog):
        amount=random.randint(*limits); sr["inventory"][item]=sr["inventory"].get(item,0)+amount
        got.append(f"{ITEMS.get(item,item)} x{symbolic_quantity(amount)}")
      else:
-      q["xp"]+=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4; q["points"]+=swarm_multiplier; q["wins"]+=swarm_multiplier
+      q["xp"]+=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4; q["points"]+=swarm_multiplier; old_wins=q.get("wins",0); q["wins"]+=swarm_multiplier
+      q["clan_rolls"]=q.get("clan_rolls",1)+(q["wins"]//5-old_wins//5)
       apply_level_ups(q)
       for item,limits in b[4].items():
        amount=random.randint(*limits)*swarm_multiplier
@@ -635,9 +684,20 @@ class Adventure(commands.Cog):
 
  @commands.command(name="craft")
  async def craft(self,ctx,*,key):
-  key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id); d=WEAPON_RECIPES.get(key)
+  key=key.lower().strip().replace(" ","_")
+  if key.startswith("item_"): key=key[5:]
+  if key.startswith("i_"): key=key[2:]
+  if key in ITEM_RECIPES:
+   p=self.p(ctx.author.id); recipe=ITEM_RECIPES[key]
+   missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in recipe["materials"].items() if int(p["inventory"].get(i,0))<n]
+   if missing:
+    await ctx.reply(embed=self.embed("CRAFTING MATERIALS MISSING",", ".join(missing)),mention_author=False); return
+   for item_key,amount in recipe["materials"].items(): self.item(p,item_key,-amount)
+   self.item(p,key,1); self.flush()
+   await ctx.reply(embed=self.embed("ITEM CRAFTED",f"Created {recipe['name']} x1."),mention_author=False); return
+  p=self.p(ctx.author.id); d=WEAPON_RECIPES.get(key)
   if not d:
-   await ctx.reply(embed=self.embed("BLUEPRINT NOT FOUND","Use ,recipes."),mention_author=False); return
+   await ctx.reply(embed=self.embed("BLUEPRINT NOT FOUND","Use ,recipes or ,craft item <key>."),mention_author=False); return
   owned=self.data.setdefault("crafted_weapons",{}).setdefault(str(ctx.author.id),[])
   if key in owned:
    await ctx.reply(embed=self.embed("ALREADY FORGED","You already crafted this weapon."),mention_author=False); return
@@ -755,7 +815,8 @@ class Adventure(commands.Cog):
   equipped_title=p.get("equipped_title")
   title_name={"rookie":"Rookie","slayer":"Boss Slayer","conqueror":"Conqueror","calamity":"Calamity","limitless":"Limitless","king_of_curses":"King of Curses"}.get(equipped_title,"None")
   mastery_level=mastery_tier(p.get("mastery",{}).get(p["character"],0))
-  desc=(f"Title: {title_name}\nCharacter: {c[0]}\nMastery: Tier {mastery_level}/3 (+{mastery_level*2}% damage)\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
+  clan_name=CLANS.get(p.get("clan"),{}).get("name","Unassigned")
+  desc=(f"Title: {title_name}\nCharacter: {c[0]}\nClan: {clan_name}\nMastery: Tier {mastery_level}/3 (+{mastery_level*2}% damage)\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
   e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
