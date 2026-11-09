@@ -6,7 +6,7 @@ from discord.ext import commands
 
 from cogs.adventure import (
     CHARACTERS, CLANS, CHARACTER_ATTACK_TYPES, RACES, SKILL_TREE,
-    apply_level_ups, display_number, mastery_tier,
+    apply_level_ups, display_number, mastery_tier, AttackCategoryView,
 )
 
 PETS = {
@@ -174,49 +174,49 @@ class Expeditions(commands.Cog):
             if not state:
                 await ctx.reply(embed=self.embed("NO ACTIVE EXPEDITION", "Start one with `,expedition start <route>`."), mention_author=False)
                 return
+            if ability is None:
+                categories = game.attack_skill_options(ctx.author.id)
+                if not categories:
+                    await ctx.reply(embed=self.embed("NO EQUIPPED SKILLS", "Equip an unlocked skill with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
+                    return
+                await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(game, ctx, categories, self.expedition_attack), mention_author=False)
+                return
             route = ROUTES[state["route"]]
             stage = route["stages"][state["stage"]]
             char = CHARACTERS[p["character"]]
             custom = game.data.get("custom_weapons", {}).get(p.get("weapon"))
             gear_attack, gear_defense, _ = self.gear_stats(p)
             pet_attack, pet_defense = self.pet_bonus(p)
-            action = "Basic strike"
-            if custom:
-                if ability:
-                    wanted = ability.lower().strip().replace(" ", "_")
-                    if wanted != custom["ability_key"]:
-                        await ctx.reply(embed=self.embed("UNKNOWN ABILITY", f"Your weapon uses **{custom['ability']}**."), mention_author=False)
-                        return
-                    damage = random.randint(*custom["ability_damage"])
-                    action = custom["ability"]
-                else:
-                    damage = random.randint(*custom["damage"])
-                    action = custom["name"] + " strike"
+            key = ability.lower().strip().replace(" ", "_")
+            options = game.attack_skill_options(ctx.author.id)
+            selected_category = next((kind for kind, skills in options.items() if any(skill_key == key for skill_key, _ in skills)), None)
+            if selected_category is None:
+                await ctx.reply(embed=self.embed("SKILL NOT EQUIPPED", "That skill is not equipped in your combat loadout."), mention_author=False)
+                return
+            if custom and key == custom["ability_key"]:
+                damage = random.randint(*custom["ability_damage"])
+                action = custom["ability"]
                 override = p.get("weapon_damage_override")
                 if override == "googolplex":
                     damage = state["enemy_hp"]
                 elif override is not None:
                     damage = int(override)
-            elif ability:
-                key = ability.lower().strip().replace(" ", "_")
-                if key == char[5]:
-                    if key not in p.get("unlocked", []) and not (p["race"] == "vessel" and p["character"] == "sukuna"):
-                        await ctx.reply(embed=self.embed("SKILL LOCKED", f"Unlock it with `,unlock {key}`."), mention_author=False)
-                        return
-                    damage = random.randint(*char[6])
-                    action = char[4]
-                elif key in p.get("unlocked_skills", []) and key in SKILL_TREE:
-                    skill = SKILL_TREE[key]
-                    damage = int(random.randint(*char[3]) * skill["multiplier"])
-                    action = skill["name"]
-                else:
-                    await ctx.reply(embed=self.embed("SKILL LOCKED", "That ability is not unlocked on your profile."), mention_author=False)
+            elif key == char[5]:
+                if key not in p.get("unlocked", []) and not (p["race"] == "vessel" and p["character"] == "sukuna"):
+                    await ctx.reply(embed=self.embed("SKILL LOCKED", f"Unlock it with ,unlock {key}."), mention_author=False)
                     return
+                damage = random.randint(*char[6])
+                action = char[4]
+            elif key in p.get("unlocked_skills", []) and key in SKILL_TREE:
+                skill = SKILL_TREE[key]
+                damage = int(random.randint(*char[3]) * skill["multiplier"])
+                action = skill["name"]
             else:
-                damage = random.randint(*char[3])
+                await ctx.reply(embed=self.embed("SKILL LOCKED", "That ability is not unlocked on your profile."), mention_author=False)
+                return
             race = RACES[p["race"]]
             clan = CLANS.get(p.get("clan"))
-            attack_type = CHARACTER_ATTACK_TYPES.get(p["character"], "magic")
+            attack_type = selected_category
             clan_mult = 1 + (clan.get(attack_type, 0) if clan else 0)
             level_mult = 1 + min(35, max(0, int(p["level"]) - 1)) * 0.01
             mastery_xp = int(p.setdefault("mastery", {}).get(p["character"], 0))
