@@ -320,7 +320,7 @@ class AttackSkillSelect(discord.ui.Select):
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
   skill=self.values[0]
   await interaction.response.edit_message(content="Skill selected. Resolving your turn...",embed=None,view=None)
-  await self.attack_view.cog.attack.callback(self.attack_view.cog,self.attack_view.ctx,skill)
+  await self.attack_view.attack_command.callback(self.attack_view.cog,self.attack_view.ctx,skill)
 
 class AttackCategoryView(discord.ui.View):
  def __init__(self,cog,ctx,categories):
