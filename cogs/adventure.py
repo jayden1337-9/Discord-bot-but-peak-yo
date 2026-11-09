@@ -52,6 +52,9 @@ BOSSES = {
  "kaguya":("Kaguya Otsutsuki",14800,(105,158),4300,{"chakra_crystal":(2,5),"six_paths_essence":(2,4),"god_tree_seed":(1,3),"dimensional_eye":(1,2)}),
  "madara_six_paths":("Six Paths Madara",17200,(118,176),5100,{"uchiha_relic":(2,5),"rinnegan_shard":(1,3),"six_paths_essence":(2,5),"ten_tails_core":(1,2)}),
  "anti_spiral":("Anti-Spiral",24000,(145,210),7200,{"void_ore":(3,6),"ancient_core":(2,4),"time_rift_fragment":(2,5),"dimension_key":(1,3),"spiral_core":(1,2)}),
+ "asta_devil":("Asta: Devil Union",28000,(155,225),8500,{"awakening_crystal":(2,4),"void_ore":(2,5),"anti_magic_core":(1,2)}),
+ "eren_founder":("Eren: Founding Titan",40000,(175,250),11000,{"ancient_core":(3,5),"time_rift_fragment":(2,5),"founder_flesh":(1,2)}),
+ "rimuru_demon_lord":("Rimuru: Demon Lord",50000,(200,290),14500,{"void_ore":(3,6),"ancient_core":(3,5),"celestial_dust":(2,4),"demon_lord_core":(1,2)}),
  "jogo":("Jogo",3000,(38,58),720,{"volcanic_core":(1,2),"cursed_ash":(2,4),"soul_fragment":(1,2),"black_flash_residue":(1,2)}),
  "hanami":("Hanami",3100,(36,56),740,{"cursed_bark":(1,2),"cursed_ash":(2,4),"soul_fragment":(1,2),"black_flash_residue":(1,2)}),
  "toji":("Toji Fushiguro",2800,(42,64),780,{"heavenly_relic":(1,2),"soul_fragment":(1,3)}),
@@ -95,7 +98,7 @@ BOSS_DIMENSIONS = {
  "raditz":"dragon_world","frieza":"dragon_world",
  "mahito":"cursed_realm","jogo":"cursed_realm","hanami":"cursed_realm","toji":"cursed_realm","maki":"cursed_realm","gojo":"cursed_realm","sukuna":"cursed_realm","jjk_sukuna":"cursed_realm","jjk_gojo":"cursed_realm","jjk_mahito":"cursed_realm","low_rank_curse":"cursed_realm",
  "dio":"stone_ocean","pucci":"stone_ocean","diavolo":"stone_ocean","kira":"stone_ocean","dio_vampire":"stone_ocean",
- "meruem":"hunter_world","zeref":"fairy_tail","anti_spiral":"spiral_nexus",
+ "meruem":"hunter_world","zeref":"fairy_tail","anti_spiral":"spiral_nexus","asta_devil":"celestial_plane","eren_founder":"infinity_void","rimuru_demon_lord":"tempest",
 }
 for _boss_key,_boss_data in BOSSES.items():
  _chest_key=f"boss_chest_{_boss_key}"
@@ -184,6 +187,11 @@ for _dim_key,_dim_data in DIMENSIONS.items():
  _dim_data.setdefault("anime","Starting World" if _dim_key=="earth" else _dim_data["name"])
  _dim_data.setdefault("hp_mult",1)
  _dim_data.setdefault("damage_mult",1.0)
+DIMENSIONS.update({
+ "celestial_plane":{"name":"Black Clover","anime":"Black Clover","level":48,"wins":55,"materials":{"celestial_dust":20,"six_paths_essence":12,"dimensional_eye":2},"bonus":1.30,"hp_mult":1000000,"damage_mult":1.35,"description":"A kingdom of grimoires, devils and anti-magic."},
+ "infinity_void":{"name":"Attack on Titan","anime":"Attack on Titan","level":55,"wins":75,"materials":{"time_rift_fragment":15,"void_ore":20,"ancient_core":5,"dimension_key":1},"bonus":1.35,"hp_mult":100000000,"damage_mult":1.45,"description":"A world of titans, walls and the Founding Titan."},
+ "tempest":{"name":"That Time I Got Reincarnated as a Slime","anime":"That Time I Got Reincarnated as a Slime","level":70,"wins":150,"materials":{"void_ore":40,"ancient_core":20,"celestial_dust":20,"dimension_key":5},"bonus":1.55,"hp_mult":1000000000,"damage_mult":1.6,"description":"The Jura Tempest Federation and its Demon Lord-level threats."},
+})
 
 RACES = {
  "human":("Human",1.0,0.0,"Balanced starting race."),
