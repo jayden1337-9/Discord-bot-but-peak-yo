@@ -1,374 +1,295 @@
-import asyncio
-import random
-import sqlite3
-import time
-from collections import defaultdict
+import asyncio, json, os, random, sqlite3, tempfile
 from pathlib import Path
-
 import discord
 from discord.ext import commands
 
-DB_PATH = Path("/home/container/peak_adventure.sqlite3")
+ROOT = Path(os.getenv("BOT_DATA_DIR", "/home/container/data"))
+DB_FILE = ROOT / "peak_game.json"
+OLD_DB = Path("/home/container/peak_adventure.sqlite3")
 
+CHARACTERS = {
+ "sukuna":("Ryomen Sukuna","Jujutsu Kaisen",1,(78,112),"Malevolent Shrine","malevolent_shrine",(155,205),2),
+ "gojo":("Satoru Gojo","Jujutsu Kaisen",3,(70,120),"Hollow Purple","hollow_purple",(175,225),2),
+ "yuji":("Yuji Itadori","Jujutsu Kaisen",2,(75,115),"Black Flash","black_flash",(145,195),2),
+ "naruto":("Naruto Uzumaki","Naruto",4,(88,130),"Rasenshuriken","rasenshuriken",(190,245),2),
+ "sasuke":("Sasuke Uchiha","Naruto",6,(92,135),"Kirin","kirin",(205,260),3),
+ "luffy":("Monkey D. Luffy","One Piece",7,(95,140),"Bajrang Gun","bajrang_gun",(220,285),3),
+ "zoro":("Roronoa Zoro","One Piece",9,(105,150),"King of Hell","king_of_hell",(235,295),3),
+ "ichigo":("Ichigo Kurosaki","Bleach",10,(108,155),"Getsuga Tensho","getsuga_tensho",(245,310),3),
+ "aizen":("Sosuke Aizen","Bleach",14,(120,170),"Kyoka Suigetsu","kyoka_suigetsu",(275,340),4),
+ "goku":("Son Goku","Dragon Ball",15,(130,180),"Spirit Bomb","spirit_bomb",(300,390),4),
+ "vegeta":("Vegeta","Dragon Ball",16,(135,185),"Final Flash","final_flash",(310,400),4),
+ "tanjiro":("Tanjiro Kamado","Demon Slayer",8,(100,145),"Sun Breathing","sun_breathing",(225,285),3),
+ "asta":("Asta","Black Clover",11,(112,160),"Anti-Magic","anti_magic",(250,315),3),
+ "deku":("Izuku Midoriya","My Hero Academia",12,(115,165),"One For All","one_for_all",(260,325),3),
+ "eren":("Eren Yeager","Attack on Titan",13,(118,168),"Founding Titan","founding_titan",(265,330),4),
+ "rimuru":("Rimuru Tempest","That Time I Got Reincarnated as a Slime",18,(145,195),"Predator","predator",(330,420),5),
+}
 BOSSES = {
-    "mahito": {"name": "MAHITO", "hp": 1400, "reward": 350, "damage": (25, 43), "description": "The curse born from humanity's hatred. His Idle Transfiguration makes every exchange dangerous."},
-    "doflamingo": {"name": "DONQUIXOTE DOFLAMINGO", "hp": 2600, "reward": 700, "damage": (36, 59), "description": "The Heavenly Demon. His strings control the battlefield and punish careless fighters."},
-    "madara": {"name": "MADARA UCHIHA", "hp": 4600, "reward": 1400, "damage": (50, 78), "description": "The legendary Uchiha who brings the power of the Sharingan and Susanoo to the battlefield."},
-    "frieza": {"name": "FRIEZA", "hp": 7200, "reward": 2200, "damage": (65, 95), "description": "The emperor of the universe. His overwhelming power makes this a final-tier raid."},
-    "gojo": {"name": "SATORU GOJO", "hp": 1900, "reward": 500, "damage": (30, 48), "description": "The honoured one. Defeat this special encounter to obtain a Six Eyes relic."},
-    "sukuna": {"name": "RYOMEN SUKUNA", "hp": 5200, "reward": 1800, "damage": (55, 88), "description": "The King of Curses. Defeat him for a chance at Cursed Fingers and other rare relics."},
+ "mahito":("Mahito",1600,(28,46),350,{"cursed_ash":(1,2),"cursed_fingers":(1,2)}),
+ "doflamingo":("Donquixote Doflamingo",2800,(38,62),650,{"string_core":(1,2),"devil_fruit_shard":(1,2)}),
+ "madara":("Madara Uchiha",4700,(52,82),1200,{"six_paths_essence":(1,2),"chakra_crystal":(1,3)}),
+ "frieza":("Frieza",7000,(65,98),1900,{"dragon_ball":(1,2),"cosmic_core":(1,2)}),
+ "gojo":("Satoru Gojo",2200,(32,52),550,{"six_eyes":(1,1)}),
+ "sukuna":("Ryomen Sukuna",5600,(58,92),1650,{"cursed_fingers":(1,3),"cursed_ash":(1,2),"sukuna_relic":(1,1)}),
+ "muzan":("Muzan Kibutsuji",3900,(48,76),1050,{"demon_blood":(1,2),"sunsteel":(1,2)}),
+ "meruem":("Meruem",6200,(62,94),1800,{"chimera_essence":(1,2),"royal_core":(1,1)}),
+ "all_for_one":("All For One",5100,(55,86),1450,{"quirk_catalyst":(1,2),"all_for_one_core":(1,1)}),
+ "zeref":("Zeref",8200,(72,108),2400,{"ether_core":(1,2),"curse_book":(1,1)}),
 }
-
-WEAPONS = {
-    "sukuna": {"name": "Ryomen Sukuna", "level": 1, "damage": (75, 110), "ability": "malevolent_shrine", "ability_name": "Malevolent Shrine", "ability_damage": (145, 190), "cost": 1, "series": "Jujutsu Kaisen", "moves": "Dismantle · Cleave · Furnace"},
-    "gojo": {"name": "Satoru Gojo", "level": 3, "damage": (65, 125), "ability": "hollow_purple", "ability_name": "Hollow Purple", "ability_damage": (175, 220), "cost": 2, "series": "Jujutsu Kaisen", "moves": "Infinity · Blue · Red"},
-    "naruto": {"name": "Naruto Uzumaki", "level": 5, "damage": (90, 135), "ability": "rasenshuriken", "ability_name": "Wind Style: Rasenshuriken", "ability_damage": (195, 245), "cost": 2, "series": "Naruto", "moves": "Shadow Clone Jutsu · Rasengan · Kurama Chakra"},
-    "luffy": {"name": "Monkey D. Luffy", "level": 7, "damage": (95, 140), "ability": "bajrang_gun", "ability_name": "Bajrang Gun", "ability_damage": (220, 280), "cost": 2, "series": "One Piece", "moves": "Gear Second · Gear Fourth · Gear Fifth"},
-    "ichigo": {"name": "Ichigo Kurosaki", "level": 9, "damage": (105, 150), "ability": "getsuga_tensho", "ability_name": "Getsuga Tensho", "ability_damage": (240, 300), "cost": 3, "series": "Bleach", "moves": "Shikai · Bankai · Hollowfication"},
-    "zoro": {"name": "Roronoa Zoro", "level": 11, "damage": (110, 155), "ability": "asura", "ability_name": "Ashura", "ability_damage": (250, 315), "cost": 3, "series": "One Piece", "moves": "Three Sword Style · Oni Giri · King of Hell"},
-    "aizen": {"name": "Sosuke Aizen", "level": 13, "damage": (120, 165), "ability": "kyoka_suigetsu", "ability_name": "Kyoka Suigetsu", "ability_damage": (270, 335), "cost": 3, "series": "Bleach", "moves": "Kido · Complete Hypnosis · Hogyoku"},
-    "goku": {"name": "Son Goku", "level": 15, "damage": (130, 175), "ability": "spirit_bomb", "ability_name": "Spirit Bomb", "ability_damage": (300, 380), "cost": 4, "series": "Dragon Ball", "moves": "Kaioken · Super Saiyan · Instant Transmission"},
-}
-
-
+ITEMS = {k:k.replace("_"," ").title() for b in BOSSES.values() for k in b[4]}
+ITEMS.update({"limitless_core":"Limitless Core","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
 RACES = {
-    "human": {"name": "Human", "description": "No special traits. A balanced starting race.", "damage": 1.0, "reduction": 0.0},
-    "gojo": {"name": "Gojo Clan", "description": "Six Eyes bloodline. +10% damage and 10% less incoming damage.", "damage": 1.10, "reduction": 0.10},
-    "saiyan": {"name": "Saiyan", "description": "Battle-born fighters. +15% damage.", "damage": 1.15, "reduction": 0.0},
-    "fishman": {"name": "Fish-Man", "description": "Tough bodies. 20% less incoming damage.", "damage": 1.0, "reduction": 0.20},
-    "shinobi": {"name": "Shinobi", "description": "Quick and tactical. +7% damage and 8% less incoming damage.", "damage": 1.07, "reduction": 0.08},
-    "curse": {"name": "Cursed Spirit", "description": "Cursed energy. +12% damage, but takes 5% more damage.", "damage": 1.12, "reduction": -0.05},
-    "vessel": {"name": "Sukuna Vessel", "description": "A compatible vessel. +12% damage. Unlocks Sukuna signature technique for free when using his character.", "damage": 1.12, "reduction": 0.0},
-    "sukuna": {"name": "King of Curses", "description": "Secret awakening. +25% damage and 15% less incoming damage.", "damage": 1.25, "reduction": 0.15},
+ "human":("Human",1.0,0.0,"Balanced starting race."),
+ "gojo":("Gojo Clan",1.10,.10,"+10% damage and 10% damage reduction."),
+ "saiyan":("Saiyan",1.15,0.0,"+15% damage."),
+ "fishman":("Fish-Man",1.0,.20,"20% damage reduction."),
+ "shinobi":("Shinobi",1.07,.08,"+7% damage and 8% damage reduction."),
+ "curse":("Cursed Spirit",1.12,-.05,"+12% damage, takes 5% more damage."),
+ "vessel":("Sukuna Vessel",1.12,0.0,"+12% damage; Sukuna's signature skill is free."),
+ "sukuna":("King of Curses",1.25,.15,"Secret race: +25% damage and 15% damage reduction."),
 }
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","unlocked":[],"race":"human","inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0}
+
+def save(data):
+ ROOT.mkdir(parents=True,exist_ok=True)
+ fd,name=tempfile.mkstemp(dir=ROOT,prefix="peak-",suffix=".tmp")
+ try:
+  with os.fdopen(fd,"w",encoding="utf-8") as f:
+   json.dump(data,f,ensure_ascii=False,separators=(",",":")); f.flush(); os.fsync(f.fileno())
+  os.replace(name,DB_FILE)
+ finally:
+  if os.path.exists(name): os.unlink(name)
+
+def load():
+ ROOT.mkdir(parents=True,exist_ok=True)
+ if DB_FILE.exists():
+  try:
+   d=json.loads(DB_FILE.read_text(encoding="utf-8"))
+   if isinstance(d,dict) and isinstance(d.get("profiles"),dict):
+    d.setdefault("raids",{}); d.setdefault("version",1); return d
+  except (OSError,json.JSONDecodeError):
+   try: DB_FILE.replace(DB_FILE.with_suffix(".broken.json"))
+   except OSError: pass
+ d={"version":1,"profiles":{},"raids":{}}
+ if OLD_DB.exists():
+  try:
+   con=sqlite3.connect(OLD_DB)
+   rows=con.execute("SELECT user_id,xp,level,skill_points,weapon,unlocked FROM profiles").fetchall(); con.close()
+   for uid,xp,level,points,char,unlocked in rows:
+    p=dict(DEFAULT); p.update(xp=xp,level=level,points=points,character=char if char in CHARACTERS else "sukuna",unlocked=list(filter(None,(unlocked or "").split(","))))
+    d["profiles"][str(uid)]=p
+  except sqlite3.Error: pass
+ save(d); return d
 
 class Adventure(commands.Cog):
-    def __init__(self, bot: commands.Bot) -> None:
-        self.bot = bot
-        self.encounters = {}
-        self.lock = asyncio.Lock()
-        self.db = sqlite3.connect(DB_PATH)
-        self.db.execute("""CREATE TABLE IF NOT EXISTS profiles (
-            user_id INTEGER PRIMARY KEY, xp INTEGER NOT NULL DEFAULT 0,
-            level INTEGER NOT NULL DEFAULT 1, skill_points INTEGER NOT NULL DEFAULT 0,
-            weapon TEXT NOT NULL DEFAULT 'sukuna', unlocked TEXT NOT NULL DEFAULT ''
-        )""")
-        columns = {row[1] for row in self.db.execute("PRAGMA table_info(profiles)").fetchall()}
-        for column, definition in {
-            "race": "TEXT NOT NULL DEFAULT 'human'",
-            "six_eyes": "INTEGER NOT NULL DEFAULT 0",
-            "infinity_unlocked": "INTEGER NOT NULL DEFAULT 0",
-            "six_eyes_unlocked": "INTEGER NOT NULL DEFAULT 0",
-            "cursed_fingers": "INTEGER NOT NULL DEFAULT 0",
-            "cursed_ash": "INTEGER NOT NULL DEFAULT 0",
-            "sukuna_relics": "INTEGER NOT NULL DEFAULT 0",
-            "sukuna_race_unlocked": "INTEGER NOT NULL DEFAULT 0",
-        }.items():
-            if column not in columns:
-                self.db.execute(f"ALTER TABLE profiles ADD COLUMN {column} {definition}")
-        self.db.commit()
+ def __init__(self,bot):
+  self.bot=bot; self.data=load(); self.lock=asyncio.Lock()
+ def p(self,uid):
+  k=str(uid)
+  if k not in self.data["profiles"]:
+   self.data["profiles"][k]=json.loads(json.dumps(DEFAULT)); save(self.data)
+  p=self.data["profiles"][k]
+  for key,value in DEFAULT.items(): p.setdefault(key,json.loads(json.dumps(value)))
+  if p["character"] not in CHARACTERS: p["character"]="sukuna"
+  if p["race"] not in RACES: p["race"]="human"
+  return p
+ def flush(self): save(self.data)
+ def embed(self,title,desc="",color=None):
+  e=discord.Embed(title=title,description=desc,color=color or discord.Color.from_rgb(48,61,82)); e.set_footer(text="PEAK  /  ANIME CHRONICLES"); return e
+ def item(self,p,key,n):
+  p["inventory"][key]=max(0,p["inventory"].get(key,0)+n)
+  if not p["inventory"][key]: p["inventory"].pop(key,None)
 
-    def profile(self, user_id: int):
-        row = self.db.execute("SELECT xp, level, skill_points, weapon, unlocked, race, six_eyes, infinity_unlocked, six_eyes_unlocked, cursed_fingers, cursed_ash, sukuna_relics, sukuna_race_unlocked FROM profiles WHERE user_id=?", (user_id,)).fetchone()
-        if row is None:
-            self.db.execute("INSERT INTO profiles(user_id) VALUES(?)", (user_id,))
-            self.db.commit()
-            return self.profile(user_id)
-        legacy = {"ironblade": "sukuna", "frostfang": "gojo", "stormcaller": "naruto", "voidreaper": "ichigo"}
-        weapon = legacy.get(row[3], row[3])
-        if weapon not in WEAPONS:
-            weapon = "sukuna"
-        profile = {"xp": row[0], "level": row[1], "points": row[2], "weapon": weapon, "unlocked": set(filter(None, row[4].split(","))), "race": row[5] if row[5] in RACES else "human", "six_eyes": row[6], "infinity_unlocked": bool(row[7]), "six_eyes_unlocked": bool(row[8]), "cursed_fingers": row[9], "cursed_ash": row[10], "sukuna_relics": row[11], "sukuna_race_unlocked": bool(row[12])}
-        if weapon != row[3]:
-            self.save_profile(user_id, profile)
-        return profile
+ @commands.command(name="characters",aliases=["roster","weapons"])
+ async def characters(self,ctx):
+  p=self.p(ctx.author.id); e=self.embed("ANIME CHARACTER ARCHIVE","Equip a character with ,character <key>.")
+  for k,c in CHARACTERS.items():
+   state="EQUIPPED" if p["character"]==k else ("AVAILABLE" if p["level"]>=c[2] else "LEVEL "+str(c[2]))
+   e.add_field(name=f"{c[0]} / {state}",value=f"{c[1]} · {c[3][0]}–{c[3][1]} damage\nSignature: {c[4]}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+ @commands.command(name="character",aliases=["equip"])
+ async def character(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id); c=CHARACTERS.get(key)
+  if not c or p["level"]<c[2]:
+   await ctx.reply(embed=self.embed("Character unavailable","Unknown character or your level is too low."),mention_author=False); return
+  p["character"]=key; self.flush()
+  await ctx.reply(embed=self.embed("CHARACTER EQUIPPED",f"You equipped {c[0]} from {c[1]}."),mention_author=False)
+ @commands.command(name="races")
+ async def races(self,ctx):
+  p=self.p(ctx.author.id); e=self.embed("RACE REGISTRY",f"Current race: {RACES[p['race']][0]}")
+  for k,r in RACES.items():
+   if k=="sukuna" and not p["sukuna_race_unlocked"]: continue
+   e.add_field(name=r[0],value=f"{r[3]}\nSelect with ,race {k}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+ @commands.command(name="race")
+ async def race(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
+  if key not in RACES or (key=="sukuna" and not p["sukuna_race_unlocked"]):
+   await ctx.reply(embed=self.embed("RACE LOCKED","The secret King of Curses race requires 20 Cursed Fingers while using Vessel."),mention_author=False); return
+  p["race"]=key; self.flush()
+  await ctx.reply(embed=self.embed("RACE CHANGED",f"Your race is now {RACES[key][0]}. {RACES[key][3]}"),mention_author=False)
+ @commands.command(name="bosses",aliases=["raids"])
+ async def bosses(self,ctx):
+  e=self.embed("RAID REGISTER","Each player acts once, then the boss retaliates. Loot is rolled separately.")
+  for k,b in BOSSES.items(): e.add_field(name=f"{b[0]} / {k}",value=f"{b[1]:,} HP · {b[2][0]}–{b[2][1]} damage · {b[3]:,} XP",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+ @commands.group(name="boss",invoke_without_command=True)
+ async def boss(self,ctx):
+  await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss status · ,join · ,attack [skill]"),mention_author=False)
+ @boss.command(name="challenge")
+ @commands.guild_only()
+ async def challenge(self,ctx,*,key):
+  key=key.lower().strip().replace(" ","_")
+  if key not in BOSSES: await ctx.reply(embed=self.embed("UNKNOWN TARGET","Use ,bosses to view the raid register."),mention_author=False); return
+  async with self.lock:
+   g=str(ctx.guild.id)
+   if g in self.data["raids"]: await ctx.reply(embed=self.embed("RAID ACTIVE","Finish the current raid first."),mention_author=False); return
+   b=BOSSES[key]; self.data["raids"][g]={"boss":key,"hp":b[1],"max_hp":b[1],"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
+   self.flush()
+  await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{b[1]:,} HP. First turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
+ @commands.command(name="join")
+ @commands.guild_only()
+ async def join(self,ctx):
+  async with self.lock:
+   r=self.data["raids"].get(str(ctx.guild.id)); uid=str(ctx.author.id)
+   if not r: await ctx.reply(embed=self.embed("NO RAID","Start a raid with ,boss challenge <key>."),mention_author=False); return
+   if uid in r["players"]: await ctx.reply(embed=self.embed("ALREADY JOINED","You are already in this raid."),mention_author=False); return
+   r["players"][uid]=250; r["turns"].append(uid); self.flush()
+  await ctx.reply(embed=self.embed("PLAYER JOINED",f"{ctx.author.mention} entered with 250 HP."),mention_author=False)
+ @boss.command(name="status")
+ @commands.guild_only()
+ async def status(self,ctx):
+  r=self.data["raids"].get(str(ctx.guild.id))
+  if not r: await ctx.reply(embed=self.embed("NO RAID","There is no active raid."),mention_author=False); return
+  b=BOSSES[r["boss"]]; alive=[u for u in r["turns"] if r["players"].get(u,0)>0]; current=alive[r["turn"]%len(alive)] if alive else None
+  e=self.embed(b[0].upper(),f"{r['hp']:,} / {r['max_hp']:,} HP"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
+  e.add_field(name="Party",value="\n".join(f"<@{u}> · {hp}/250 HP" for u,hp in r["players"].items())[:1024],inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+ @commands.command(name="attack",aliases=["strike","hit"])
+ @commands.guild_only()
+ @commands.cooldown(1,1,commands.BucketType.user)
+ async def attack(self,ctx,ability=None):
+  async with self.lock:
+   g=str(ctx.guild.id); r=self.data["raids"].get(g); uid=str(ctx.author.id)
+   if not r: await ctx.reply(embed=self.embed("NO RAID","Start one with ,boss challenge mahito."),mention_author=False); return
+   if uid not in r["players"]: await ctx.reply(embed=self.embed("NOT ENLISTED","Use ,join first."),mention_author=False); return
+   alive=[u for u in r["turns"] if r["players"].get(u,0)>0]
+   if not alive: self.data["raids"].pop(g,None); self.flush(); await ctx.reply(embed=self.embed("PARTY DEFEATED","Raid ended."),mention_author=False); return
+   r["turn"]%=len(alive); current=alive[r["turn"]]
+   if current!=uid: await ctx.reply(embed=self.embed("NOT YOUR TURN",f"It is <@{current}>'s turn."),mention_author=False); return
+   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; skill=c[5]
+   if ability:
+    if ability.lower().strip()!=skill or (skill not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna")):
+     await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
+    damage=random.randint(*c[6]); action=c[4]
+   else: damage=random.randint(*c[3]); action="Basic strike"
+   race=RACES[p["race"]]; mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
+   damage=min(r["hp"],max(1,int(damage*mult))); r["hp"]-=damage; r["damage"][uid]=r["damage"].get(uid,0)+damage; p["damage"]+=damage
+   b=BOSSES[r["boss"]]
+   if r["hp"]<=0:
+    drops=[]
+    for player_id in list(r["players"]):
+     q=self.p(int(player_id)); q["xp"]+=b[3]+r["damage"].get(player_id,0)//4; q["points"]+=1; q["wins"]+=1
+     while q["xp"]>=q["level"]*250: q["xp"]-=q["level"]*250; q["level"]+=1; q["points"]+=1
+     got=[]
+     for item,limits in b[4].items():
+      if random.random()<(.70 if item=="cursed_fingers" else .28):
+       amount=random.randint(*limits); self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{amount}")
+     if r["boss"]=="gojo": self.item(q,"six_eyes",1); got.append("Six Eyes x1")
+     drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
+    self.data["raids"].pop(g,None); self.flush()
+    await ctx.reply(embed=self.embed(f"RAID CLEARED / {b[0].upper()}","Every participant received XP and a skill point.\n\n"+ "\n".join(drops),discord.Color.green()),mention_author=False); return
+   incoming=random.randint(*b[2]); reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
+   incoming=max(1,int(incoming*(1-reduction))); r["players"][uid]=max(0,r["players"][uid]-incoming); hp=r["players"][uid]
+   alive2=[u for u in r["turns"] if r["players"].get(u,0)>0]
+   if alive2:
+    old=r["turns"].index(uid); seq=r["turns"][old+1:]+r["turns"][:old]; nxt=next((u for u in seq if r["players"].get(u,0)>0),None); r["turn"]=alive2.index(nxt) if nxt else 0; nextline=f"\nNext turn: <@{nxt}>"
+   else: self.data["raids"].pop(g,None); nextline="\nThe party has fallen."
+   self.flush()
+  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {damage:,} damage.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
+  if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{self.data['raids'][g]['hp']:,} / {r['max_hp']:,} HP",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+ @commands.command(name="skills")
+ async def skills(self,ctx):
+  p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; unlocked=c[5] in p["unlocked"] or(p["race"]=="vessel" and p["character"]=="sukuna")
+  await ctx.reply(embed=self.embed("TECHNIQUE RECORD",f"{c[0]} · {c[4]}\nDamage: {c[6][0]}–{c[6][1]}\nCost: {c[7]} points\nStatus: {'Unlocked' if unlocked else 'Locked'}"),mention_author=False)
+ @commands.command(name="unlock")
+ async def unlock(self,ctx,*,skill):
+  p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; key=c[5]
+  if skill.lower().strip()!=key: await ctx.reply(embed=self.embed("UNKNOWN SKILL",f"Your character uses {key}."),mention_author=False); return
+  if key in p["unlocked"] or(p["race"]=="vessel" and p["character"]=="sukuna"): await ctx.reply(embed=self.embed("ALREADY UNLOCKED","This skill is already available."),mention_author=False); return
+  if p["points"]<c[7]: await ctx.reply(embed=self.embed("NOT ENOUGH POINTS",f"You need {c[7]} points."),mention_author=False); return
+  p["points"]-=c[7]; p["unlocked"].append(key); self.flush()
+  await ctx.reply(embed=self.embed("SKILL UNLOCKED",c[4]+" is now available."),mention_author=False)
+ @commands.command(name="inventory",aliases=["inv","bag"])
+ async def inventory(self,ctx):
+  p=self.p(ctx.author.id); lines=[f"{ITEMS.get(k,k)} x{v}" for k,v in sorted(p["inventory"].items()) if v>0] or ["Your inventory is empty."]
+  e=self.embed("INVENTORY","\n".join(lines)); e.add_field(name="Awakening progress",value=f"Six Eyes: {p['inventory'].get('six_eyes',0)}/6\nCursed Fingers: {p['inventory'].get('cursed_fingers',0)}/20\nRace: {RACES[p['race']][0]}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
+ @commands.command(name="eat",aliases=["consume"])
+ async def eat(self,ctx,*,item):
+  key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
+  if key in {"six_eye","six_eyes"}:
+   if p["race"]!="gojo" or p["inventory"].get("six_eyes",0)<6 or p["six_eyes_unlocked"]: await ctx.reply(embed=self.embed("AWAKENING UNAVAILABLE","You need Gojo Clan and 6 Six Eyes. You can only awaken once."),mention_author=False); return
+   self.item(p,"six_eyes",-6); p["six_eyes_unlocked"]=True; p["infinity_unlocked"]=True; self.flush()
+   await ctx.reply(embed=self.embed("LIMITLESS AWAKENED","Infinity and Six Eyes unlocked. Gojo Clan gains +20% damage and 35% damage reduction."),mention_author=False); return
+  if key in {"cursed_finger","cursed_fingers","fingers"}:
+   if p["race"]!="vessel" or p["inventory"].get("cursed_fingers",0)<20 or p["sukuna_race_unlocked"]: await ctx.reply(embed=self.embed("AWAKENING UNAVAILABLE","You need Vessel and 20 Cursed Fingers. This awakening can only be unlocked once."),mention_author=False); return
+   self.item(p,"cursed_fingers",-20); p["sukuna_race_unlocked"]=True; p["race"]="sukuna"; self.flush()
+   await ctx.reply(embed=self.embed("KING OF CURSES AWAKENED","20 fingers consumed. Secret race unlocked and equipped: +25% damage and 15% damage reduction."),mention_author=False); return
+  await ctx.reply(embed=self.embed("CANNOT CONSUME","That item has no consumption effect."),mention_author=False)
+ @commands.command(name="stats",aliases=["profile","me"])
+ async def stats(self,ctx,member:discord.Member=None):
+  member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
+  e=self.embed("ADVENTURER PROFILE",f"Character: {c[0]}\nRace: {RACES[p['race']][0]}\nLevel: {p['level']} · XP: {p['xp']}/{p['level']*250}\nSkill points: {p['points']}\nVictories: {p['wins']}\nTotal damage: {p['damage']:,}")
+  e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
+ @commands.command(name="leaderboard",aliases=["top"])
+ async def leaderboard(self,ctx):
+  top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("level",1),x[1].get("xp",0)),reverse=True)[:10]
+  lines=[f"{i}. <@{uid}> · Level {p['level']} · {p['xp']} XP" for i,(uid,p) in enumerate(top,1)]
+  await ctx.reply(embed=self.embed("ADVENTURER RANKINGS","\n".join(lines) or "No players yet."),mention_author=False)
 
-    def save_profile(self, user_id: int, profile: dict) -> None:
-        self.db.execute("UPDATE profiles SET xp=?, level=?, skill_points=?, weapon=?, unlocked=?, race=?, six_eyes=?, infinity_unlocked=?, six_eyes_unlocked=?, cursed_fingers=?, cursed_ash=?, sukuna_relics=?, sukuna_race_unlocked=? WHERE user_id=?",
-                        (profile["xp"], profile["level"], profile["points"], profile["weapon"], ",".join(sorted(profile["unlocked"])), profile["race"], profile["six_eyes"], int(profile["infinity_unlocked"]), int(profile["six_eyes_unlocked"]), profile["cursed_fingers"], profile["cursed_ash"], profile["sukuna_relics"], int(profile["sukuna_race_unlocked"]), user_id))
-        self.db.commit()
+ @commands.command(name="giveitem")
+ @commands.is_owner()
+ async def giveitem(self,ctx,member:discord.User,item:str,amount:int=1):
+  key=item.lower().strip().replace(" ","_")
+  if key not in ITEMS or not 1<=amount<=100000: await ctx.reply(embed=self.embed("INVALID ITEM","Use a listed item key and an amount from 1 to 100000."),mention_author=False); return
+  p=self.p(member.id); self.item(p,key,amount); self.flush()
+  await ctx.reply(embed=self.embed("OWNER ITEM GRANT",f"Granted {ITEMS[key]} x{amount} to {member.mention}."),mention_author=False)
+ @commands.command(name="addxp")
+ @commands.is_owner()
+ async def addxp(self,ctx,member:discord.User,amount:int):
+  if not 0<=amount<=100000000: await ctx.reply(embed=self.embed("INVALID XP","Amount must be 0 to 100000000."),mention_author=False); return
+  p=self.p(member.id); p["xp"]+=amount
+  while p["xp"]>=p["level"]*250: p["xp"]-=p["level"]*250; p["level"]+=1; p["points"]+=1
+  self.flush(); await ctx.reply(embed=self.embed("OWNER XP GRANT",f"Added {amount:,} XP. New level: {p['level']}."),mention_author=False)
+ @commands.command(name="setlevel")
+ @commands.is_owner()
+ async def setlevel(self,ctx,member:discord.User,level:int):
+  if not 1<=level<=10000: await ctx.reply(embed=self.embed("INVALID LEVEL","Choose 1 to 10000."),mention_author=False); return
+  p=self.p(member.id); p["level"]=level; p["xp"]=0; self.flush()
+  await ctx.reply(embed=self.embed("OWNER LEVEL UPDATE",f"{member.mention} is now level {level}."),mention_author=False)
+ @commands.command(name="setrace")
+ @commands.is_owner()
+ async def setrace(self,ctx,member:discord.User,*,race:str):
+  key=race.lower().strip().replace(" ","_"); p=self.p(member.id)
+  if key not in RACES: await ctx.reply(embed=self.embed("INVALID RACE","Use a key shown in ,races."),mention_author=False); return
+  if key=="sukuna": p["sukuna_race_unlocked"]=True
+  p["race"]=key; self.flush(); await ctx.reply(embed=self.embed("OWNER RACE UPDATE",f"{member.mention} is now {RACES[key][0]}."),mention_author=False)
+ @commands.command(name="resetprofile")
+ @commands.is_owner()
+ async def resetprofile(self,ctx,member:discord.User):
+  self.data["profiles"][str(member.id)]=json.loads(json.dumps(DEFAULT)); self.flush()
+  await ctx.reply(embed=self.embed("PROFILE RESET",f"Reset {member.mention}'s adventure profile."),mention_author=False)
+ @commands.command(name="gamedb")
+ @commands.is_owner()
+ async def gamedb(self,ctx):
+  await ctx.reply(embed=self.embed("JSON DATABASE",f"Profiles: {len(self.data['profiles'])}\nActive raids: {len(self.data['raids'])}\nFile: {DB_FILE}"),mention_author=False)
+ async def cog_command_error(self,ctx,error):
+  if isinstance(error,commands.NotOwner): await ctx.reply(embed=self.embed("ACCESS DENIED","This command is restricted to BOT_OWNER_ID.",discord.Color.red()),mention_author=False)
+  elif isinstance(error,commands.CommandOnCooldown): await ctx.reply(embed=self.embed("COOLDOWN","Wait one second before attacking again.",discord.Color.orange()),mention_author=False)
+  else: raise error
 
-    def make_embed(self, title: str, description: str = "", color: discord.Color = discord.Color.from_rgb(77, 54, 92)) -> discord.Embed:
-        embed = discord.Embed(title=title, description=description, color=color)
-        embed.set_footer(text="PEAK  /  THE AWAKENING")
-        return embed
-
-    def weapon_for(self, user_id: int):
-        profile = self.profile(user_id)
-        return WEAPONS.get(profile["weapon"], WEAPONS["sukuna"])
-
-    @commands.group(name="boss", invoke_without_command=True, aliases=["hunt"])
-    async def boss(self, ctx: commands.Context) -> None:
-        p = ctx.clean_prefix
-        await ctx.reply(embed=self.make_embed("HUNTER GUILD", f"`{p}bosses` view anime raid bosses  ·  `{p}boss challenge <name>` start a raid\\n`{p}join` enter  ·  `{p}attack [technique]` take your turn\\n`{p}boss status` inspect the battlefield"), mention_author=False)
-
-    @commands.command(name="bosses", aliases=["bestiary"])
-    async def bosses(self, ctx: commands.Context) -> None:
-        embed = self.make_embed("CALAMITY REGISTER", "Anime raid targets. Each boss retaliates after every adventurer’s turn. Defeat Gojo for Six Eyes relics.")
-        for key, boss in BOSSES.items():
-            embed.add_field(name=f"{boss['name']}  /  {key}", value=f"{boss['description']}\n**{boss['hp']:,} HP**  ·  **{boss['damage'][0]}–{boss['damage'][1]} damage** per turn", inline=False)
-        await ctx.reply(embed=embed, mention_author=False)
-
-    @boss.command(name="challenge", aliases=["start", "summon"])
-    @commands.guild_only()
-    async def challenge(self, ctx: commands.Context, *, name: str) -> None:
-        key = name.lower().strip()
-        if key not in BOSSES:
-            await ctx.reply(embed=self.make_embed("Target not found", f"Use `{ctx.clean_prefix}bosses` to inspect the bestiary.", discord.Color.orange()), mention_author=False)
-            return
-        async with self.lock:
-            if ctx.guild.id in self.encounters:
-                await ctx.reply(embed=self.make_embed("Encounter in progress", "Defeat the current target before summoning another.", discord.Color.orange()), mention_author=False)
-                return
-            boss = BOSSES[key]
-            self.encounters[ctx.guild.id] = {"key": key, "hp": boss["hp"], "max_hp": boss["hp"],
-                "damage": defaultdict(int), "players": {ctx.author.id: 250}, "turns": [ctx.author.id], "turn": 0}
-        embed = self.make_embed(f"TARGET ACQUIRED  /  {boss['name']}", f"{boss['description']}\n\n**VITALITY**\n{boss['hp']:,} HP\n\n**FIRST TURN**\n{ctx.author.mention}\n\nOther players can use `{ctx.clean_prefix}join`.")
-        await ctx.reply(embed=embed, mention_author=False)
-
-    @commands.command(name="join")
-    @commands.guild_only()
-    async def join(self, ctx: commands.Context) -> None:
-        async with self.lock:
-            encounter = self.encounters.get(ctx.guild.id)
-            if not encounter:
-                await ctx.reply(embed=self.make_embed("No active encounter", "There is no boss to join."), mention_author=False)
-                return
-            if ctx.author.id in encounter["players"]:
-                await ctx.reply(embed=self.make_embed("Already enlisted", "You are already in this encounter."), mention_author=False)
-                return
-            encounter["players"][ctx.author.id] = 250
-            encounter["turns"].append(ctx.author.id)
-            position = len(encounter["turns"])
-        await ctx.reply(embed=self.make_embed("Adventurer enlisted", f"{ctx.author.mention} joined with **250 HP**. Turn position: **{position}**."), mention_author=False)
-
-    @boss.command(name="status", aliases=["info"])
-    @commands.guild_only()
-    async def status(self, ctx: commands.Context) -> None:
-        encounter = self.encounters.get(ctx.guild.id)
-        if not encounter:
-            await ctx.reply(embed=self.make_embed("No active target", f"Summon one with `{ctx.clean_prefix}boss challenge mahito`."), mention_author=False)
-            return
-        boss = BOSSES[encounter["key"]]
-        hp = max(0, encounter["hp"])
-        filled = round((hp / encounter["max_hp"]) * 16)
-        alive = [uid for uid in encounter["turns"] if encounter["players"].get(uid, 0) > 0]
-        current = alive[encounter["turn"] % len(alive)] if alive else None
-        roster = "\n".join(f"<@{uid}> — {health}/250 HP" for uid, health in encounter["players"].items())
-        embed = self.make_embed(boss["name"], f"`{'█' * filled}{'░' * (16-filled)}`\n**{hp:,} / {encounter['max_hp']:,} HP**")
-        embed.add_field(name="Current turn", value=f"<@{current}>" if current else "None", inline=True)
-        embed.add_field(name="Damage dealt", value=f"{sum(encounter['damage'].values()):,}", inline=True)
-        embed.add_field(name="Party", value=roster[:1024] or "No players", inline=False)
-        await ctx.reply(embed=embed, mention_author=False)
-
-
-    @commands.command(name="races")
-    async def races(self, ctx: commands.Context) -> None:
-        profile = self.profile(ctx.author.id)
-        embed = self.make_embed("RACE REGISTRY", "Choose a race to gain its passive bonuses. Your current race is **" + RACES[profile["race"]]["name"] + "**.")
-        for key, race in RACES.items():
-            if key == "sukuna" and not profile["sukuna_race_unlocked"]:
-                continue
-            state = "CURRENT" if profile["race"] == key else "AVAILABLE"
-            embed.add_field(name=f"{race['name']} · {state}", value=f"{race['description']}\nSelect with `,race {key}`.", inline=False)
-        await ctx.reply(embed=embed, mention_author=False)
-
-    @commands.command(name="race")
-    async def race(self, ctx: commands.Context, *, name: str) -> None:
-        key = name.lower().strip().replace(" ", "_").replace("-", "_")
-        aliases = {"gojo clan": "gojo", "cursed spirit": "curse", "fish man": "fishman"}
-        key = aliases.get(name.lower().strip(), key)
-        if key not in RACES or (key == "sukuna" and not self.profile(ctx.author.id)["sukuna_race_unlocked"]):
-            await ctx.reply(embed=self.make_embed("Race locked", "The secret race requires 20 Cursed Fingers while using the Vessel race.", discord.Color.orange()), mention_author=False)
-            return
-        profile = self.profile(ctx.author.id)
-        profile["race"] = key
-        self.save_profile(ctx.author.id, profile)
-        race = RACES[key]
-        await ctx.reply(embed=self.make_embed("RACE CHANGED", f"You are now part of **{race['name']}**.\n{race['description']}"), mention_author=False)
-
-    @commands.command(name="inventory", aliases=["inv", "bag"])
-    async def inventory(self, ctx: commands.Context) -> None:
-        profile = self.profile(ctx.author.id)
-        embed = self.make_embed("INVENTORY", f"**Six Eyes:** {profile['six_eyes']} / 6\n**Race:** {RACES[profile['race']]['name']}")
-        embed.add_field(name="Awakening requirements", value="Eat 6 Six Eyes while using the Gojo Clan race to unlock **Infinity** and **Six Eyes**.", inline=False)
-        await ctx.reply(embed=embed, mention_author=False)
-
-    @commands.command(name="eat")
-    async def eat(self, ctx: commands.Context, *, item: str) -> None:
-        key = item.lower().strip().replace(" ", "_")
-        if key not in {"six_eye", "six_eyes"}:
-            await ctx.reply(embed=self.make_embed("Cannot consume item", "That item cannot be consumed."), mention_author=False)
-            return
-        profile = self.profile(ctx.author.id)
-        if profile["race"] != "gojo":
-            await ctx.reply(embed=self.make_embed("Bloodline required", "You must be part of the **Gojo Clan** to awaken these traits."), mention_author=False)
-            return
-        if profile["six_eyes_unlocked"] and profile["infinity_unlocked"]:
-            await ctx.reply(embed=self.make_embed("Already awakened", "You have already unlocked Infinity and Six Eyes."), mention_author=False)
-            return
-        if profile["six_eyes"] < 6:
-            await ctx.reply(embed=self.make_embed("Not enough Six Eyes", f"You need **6 Six Eyes**. Your inventory contains **{profile['six_eyes']}**."), mention_author=False)
-            return
-        profile["six_eyes"] -= 6
-        profile["six_eyes_unlocked"] = True
-        profile["infinity_unlocked"] = True
-        self.save_profile(ctx.author.id, profile)
-        await ctx.reply(embed=self.make_embed("LIMITLESS AWAKENED", "Six Eyes consumed. **Infinity** and **Six Eyes** are now permanently unlocked.\n\nGojo Clan bonus upgraded: +20% damage and 35% less incoming damage."), mention_author=False)
-
-    @commands.command(name="characters", aliases=["weapons", "roster"])
-    async def weapons(self, ctx: commands.Context) -> None:
-        profile = self.profile(ctx.author.id)
-        lines = []
-        for key, weapon in WEAPONS.items():
-            state = "equipped" if profile["weapon"] == key else "unlocked" if profile["level"] >= weapon["level"] else f"locked · level {weapon['level']}"
-            lines.append(f"**{weapon['name']}** · {weapon['series']}\nMoves: {weapon['moves']}\nSignature: **{weapon['ability_name']}** ({weapon['ability_damage'][0]}–{weapon['ability_damage'][1]} damage, {weapon['cost']} skill points)\n{state}")
-        await ctx.reply(embed=self.make_embed("ANIME CHARACTER ROSTER", "\n\n".join(lines)), mention_author=False)
-
-    @commands.command(name="character", aliases=["weapon", "equip"])
-    async def weapon(self, ctx: commands.Context, *, name: str) -> None:
-        key = name.lower().strip()
-        profile = self.profile(ctx.author.id)
-        weapon = WEAPONS.get(key)
-        if not weapon:
-            await ctx.reply(embed=self.make_embed("Weapon not found", "Use `,characters` to view the roster."), mention_author=False)
-            return
-        if profile["level"] < weapon["level"]:
-            await ctx.reply(embed=self.make_embed("Weapon locked", f"Reach level **{weapon['level']}** to equip {weapon['name']}.", discord.Color.orange()), mention_author=False)
-            return
-        profile["weapon"] = key
-        self.save_profile(ctx.author.id, profile)
-        await ctx.reply(embed=self.make_embed("Weapon equipped", f"{ctx.author.mention} equipped **{weapon['name']}**."), mention_author=False)
-
-    @commands.command(name="skills")
-    async def skills(self, ctx: commands.Context) -> None:
-        profile = self.profile(ctx.author.id)
-        weapon = WEAPONS[profile["weapon"]]
-        unlocked = weapon["ability"] in profile["unlocked"]
-        await ctx.reply(embed=self.make_embed("Skill ledger", f"**Skill points:** {profile['points']}\n**Equipped weapon:** {weapon['name']}\n**{weapon['ability_name']}** — {weapon['ability_damage'][0]}–{weapon['ability_damage'][1]} damage\nUnlock with `,unlock {weapon['ability']}` for {weapon['cost']} points.\n**Status:** {'Unlocked' if unlocked else 'Locked'}"), mention_author=False)
-
-    @commands.command(name="unlock")
-    async def unlock(self, ctx: commands.Context, *, skill: str) -> None:
-        profile = self.profile(ctx.author.id)
-        weapon = WEAPONS[profile["weapon"]]
-        key = weapon["ability"]
-        if skill.lower().strip() != key:
-            await ctx.reply(embed=self.make_embed("Unknown skill", f"Your equipped weapon's skill is **{key}**.", discord.Color.orange()), mention_author=False)
-            return
-        if key in profile["unlocked"]:
-            await ctx.reply(embed=self.make_embed("Already unlocked", f"**{weapon['ability_name']}** is already available."), mention_author=False)
-            return
-        if profile["points"] < weapon["cost"]:
-            await ctx.reply(embed=self.make_embed("Not enough skill points", f"You need **{weapon['cost']}** points. You have **{profile['points']}**."), mention_author=False)
-            return
-        profile["points"] -= weapon["cost"]
-        profile["unlocked"].add(key)
-        self.save_profile(ctx.author.id, profile)
-        await ctx.reply(embed=self.make_embed("Skill unlocked", f"**{weapon['ability_name']}** is now available for **{weapon['name']}**."), mention_author=False)
-
-    @commands.command(name="attack", aliases=["strike", "hit"])
-    @commands.guild_only()
-    @commands.cooldown(1, 1, commands.BucketType.user)
-    async def attack(self, ctx: commands.Context, ability: str = None) -> None:
-        async with self.lock:
-            encounter = self.encounters.get(ctx.guild.id)
-            if not encounter:
-                await ctx.reply(embed=self.make_embed("No active target", f"Summon a boss with `{ctx.clean_prefix}boss challenge mahito`."), mention_author=False)
-                return
-            if ctx.author.id not in encounter["players"]:
-                await ctx.reply(embed=self.make_embed("Not enlisted", f"Use `{ctx.clean_prefix}join` before attacking."), mention_author=False)
-                return
-            alive = [uid for uid in encounter["turns"] if encounter["players"].get(uid, 0) > 0]
-            if not alive:
-                del self.encounters[ctx.guild.id]
-                await ctx.reply(embed=self.make_embed("Party defeated", "The party has been defeated. The encounter is over.", discord.Color.red()), mention_author=False)
-                return
-            encounter["turn"] %= len(alive)
-            current_id = alive[encounter["turn"]]
-            if current_id != ctx.author.id:
-                await ctx.reply(embed=self.make_embed("Not your turn", f"It is <@{current_id}>'s turn. Each adventurer acts in order.", discord.Color.orange()), mention_author=False)
-                return
-            profile = self.profile(ctx.author.id)
-            weapon = WEAPONS[profile["weapon"]]
-            if ability:
-                ability = ability.lower().strip()
-                if ability != weapon["ability"] or ability not in profile["unlocked"]:
-                    await ctx.reply(embed=self.make_embed("Ability unavailable", f"Equip {weapon['name']} and unlock **{weapon['ability']}** first. Use `,skills`.", discord.Color.orange()), mention_author=False)
-                    return
-                dealt = random.randint(*weapon["ability_damage"])
-                action = weapon["ability_name"]
-            else:
-                dealt = random.randint(*weapon["damage"])
-                action = "Basic attack"
-            race_data = RACES[profile["race"]]
-            multiplier = race_data["damage"]
-            if profile["race"] == "gojo" and profile["six_eyes_unlocked"]:
-                multiplier = 1.20
-            dealt = int(dealt * multiplier)
-            boss = BOSSES[encounter["key"]]
-            dealt = min(dealt, encounter["hp"])
-            encounter["hp"] -= dealt
-            encounter["damage"][ctx.author.id] += dealt
-            if encounter["hp"] <= 0:
-                participants = list(encounter["players"])
-                results = sorted(encounter["damage"].items(), key=lambda item: item[1], reverse=True)
-                for uid in participants:
-                    p = self.profile(uid)
-                    p["xp"] += 100 + encounter["damage"].get(uid, 0) // 5
-                    p["points"] += 1
-                    if encounter["key"] == "gojo":
-                        p["six_eyes"] += 1
-                    while p["xp"] >= p["level"] * 250:
-                        p["xp"] -= p["level"] * 250
-                        p["level"] += 1
-                    self.save_profile(uid, p)
-                del self.encounters[ctx.guild.id]
-                defeated = True
-                boss_text = ""
-            else:
-                defeated = False
-                # The boss retaliates immediately after the active adventurer's turn.
-                incoming = random.randint(*boss["damage"])
-                reduction = RACES[profile["race"]]["reduction"]
-                if profile["race"] == "gojo" and profile["infinity_unlocked"]:
-                    reduction = 0.35
-                incoming = max(1, int(incoming * (1 - reduction)))
-                encounter["players"][ctx.author.id] = max(0, encounter["players"][ctx.author.id] - incoming)
-                player_hp = encounter["players"][ctx.author.id]
-                alive_after = [uid for uid in encounter["turns"] if encounter["players"].get(uid, 0) > 0]
-                if alive_after:
-                    old_index = encounter["turns"].index(ctx.author.id)
-                    next_candidates = encounter["turns"][old_index + 1:] + encounter["turns"][:old_index]
-                    next_id = next((uid for uid in next_candidates if encounter["players"].get(uid, 0) > 0), None)
-                    encounter["turn"] = alive_after.index(next_id) if next_id else 0
-                    next_text = f"\n**Next turn:** <@{next_id}>"
-                else:
-                    next_text = "\n**The entire party has fallen.**"
-                    del self.encounters[ctx.guild.id]
-                boss_text = f"\n\n**{boss['name']} retaliates**\n<@{ctx.author.id}> takes **{incoming} damage**. Remaining HP: **{player_hp}/250**.{next_text}"
-        if defeated:
-            ranking = "\n".join(f"**{i}.** <@{uid}> — {amount:,} damage" for i, (uid, amount) in enumerate(results[:5], 1))
-            reward_text = "The party defeated the target. Every participant receives **100+ XP** and **1 skill point**."
-            if encounter["key"] == "gojo":
-                reward_text += "\nEvery participant also received **1 Six Eyes**. Collect 6, choose the Gojo Clan race, then use `,eat six_eyes`."
-            embed = self.make_embed(f"TARGET ELIMINATED  /  {boss['name']}", reward_text, discord.Color.green())
-            if ranking:
-                embed.add_field(name="Damage rankings", value=ranking, inline=False)
-        else:
-            embed = self.make_embed("Turn resolved", f"{ctx.author.mention} used **{action}** with **{weapon['name']}** for **{dealt:,} damage**.{boss_text}", discord.Color.blurple())
-            hp = encounter["hp"] if ctx.guild.id in self.encounters else 0
-            maximum = encounter["max_hp"]
-            filled = round((hp / maximum) * 16)
-            embed.add_field(name="Boss vitality", value=f"`{'█' * filled}{'░' * (16-filled)}`\n**{hp:,} / {maximum:,} HP**", inline=False)
-        await ctx.reply(embed=embed, mention_author=False)
-
-    @attack.error
-    async def attack_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
-        if isinstance(error, commands.CommandOnCooldown):
-            await ctx.reply(embed=self.make_embed("Action cooling down", "You can act once per second.", discord.Color.orange()), mention_author=False)
-        else:
-            raise error
-
-
-async def setup(bot: commands.Bot) -> None:
-    await bot.add_cog(Adventure(bot))
+async def setup(bot):
+ await bot.add_cog(Adventure(bot))
