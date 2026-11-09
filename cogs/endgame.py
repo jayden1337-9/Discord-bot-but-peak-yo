@@ -1,7 +1,7 @@
 import random
 from discord.ext import commands
 
-from cogs.adventure import CHARACTERS, ITEMS, display_number
+from cogs.adventure import CHARACTERS, ITEMS, display_number, AttackCategoryView
 
 GEAR = {
     "cursed_mantle": {"name": "Cursed Mantle", "slot": "armor", "level": 8, "attack": 12, "defense": 0.08, "hp": 35, "materials": {"cursed_ash": 12, "transfigured_soul": 4}},
@@ -174,6 +174,13 @@ class Endgame(commands.Cog):
         if not state:
             await ctx.reply(embed=self.embed(cog, "NO ACTIVE RUN", "Start with ,tower start."), mention_author=False)
             return
+        if ability is None:
+            categories = cog.attack_skill_options(ctx.author.id)
+            if not categories:
+                await ctx.reply(embed=self.embed(cog, "NO EQUIPPED SKILLS", "Equip an unlocked skill with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
+                return
+            await ctx.reply(embed=self.embed(cog, "CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(cog, ctx, categories, self.tower_attack), mention_author=False)
+            return
         gear = self.gear_stats(p)
         character = CHARACTERS[p["character"]]
         weapon_key = p.get("weapon")
@@ -185,35 +192,32 @@ class Endgame(commands.Cog):
             RACES, CLANS, CHARACTER_ATTACK_TYPES, DIMENSIONS, SKILL_TREE,
             PETS, mastery_tier,
         )
-        if weapon:
-            if ability:
-                if ability.lower().strip().replace(" ", "_") != weapon["ability_key"]:
-                    await ctx.reply(embed=self.embed(cog, "UNKNOWN ABILITY", f"This weapon uses {weapon['ability']}."), mention_author=False)
-                    return
-                damage = random.randint(*weapon["ability_damage"])
-            else:
-                damage = random.randint(*weapon["damage"])
-        elif ability:
-            key = ability.lower().strip().replace(" ", "_")
-            if key == character[5]:
-                if key not in p.get("unlocked", []) and not (p["race"] == "vessel" and p["character"] == "sukuna"):
-                    await ctx.reply(embed=self.embed(cog, "SKILL LOCKED", f"Unlock it with ,unlock {key}."), mention_author=False)
-                    return
-                damage = random.randint(*character[6])
-            elif key in p.get("unlocked_skills", []) and key in SKILL_TREE:
-                damage = int(random.randint(*character[3]) * SKILL_TREE[key]["multiplier"])
-            else:
-                await ctx.reply(embed=self.embed(cog, "SKILL LOCKED", "That ability is not unlocked."), mention_author=False)
+        key = ability.lower().strip().replace(" ", "_")
+        options = cog.attack_skill_options(ctx.author.id)
+        selected_category = next((kind for kind, skills in options.items() if any(skill_key == key for skill_key, _ in skills)), None)
+        if selected_category is None:
+            await ctx.reply(embed=self.embed(cog, "SKILL NOT EQUIPPED", "That skill is not equipped in your combat loadout."), mention_author=False)
+            return
+        if weapon and key == weapon["ability_key"]:
+            damage = random.randint(*weapon["ability_damage"])
+            override = p.get("weapon_damage_override")
+            if override == "googolplex":
+                damage = state["enemy"]["hp"]
+            elif override is not None:
+                damage = int(override)
+        elif key == character[5]:
+            if key not in p.get("unlocked", []) and not (p["race"] == "vessel" and p["character"] == "sukuna"):
+                await ctx.reply(embed=self.embed(cog, "SKILL LOCKED", f"Unlock it with ,unlock {key}."), mention_author=False)
                 return
+            damage = random.randint(*character[6])
+        elif key in p.get("unlocked_skills", []) and key in SKILL_TREE:
+            damage = int(random.randint(*character[3]) * SKILL_TREE[key]["multiplier"])
         else:
-            damage = random.randint(*character[3])
-        if override == "googolplex":
-            damage = state["enemy"]["hp"]
-        elif override is not None:
-            damage = int(override)
+            await ctx.reply(embed=self.embed(cog, "SKILL LOCKED", "That ability is not unlocked."), mention_author=False)
+            return
         race = RACES[p["race"]]
         clan = CLANS.get(p.get("clan"))
-        attack_type = CHARACTER_ATTACK_TYPES.get(p["character"], "magic")
+        attack_type = selected_category
         clan_mult = 1 + (clan.get(attack_type, 0) if clan else 0)
         level_mult = 1 + min(35, max(0, int(p["level"]) - 1)) * 0.01
         mastery_xp = int(p.setdefault("mastery", {}).get(p["character"], 0))
