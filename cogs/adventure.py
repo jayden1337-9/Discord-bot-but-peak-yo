@@ -36,13 +36,13 @@ BOSSES = {
  "hand_demon":("Hand Demon",780,(12,19),165,{"demon_blood":(1,2),"nightmare_ash":(1,1)}),
  "sludge_villain":("Sludge Villain",920,(14,22),200,{"quirk_residue":(1,2),"healing_potion":(1,1)}),
  "raditz":("Raditz",1150,(17,26),250,{"saiyan_armor":(1,2),"zenkai_cell":(1,1)}),
- "low_rank_curse":("Grade 2 Cursed Spirit",1350,(19,29),290,{"cursed_ash":(1,2),"soul_fragment":(1,1)}),
- "mahito":("Mahito",1600,(28,46),350,{"cursed_ash":(1,3),"cursed_fingers":(1,2),"transfigured_soul":(1,2),"idle_transfiguration":(1,1),"soul_fragment":(1,3),"black_flash_residue":(1,2),"void_ore":(1,2),"healing_potion":(1,2)}),
+ "low_rank_curse":("Grade 2 Cursed Spirit",1350,(19,29),290,{"cursed_ash":(1,2),"soul_fragment":(1,1),"black_flash_residue":(1,1)}),
+ "mahito":("Mahito",1600,(28,46),350,{"cursed_ash":(1,3),"transfigured_soul":(1,2),"idle_transfiguration":(1,1),"soul_fragment":(1,3),"black_flash_residue":(1,2)}),
  "doflamingo":("Donquixote Doflamingo",2800,(38,62),650,{"string_core":(1,3),"devil_fruit_shard":(1,2),"birdcage_thread":(1,2),"celestial_blood":(1,1),"ito_essence":(1,2),"flamingo_feather":(1,3),"starsteel":(1,2)}),
  "madara":("Madara Uchiha",4700,(52,82),1200,{"six_paths_essence":(1,2),"chakra_crystal":(1,3),"susanoo_fragment":(1,2),"rinnegan_shard":(1,1),"god_tree_seed":(1,2),"uchiha_relic":(1,3),"awakening_crystal":(1,2)}),
  "frieza":("Frieza",7000,(65,98),1900,{"dragon_ball":(1,2),"cosmic_core":(1,2),"frozen_pod":(1,3),"saiyan_armor":(1,2),"tyrant_emblem":(1,1),"zenkai_cell":(1,2),"dragon_scale":(1,3),"battle_tonic":(1,2)}),
- "gojo":("Satoru Gojo",2200,(32,52),550,{"six_eyes":(1,1),"limitless_core":(1,2),"blue_orb":(1,2),"red_orb":(1,2),"hollow_purple_shard":(1,1),"blindfold_fabric":(1,3),"focus_elixir":(1,2)}),
- "sukuna":("Ryomen Sukuna",5600,(58,92),1650,{"cursed_fingers":(1,3),"cursed_ash":(1,2),"sukuna_relic":(1,1),"malevolent_essence":(1,2),"shrine_fragment":(1,2),"king_of_curses_seal":(1,1),"spirit_silk":(1,2)}),
+ "gojo":("Satoru Gojo",2200,(32,52),550,{"blue_orb":(1,2),"red_orb":(1,2),"blindfold_fabric":(1,3),"focus_elixir":(1,2)}),
+ "sukuna":("Ryomen Sukuna",5600,(58,92),1650,{"cursed_ash":(1,2),"spirit_silk":(1,2),"black_flash_residue":(1,2)}),
  "muzan":("Muzan Kibutsuji",3900,(48,76),1050,{"demon_blood":(1,2),"sunsteel":(1,2),"blue_spider_lily":(1,1),"flesh_core":(1,3),"demon_cell":(1,2),"nightmare_ash":(1,2),"ancient_core":(1,1)}),
  "meruem":("Meruem",6200,(62,94),1800,{"chimera_essence":(1,2),"royal_core":(1,1),"nen_crystal":(1,3),"chimera_scale":(1,2),"royal_guard_token":(1,1),"kingly_aura":(1,2),"celestial_dust":(1,2)}),
  "all_for_one":("All For One",5100,(55,86),1450,{"quirk_catalyst":(1,2),"all_for_one_core":(1,1),"stolen_quirk_shard":(1,3),"nomu_tissue":(1,2),"alliance_emblem":(1,1),"impact_relic":(1,2),"dimension_key":(1,1)}),
@@ -52,12 +52,13 @@ BOSSES = {
  "kaguya":("Kaguya Otsutsuki",14800,(105,158),4300,{"chakra_crystal":(2,5),"six_paths_essence":(2,4),"god_tree_seed":(1,3),"dimensional_eye":(1,2)}),
  "madara_six_paths":("Six Paths Madara",17200,(118,176),5100,{"uchiha_relic":(2,5),"rinnegan_shard":(1,3),"six_paths_essence":(2,5),"ten_tails_core":(1,2)}),
  "anti_spiral":("Anti-Spiral",24000,(145,210),7200,{"void_ore":(3,6),"ancient_core":(2,4),"time_rift_fragment":(2,5),"dimension_key":(1,3),"spiral_core":(1,2)}),
- "jogo":("Jogo",3000,(38,58),720,{"cursed_ash":(2,4),"soul_fragment":(1,2),"cursed_fingers":(1,1)}),
- "hanami":("Hanami",3100,(36,56),740,{"cursed_ash":(2,4),"soul_fragment":(1,2),"cursed_fingers":(1,1)}),
- "toji":("Toji Fushiguro",2800,(42,64),780,{"uchiha_relic":(1,2),"soul_fragment":(1,3),"cursed_fingers":(1,1)}),
- "jjk_sukuna":("Sukuna: King of Curses",5200,(62,94),1600,{"cursed_fingers":(2,4),"malevolent_essence":(1,3),"sukuna_relic":(1,2)}),
- "jjk_gojo":("Gojo: Honored One",4900,(58,90),1500,{"six_eyes":(1,2),"limitless_core":(1,3),"blue_orb":(1,2)}),
- "jjk_mahito":("Mahito: Soul Manipulator",4300,(54,82),1300,{"transfigured_soul":(2,4),"cursed_ash":(2,4),"soul_fragment":(2,3)}),
+ "jogo":("Jogo",3000,(38,58),720,{"volcanic_core":(1,2),"cursed_ash":(2,4),"soul_fragment":(1,2),"black_flash_residue":(1,2)}),
+ "hanami":("Hanami",3100,(36,56),740,{"cursed_bark":(1,2),"cursed_ash":(2,4),"soul_fragment":(1,2),"black_flash_residue":(1,2)}),
+ "toji":("Toji Fushiguro",2800,(42,64),780,{"heavenly_relic":(1,2),"soul_fragment":(1,3)}),
+ "maki":("Maki Zenin",3200,(44,68),850,{"maki_tool":(1,2),"heavenly_relic":(1,2),"cursed_ash":(1,2)}),
+ "jjk_sukuna":("Sukuna: King of Curses",5200,(62,94),1600,{"cursed_ash":(2,4),"black_flash_residue":(1,2)}),
+ "jjk_gojo":("Gojo: Honored One",4900,(58,90),1500,{"blue_orb":(1,2),"blindfold_fabric":(1,2)}),
+ "jjk_mahito":("Mahito: Soul Manipulator",4300,(54,82),1300,{"transfigured_soul":(2,4),"cursed_ash":(2,4),"soul_fragment":(2,3),"black_flash_residue":(1,2)}),
  "dio":("DIO",4200,(54,82),1250,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
  "pucci":("Enrico Pucci",4600,(58,86),1400,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
  "diavolo":("Diavolo",4400,(56,84),1350,{"dio_bone":(1,1),"dio_diary":(1,1),"green_baby":(1,1),"stand_arrow":(1,2)}),
@@ -162,7 +163,7 @@ ITEM_RECIPES = {
  "naruto_key":{"name":"Naruto Key","materials":{"chakra_crystal":12,"uchiha_relic":8,"dimensional_eye":2}},
  "clan_token":{"name":"Clan Reroll","materials":{"chakra_crystal":4,"cursed_ash":4,"soul_fragment":4}},
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"gold":0,"gems":0,"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
