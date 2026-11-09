@@ -143,6 +143,18 @@ PETS = {
  "void_sprite":{"name":"Void Sprite","attack":0.15,"defense":0.04,"rarity":"Mythic"},
 }
 CHARACTER_ATTACK_TYPES = {"sukuna":"magic","gojo":"magic","yuji":"melee","naruto":"magic","sasuke":"sword","luffy":"melee","zoro":"sword","ichigo":"sword","aizen":"magic","goku":"melee","vegeta":"melee","tanjiro":"sword","asta":"sword","deku":"melee","eren":"melee","rimuru":"magic"}
+SKILL_CATEGORIES = {
+ "black_flash_chain":"melee","domain_amplification":"magic","chakra_surge":"magic",
+ "conquerors_haki":"melee","final_getsuga":"sword","limit_breaker":"melee",
+ "thunder_god_strike":"sword","bankai_final_verdict":"sword",
+ "truth_seeking_burst":"magic","infinity_big_bang":"magic",
+}
+WEAPON_CATEGORIES = {
+ "cursed_katana":"sword","sixfold_spear":"melee","dragon_fang":"melee",
+ "soul_reaper":"sword","reality_edge":"sword","stormfang":"sword",
+ "zanpakuto_prime":"sword","ten_tails_staff":"magic","anti_spiral_edge":"magic",
+}
+ATTACK_TYPES = {"melee":"Melee","sword":"Sword","magic":"Magic"}
 BOSS_KEY_POOLS = {"jjk_key":["jogo","hanami","toji","jjk_sukuna","jjk_gojo","jjk_mahito"],"jojo_key":["dio","pucci","dio_vampire","diavolo","kira"],"naruto_key":["itachi","hashirama","momoshiki","isshiki","naruto_six_paths"]}
 ITEM_RECIPES = {
  "jjk_key":{"name":"JJK Key","materials":{"cursed_ash":12,"soul_fragment":8,"six_eyes":1}},
@@ -150,7 +162,7 @@ ITEM_RECIPES = {
  "naruto_key":{"name":"Naruto Key","materials":{"chakra_crystal":12,"uchiha_relic":8,"dimensional_eye":2}},
  "clan_token":{"name":"Clan Reroll","materials":{"chakra_crystal":4,"cursed_ash":4,"soul_fragment":4}},
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -285,6 +297,49 @@ class WeaponBuilderView(discord.ui.View):
   await interaction.response.send_modal(WeaponBuilderModal(self.cog,self.owner_id))
 
 
+
+class AttackCategorySelect(discord.ui.Select):
+ def __init__(self, view, categories):
+  self.attack_view=view
+  options=[discord.SelectOption(label=ATTACK_TYPES[key],value=key,description=f"{len(skills)} equipped skill(s)") for key,skills in categories.items()]
+  super().__init__(placeholder="Choose your weapon type",min_values=1,max_values=1,options=options)
+ async def callback(self,interaction):
+  if interaction.user.id!=self.attack_view.ctx.author.id:
+   await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
+  category=self.values[0]
+  skills=self.attack_view.cog.attack_skill_options(self.attack_view.ctx.author.id,category)
+  await interaction.response.edit_message(embed=self.attack_view.cog.embed(f"{ATTACK_TYPES[category].upper()} SKILLS","Choose one equipped skill to use for this turn."),view=AttackSkillView(self.attack_view.cog,self.attack_view.ctx,category,skills))
+
+class AttackSkillSelect(discord.ui.Select):
+ def __init__(self, view, skills):
+  self.attack_view=view
+  options=[discord.SelectOption(label=label[:100],value=key,description=f"Use {label}"[:100]) for key,label in skills]
+  super().__init__(placeholder="Choose an equipped skill",min_values=1,max_values=1,options=options)
+ async def callback(self,interaction):
+  if interaction.user.id!=self.attack_view.ctx.author.id:
+   await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
+  skill=self.values[0]
+  await interaction.response.edit_message(content="Skill selected. Resolving your turn...",embed=None,view=None)
+  await self.attack_view.cog.attack.callback(self.attack_view.cog,self.attack_view.ctx,skill)
+
+class AttackCategoryView(discord.ui.View):
+ def __init__(self,cog,ctx,categories):
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx
+  self.add_item(AttackCategorySelect(self,categories))
+ async def interaction_check(self,interaction):
+  if interaction.user.id!=self.ctx.author.id:
+   await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return False
+  return True
+
+class AttackSkillView(discord.ui.View):
+ def __init__(self,cog,ctx,category,skills):
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.category=category
+  self.add_item(AttackSkillSelect(self,skills))
+ async def interaction_check(self,interaction):
+  if interaction.user.id!=self.ctx.author.id:
+   await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return False
+  return True
+
 class Adventure(commands.Cog):
  def __init__(self,bot):
   self.bot=bot; self.data=load(); self.lock=asyncio.Lock()
@@ -303,12 +358,29 @@ class Adventure(commands.Cog):
   p.setdefault("active_dimension","earth")
   p.setdefault("unlocked_dimensions",["earth"])
   p.setdefault("unlocked_skills",[])
+  p.setdefault("equipped_skills",{"melee":[],"sword":[],"magic":[]})
+  for category in ATTACK_TYPES: p["equipped_skills"].setdefault(category,[])
   p.setdefault("damage_boosts",0)
   p.setdefault("focus_boosts",0)
   p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
   sr=p["symbolic_rewards"]
   for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items(): sr.setdefault(key,value)
   return p
+ def attack_skill_options(self,uid,category=None):
+  p=self.p(uid); custom=self.data.get("custom_weapons",{}).get(p.get("weapon"))
+  c=CHARACTERS[p["character"]]; result={}
+  for kind in ATTACK_TYPES:
+   if category and kind!=category: continue
+   options=[]
+   for key in p.get("equipped_skills",{}).get(kind,[]):
+    if key in SKILL_TREE and key in p.get("unlocked_skills",[]) and SKILL_CATEGORIES.get(key)==kind:
+     options.append((key,SKILL_TREE[key]["name"]))
+    elif key==c[5] and CHARACTER_ATTACK_TYPES.get(p["character"])==kind and (key in p.get("unlocked",[]) or (p["race"]=="vessel" and p["character"]=="sukuna")):
+     options.append((key,c[4]))
+   if custom and (custom.get("category") or WEAPON_CATEGORIES.get(p.get("weapon"),"melee"))==kind:
+    options.append((custom["ability_key"],custom["ability"]))
+   if options: result[kind]=options
+  return result
  def flush(self): save(self.data)
  def embed(self,title,desc="",color=None):
   e=discord.Embed(title=title,description=desc,color=color or discord.Color.from_rgb(35,45,64)); return e
@@ -536,33 +608,31 @@ class Adventure(commands.Cog):
    r["turn"]%=len(alive); current=alive[r["turn"]]
    if current!=uid: await ctx.reply(embed=self.embed("NOT YOUR TURN",f"It is <@{current}>'s turn."),mention_author=False); return
    p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; custom=self.data.get("custom_weapons",{}).get(p.get("weapon"))
-   if custom:
-    skill=custom["ability_key"]
-    if ability:
-     if ability.lower().strip().replace(" ","_")!=skill:
-      await ctx.reply(embed=self.embed("UNKNOWN ABILITY",f"This weapon uses {custom['ability']}."),mention_author=False); return
-     damage=random.randint(*custom["ability_damage"]); action=custom["ability"]
-    else: damage=random.randint(*custom["damage"]); action=custom["name"]+" strike"
+   if ability is None:
+    categories=self.attack_skill_options(ctx.author.id)
+    if not categories:
+     await ctx.reply(embed=self.embed("NO EQUIPPED SKILLS","Unlock skills, then equip them with ,equipskill <melee|sword|magic> <skill>. Your equipped weapon ability is available automatically."),mention_author=False); return
+    await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE","Choose Melee, Sword or Magic. Then choose one equipped skill. No attack happens until you select a skill."),view=AttackCategoryView(self,ctx,categories),mention_author=False); return
+   ability_key=ability.lower().strip().replace(" ","_")
+   options=self.attack_skill_options(ctx.author.id)
+   selected_category=next((kind for kind,items in options.items() if any(key==ability_key for key,_ in items)),None)
+   if selected_category is None:
+    await ctx.reply(embed=self.embed("SKILL NOT EQUIPPED","That skill is not equipped. Use ,skills and ,equipskill to set your loadout."),mention_author=False); return
+   if custom and ability_key==custom["ability_key"]:
+    damage=random.randint(*custom["ability_damage"]); action=custom["ability"]
     override=p.get("weapon_damage_override")
-    if override == "googolplex":
-     damage=r["hp"]
-    elif override is not None:
-     damage=override
+    if override=="googolplex": damage=r["hp"]
+    elif override is not None: damage=int(override)
+   elif ability_key==c[5]:
+    if ability_key not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna"):
+     await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {ability_key} with ,unlock {ability_key}."),mention_author=False); return
+    damage=random.randint(*c[6]); action=c[4]
+   elif ability_key in p.get("unlocked_skills",[]) and ability_key in SKILL_TREE:
+    sk=SKILL_TREE[ability_key]; damage=int(random.randint(*c[3])*sk["multiplier"]); action=sk["name"]
    else:
-    skill=c[5]
-    if ability:
-     ability_key=ability.lower().strip().replace(" ","_")
-     if ability_key==skill:
-      if skill not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna"):
-       await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {skill} with ,unlock {skill}. Vessel gets Sukuna's skill free."),mention_author=False); return
-      damage=random.randint(*c[6]); action=c[4]
-     elif ability_key in p["unlocked_skills"]:
-      sk=SKILL_TREE[ability_key]; damage=int(random.randint(*c[3])*sk["multiplier"]); action=sk["name"]
-     else:
-      await ctx.reply(embed=self.embed("SKILL LOCKED","Unlock that ability with ,unlock <skill>."),mention_author=False); return
-    else: damage=random.randint(*c[3]); action="Basic strike"
+    await ctx.reply(embed=self.embed("SKILL LOCKED","That ability is not unlocked on your profile."),mention_author=False); return
    race=RACES[p["race"]]; race_mult=1.20 if p["race"]=="gojo" and p["six_eyes_unlocked"] else race[1]
-   clan=CLANS.get(p.get("clan")); attack_type=CHARACTER_ATTACK_TYPES.get(p["character"],"magic")
+   clan=CLANS.get(p.get("clan")); attack_type=selected_category
    clan_mult=1+(clan.get(attack_type,0) if clan else 0)
    level_mult=1+min(35,max(0,int(p["level"])-1))*0.01
    mastery=p.setdefault("mastery",{}); mastery_xp=int(mastery.get(p["character"],0)); mastery_level=mastery_tier(mastery_xp)
