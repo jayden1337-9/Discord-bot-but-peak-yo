@@ -1087,20 +1087,32 @@ class Adventure(commands.Cog):
   if not counts:
    await ctx.reply(embed=self.embed("NO CHESTS","You do not have any matching chests to open."),mention_author=False); return
   loot_totals={}; opened={}; total_gold=0; total_gems=0
+  # Bound random simulation work so huge inventories cannot block Discord's event loop.
+  # Large stacks use a representative sample scaled to the full chest count.
+  sample_limit=2000
   for chest_tier,count in counts.items():
    data=CHEST_TIERS[chest_tier]; chest_key=f"{chest_tier}_chest"
    self.consume_item(p,chest_key,count); opened[chest_tier]=count
    pool=[item for item in CHEST_LOOT[chest_tier] if item in ITEMS]
-   for _ in range(count):
+   if not pool:
+    continue
+   samples=min(count,sample_limit)
+   scale=count/samples
+   tier_loot={}; tier_gold=0; tier_gems=0
+   for _ in range(samples):
     for _roll in range(data["rolls"]):
      item=random.choice(pool)
      amount=1 if chest_tier=="mythic" and item in {"mythic_token","phoenix_feather"} else random.randint(1,3 if chest_tier in {"common","rare"} else 5)
-     loot_totals[item]=loot_totals.get(item,0)+amount
-    total_gold+=random.randint(*data["gold"])
+     tier_loot[item]=tier_loot.get(item,0)+amount
+    tier_gold+=random.randint(*data["gold"])
     low_gem,high_gem=data["gems"]
     gem_chance={"rare":0.10,"diamond":0.35,"ruby":0.65,"mythic":1.0}.get(chest_tier,0)
     if high_gem and random.random()<gem_chance:
-     total_gems+=random.randint(max(1,low_gem),high_gem)
+     tier_gems+=random.randint(max(1,low_gem),high_gem)
+   for item,amount in tier_loot.items():
+    loot_totals[item]=loot_totals.get(item,0)+round(amount*scale)
+   total_gold+=round(tier_gold*scale)
+   total_gems+=round(tier_gems*scale)
   for item,amount in loot_totals.items(): self.item(p,item,amount)
   p["gold"]=p.get("gold",0)+total_gold
   p["gems"]=p.get("gems",0)+total_gems
