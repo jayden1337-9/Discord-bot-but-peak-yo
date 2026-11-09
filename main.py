@@ -3,7 +3,11 @@ import logging
 import os
 
 import discord
+from dotenv import load_dotenv
 from discord.ext import commands
+
+# Load Wispbyte environment-file values before reading os.getenv().
+load_dotenv("/home/container/.env")
 
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO").upper(),
