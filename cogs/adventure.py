@@ -74,10 +74,19 @@ def display_number(value):
  value=int(value)
  if value==0: return "0"
  if value.bit_length()<80: return f"{value:,}"
- bits=value.bit_length(); shift=max(0,bits-53); leading=value>>shift
- exponent=int((bits-1)*0.3010299956639812)
- mantissa=leading/(2**(bits-1-shift))
- return f"{mantissa:.2f}e{exponent}"
+ try:
+  digits=str(value)
+  return f"{digits[0]}.{digits[1:3] or '00'}e{len(digits)-1}"
+ except ValueError:
+  bits=value.bit_length()
+  exponent=int((bits-1)*0.3010299956639812)
+  power=10**max(0,exponent)
+  while value<power:
+   exponent-=1; power//=10
+  while value>=power*10:
+   exponent+=1; power*=10
+  leading=value*100//power
+  return f"{leading/100:.2f}e{exponent}"
 
 def save(data):
  ROOT.mkdir(parents=True,exist_ok=True)
