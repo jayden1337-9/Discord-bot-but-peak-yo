@@ -20,6 +20,12 @@ class PeakBot(commands.Bot):
     async def on_ready(self) -> None:
         log.info("Logged in as %s (ID: %s)", self.user, self.user.id)
 
+    async def is_owner(self, user: discord.User | discord.Member) -> bool:
+        owner_id = os.getenv("BOT_OWNER_ID")
+        if owner_id and owner_id.isdigit():
+            return user.id == int(owner_id)
+        return await super().is_owner(user)
+
 
 async def main() -> None:
     token = os.getenv("DISCORD_TOKEN")
