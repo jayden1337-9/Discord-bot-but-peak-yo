@@ -37,17 +37,26 @@ BOSSES = {
  "meruem":("Meruem",6200,(62,94),1800,{"chimera_essence":(1,2),"royal_core":(1,1),"nen_crystal":(1,3),"chimera_scale":(1,2),"royal_guard_token":(1,1),"kingly_aura":(1,2),"celestial_dust":(1,2)}),
  "all_for_one":("All For One",5100,(55,86),1450,{"quirk_catalyst":(1,2),"all_for_one_core":(1,1),"stolen_quirk_shard":(1,3),"nomu_tissue":(1,2),"alliance_emblem":(1,1),"impact_relic":(1,2),"dimension_key":(1,1)}),
  "zeref":("Zeref",8200,(72,108),2400,{"ether_core":(1,2),"curse_book":(1,1),"fairy_heart_shard":(1,2),"black_magic_ash":(1,3),"immortality_seal":(1,1),"time_rift_fragment":(1,2),"dimension_key":(1,1),"awakening_crystal":(1,2)}),
+ "kenpachi":("Kenpachi Zaraki",9600,(78,118),2800,{"ether_core":(2,4),"soul_fragment":(2,5),"spirit_silk":(1,3),"zanpakuto_core":(1,2)}),
+ "kaido":("Kaido",12500,(92,140),3600,{"dragon_scale":(2,5),"dragon_ball":(2,4),"cosmic_core":(2,4),"oni_horn":(1,2)}),
+ "kaguya":("Kaguya Otsutsuki",14800,(105,158),4300,{"chakra_crystal":(2,5),"six_paths_essence":(2,4),"god_tree_seed":(1,3),"dimensional_eye":(1,2)}),
+ "madara_six_paths":("Six Paths Madara",17200,(118,176),5100,{"uchiha_relic":(2,5),"rinnegan_shard":(1,3),"six_paths_essence":(2,5),"ten_tails_core":(1,2)}),
+ "anti_spiral":("Anti-Spiral",24000,(145,210),7200,{"void_ore":(3,6),"ancient_core":(2,4),"time_rift_fragment":(2,5),"dimension_key":(1,3),"spiral_core":(1,2)}),
 }
 ITEMS = {k:k.replace("_"," ").title() for b in BOSSES.values() for k in b[4]}
 ITEMS.update({"limitless_core":"Limitless Core","phoenix_feather":"Phoenix Feather","mythic_token":"Mythic Token"})
 
-ITEMS.update({"void_ore":"Void Ore","starsteel":"Starsteel","dragon_scale":"Dragon Scale","spirit_silk":"Spirit Silk","ancient_core":"Ancient Core","dimension_key":"Dimension Key","awakening_crystal":"Awakening Crystal","celestial_dust":"Celestial Dust"})
+ITEMS.update({"void_ore":"Void Ore","starsteel":"Starsteel","dragon_scale":"Dragon Scale","spirit_silk":"Spirit Silk","ancient_core":"Ancient Core","dimension_key":"Dimension Key","awakening_crystal":"Awakening Crystal","celestial_dust":"Celestial Dust","zanpakuto_core":"Zanpakuto Core","oni_horn":"Oni Horn","dimensional_eye":"Dimensional Eye","ten_tails_core":"Ten Tails Core","spiral_core":"Spiral Core","rift_crystal":"Rift Crystal","phoenix_ash":"Phoenix Ash","abyssal_pearl":"Abyssal Pearl"})
 WEAPON_RECIPES = {
  "cursed_katana":{"name":"Cursed Katana","damage":[125,175],"ability":"Cleave","ability_key":"cleave","ability_damage":[230,300],"description":"A blade tempered with cursed energy.","level":8,"materials":{"cursed_ash":12,"soul_fragment":8,"void_ore":3}},
  "sixfold_spear":{"name":"Sixfold Spear","damage":[160,215],"ability":"Blue Impact","ability_key":"blue_impact","ability_damage":[290,370],"description":"A spear that bends space.","level":15,"materials":{"limitless_core":2,"blue_orb":8,"starsteel":5}},
  "dragon_fang":{"name":"Dragon Fang","damage":[190,250],"ability":"Dragon Roar","ability_key":"dragon_roar","ability_damage":[350,440],"description":"A dragon-forged weapon.","level":22,"materials":{"dragon_ball":5,"cosmic_core":4,"dragon_scale":10}},
  "soul_reaper":{"name":"Soul Reaper","damage":[225,290],"ability":"Getsuga Breaker","ability_key":"getsuga_breaker","ability_damage":[410,520],"description":"A blade resonating with spiritual pressure.","level":30,"materials":{"soul_fragment":15,"ether_core":8,"spirit_silk":6}},
- "reality_edge":{"name":"Reality Edge","damage":[280,360],"ability":"Rift Rend","ability_key":"rift_rend","ability_damage":[520,680],"description":"Forged at the edge of a collapsing dimension.","level":40,"materials":{"time_rift_fragment":8,"void_ore":15,"ancient_core":3,"celestial_dust":10}}
+ "reality_edge":{"name":"Reality Edge","damage":[280,360],"ability":"Rift Rend","ability_key":"rift_rend","ability_damage":[520,680],"description":"Forged at the edge of a collapsing dimension.","level":40,"materials":{"time_rift_fragment":8,"void_ore":15,"ancient_core":3,"celestial_dust":10}},
+ "stormfang":{"name":"Stormfang","damage":[310,390],"ability":"Thunder God Strike","ability_key":"thunder_god_strike","ability_damage":[580,720],"description":"A blade charged by a storm dragon.","level":45,"materials":{"dragon_scale":15,"oni_horn":5,"cosmic_core":10}},
+ "zanpakuto_prime":{"name":"Zanpakuto Prime","damage":[350,430],"ability":"Bankai: Final Verdict","ability_key":"bankai_final_verdict","ability_damage":[650,820],"description":"A perfected soul-cutting blade.","level":50,"materials":{"zanpakuto_core":8,"ether_core":15,"spirit_silk":12}},
+ "ten_tails_staff":{"name":"Ten Tails Staff","damage":[390,480],"ability":"Truth-Seeking Burst","ability_key":"truth_seeking_burst","ability_damage":[740,900],"description":"A staff formed from primordial chakra.","level":55,"materials":{"ten_tails_core":5,"dimensional_eye":5,"six_paths_essence":12}},
+ "anti_spiral_edge":{"name":"Anti-Spiral Edge","damage":[480,600],"ability":"Infinity Big Bang","ability_key":"infinity_big_bang","ability_damage":[900,1150],"description":"A weapon forged beyond the final dimension.","level":65,"materials":{"spiral_core":8,"void_ore":25,"dimension_key":5,"time_rift_fragment":20}}
 }
 SKILL_TREE = {
  "black_flash_chain":{"name":"Black Flash Chain","cost":3,"multiplier":1.8,"level":5,"materials":{"black_flash_residue":3}},
@@ -55,7 +64,11 @@ SKILL_TREE = {
  "chakra_surge":{"name":"Chakra Surge","cost":4,"multiplier":2.0,"level":10,"materials":{"chakra_crystal":6}},
  "conquerors_haki":{"name":"Conqueror's Haki","cost":6,"multiplier":2.5,"level":18,"materials":{"kingly_aura":3,"celestial_blood":2}},
  "final_getsuga":{"name":"Final Getsuga","cost":8,"multiplier":3.0,"level":25,"materials":{"ether_core":8,"soul_fragment":12}},
- "limit_breaker":{"name":"Limit Breaker","cost":10,"multiplier":3.5,"level":35,"materials":{"zenkai_cell":8,"cosmic_core":8,"awakening_crystal":2}}
+ "limit_breaker":{"name":"Limit Breaker","cost":10,"multiplier":3.5,"level":35,"materials":{"zenkai_cell":8,"cosmic_core":8,"awakening_crystal":2}},
+ "thunder_god_strike":{"name":"Thunder God Strike","cost":12,"multiplier":3.8,"level":42,"materials":{"dragon_scale":8,"oni_horn":3}},
+ "bankai_final_verdict":{"name":"Bankai: Final Verdict","cost":14,"multiplier":4.2,"level":48,"materials":{"zanpakuto_core":5,"ether_core":10}},
+ "truth_seeking_burst":{"name":"Truth-Seeking Burst","cost":16,"multiplier":4.6,"level":55,"materials":{"ten_tails_core":3,"dimensional_eye":3}},
+ "infinity_big_bang":{"name":"Infinity Big Bang","cost":20,"multiplier":5.0,"level":65,"materials":{"spiral_core":5,"void_ore":15,"dimension_key":3}}
 }
 DIMENSIONS = {
  "earth":{"name":"Earth","level":1,"wins":0,"materials":{},"bonus":1.0,"description":"The starting world."},
@@ -64,7 +77,10 @@ DIMENSIONS = {
  "new_world":{"name":"New World","level":22,"wins":15,"materials":{"devil_fruit_shard":8,"string_core":8},"bonus":1.16,"description":"A dangerous sea ruled by pirates."},
  "soul_society":{"name":"Soul Society","level":30,"wins":25,"materials":{"ether_core":8,"soul_fragment":15},"bonus":1.20,"description":"A spiritual plane."},
  "dragon_world":{"name":"Dragon World","level":40,"wins":40,"materials":{"dragon_ball":8,"cosmic_core":12,"dragon_scale":5},"bonus":1.25,"description":"A cosmic battlefield."},
- "infinity_void":{"name":"Infinity Void","level":55,"wins":75,"materials":{"time_rift_fragment":15,"void_ore":20,"ancient_core":5,"dimension_key":1},"bonus":1.35,"description":"An endgame realm beyond ordinary space."}
+ "infinity_void":{"name":"Infinity Void","level":55,"wins":75,"materials":{"time_rift_fragment":15,"void_ore":20,"ancient_core":5,"dimension_key":1},"bonus":1.35,"description":"An endgame realm beyond ordinary space."},
+ "demon_castle":{"name":"Demon Castle","level":28,"wins":20,"materials":{"demon_blood":15,"sunsteel":8,"nightmare_ash":8},"bonus":1.18,"description":"A fortress ruled by ancient demons."},
+ "celestial_plane":{"name":"Celestial Plane","level":48,"wins":55,"materials":{"celestial_dust":20,"six_paths_essence":12,"dimensional_eye":2},"bonus":1.30,"description":"A realm suspended above mortal worlds."},
+ "spiral_nexus":{"name":"Spiral Nexus","level":65,"wins":100,"materials":{"spiral_core":5,"void_ore":25,"dimension_key":4,"time_rift_fragment":15},"bonus":1.45,"description":"The final frontier where dimensions collapse."}
 }
 
 RACES = {
@@ -431,6 +447,13 @@ class Adventure(commands.Cog):
     damage=int(damage*1.5); p["damage_boosts"]-=1
    if p.get("focus_boosts",0)>0:
     damage*=2; p["focus_boosts"]-=1
+   gear_attack=0
+   try:
+    from cogs.endgame import GEAR
+    for gear_key in p.get("gear_equipped",{}).values():
+     if gear_key in GEAR: gear_attack+=GEAR[gear_key]["attack"]
+   except ImportError: pass
+   damage+=gear_attack
    dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
    damage=min(r["hp"],max(1,int(damage*race_mult*level_mult*mastery_mult*dimension_mult))); r["hp"]-=damage
    mastery[p["character"]]=mastery_xp+damage
@@ -487,6 +510,11 @@ class Adventure(commands.Cog):
    phase_multiplier={1:1.0,2:1.10,3:1.20,4:1.30}[phase]
    incoming=int(random.randint(*b[2])*phase_multiplier) if boss_hits else 0
    reduction=.35 if p["race"]=="gojo" and p["infinity_unlocked"] else race[2]
+   try:
+    from cogs.endgame import GEAR
+    gear_defense=sum(GEAR[k]["defense"] for k in p.get("gear_equipped",{}).values() if k in GEAR)
+   except ImportError: gear_defense=0
+   reduction=min(.75,reduction+gear_defense)
    incoming=max(1,int(incoming*(1-reduction))) if boss_hits else 0
    r["players"][uid]=max(0,r["players"][uid]-incoming); hp=r["players"][uid]
    alive2=[u for u in r["turns"] if r["players"].get(u,0)>0]
