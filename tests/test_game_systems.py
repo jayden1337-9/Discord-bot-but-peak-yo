@@ -1,6 +1,7 @@
 import unittest
 
-from cogs.adventure import apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.adventure import DIMENSIONS, SKILL_TREE, WEAPON_RECIPES, BOSSES, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label
+from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 
 
@@ -45,6 +46,29 @@ class GameSystemTests(unittest.TestCase):
         }
         progress, target, _ = Progression(None).quest_progress(profile, "daily")
         self.assertGreaterEqual(progress, target)
+
+    def test_expansion_content_is_connected(self):
+        self.assertGreaterEqual(len(BOSSES), 15)
+        self.assertGreaterEqual(len(WEAPON_RECIPES), 9)
+        self.assertGreaterEqual(len(SKILL_TREE), 10)
+        self.assertGreaterEqual(len(DIMENSIONS), 10)
+        self.assertEqual(len(TOWER_BOSSES), 10)
+        self.assertGreaterEqual(len(GEAR), 8)
+
+    def test_all_gear_has_valid_slots_and_materials(self):
+        for key, item in GEAR.items():
+            self.assertIn(item["slot"], {"armor", "relic", "core"}, key)
+            self.assertGreaterEqual(item["level"], 1, key)
+            self.assertTrue(item["materials"], key)
+            self.assertTrue(all(amount > 0 for amount in item["materials"].values()), key)
+
+    def test_tower_enemy_scales_with_floor(self):
+        game = Endgame(None)
+        first = game.tower_enemy(1)
+        tenth = game.tower_enemy(10)
+        self.assertEqual(first["hp"], 650)
+        self.assertEqual(tenth["hp"], 65000)
+        self.assertGreater(tenth["damage"][1], first["damage"][1])
 
     def test_level_up_math(self):
         profile = {"level": 1, "xp": 250, "points": 0}
