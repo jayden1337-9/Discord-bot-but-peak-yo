@@ -323,8 +323,8 @@ class AttackSkillSelect(discord.ui.Select):
   await self.attack_view.attack_command.callback(self.attack_view.cog,self.attack_view.ctx,skill)
 
 class AttackCategoryView(discord.ui.View):
- def __init__(self,cog,ctx,categories):
-  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx
+ def __init__(self,cog,ctx,categories,attack_command=None):
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.attack_command=attack_command or cog.attack
   self.add_item(AttackCategorySelect(self,categories))
  async def interaction_check(self,interaction):
   if interaction.user.id!=self.ctx.author.id:
