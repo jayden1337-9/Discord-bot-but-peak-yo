@@ -4,18 +4,18 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 
 ## Features
 
-- Dark, text-first Discord embeds with no decorative emoji spam
+- Dark anime RPG interface with item icons, emoji labels and a Pillow-rendered inventory
 - Community tools, polls, moderation utilities and random tools
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
 - Character-specific signature abilities, a material-and-level gated universal skill tree, race passives, clan-based melee/sword/magic bonuses and character mastery\n- Tactical raid combat with separate melee, sword and magic loadouts; each turn requires selecting a weapon type and an equipped skill
 - Three craftable anime boss keys for JJK, JoJo and Naruto boss pools, plus clan rerolls and expanded bloodlines
 - Five craftable weapons with distinct damage ranges and signature abilities
-- Ten unlockable dimensions with victory, level and material requirements; each grants a different damage affinity
-- Thirty-nine raid bosses across Jujutsu Kaisen, JoJo's Bizarre Adventure, Naruto, One Piece, Bleach, Demon Slayer, My Hero Academia, Dragon Ball and more, including eight beginner-friendly encounters
+- Anime-specific dimensions with their own boss rosters, level/material gates and scaling up to billions of HP
+- Anime boss rosters across Jujutsu Kaisen, JoJo's Bizarre Adventure, Naruto, One Piece, Bleach, Demon Slayer, My Hero Academia, Dragon Ball, Hunter x Hunter, Fairy Tail, Black Clover, Attack on Titan, Slime and Gurren Lagann
 - Nine forgeable signature weapons and ten universal combat skills
 - Eight permanent relic pieces across armor, relic and core slots, with attack and defense bonuses
 - A persistent ten-floor solo Rift Tower with escalating bosses, floor rewards and saved best records
-- Collectible boss materials, healing potions, battle tonics, focus elixirs and awakening crystals
+- Boss-specific chests, exclusive rare drops, Gold and Gems, collectible materials, potions and awakening items
 - Cooperative turn-based boss raids with party turns, escalating boss phases, retaliation and rewards
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
 - Custom weapon builder and owner-only damage controls
@@ -92,7 +92,9 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,forge list` / `,forge craft <key>` — create permanent armor, relics and cores
 - `,gear`, `,equipgear <key>`, `,unequipgear <slot>` — manage equipment
 - `,tower start`, `,tower attack`, `,tower`, `,tower retreat` — challenge the ten-floor solo tower
-- `,dimension list` and `,dimension enter <key>` — unlock and travel between worlds
+- `,dimension list` and `,dimension enter <key>` — unlock anime worlds and inspect their boss rosters
+- `,chest open <boss_key>` — open a chest containing loot from that boss only
+- `,wallet` / `,shop` / `,buy <item> [amount]` — earn and spend Gold and Gems
 - `,use <item>` — use raid potions, combat boosts, awakening crystals and Phoenix Feathers
 - `,bosses`
 - `,boss challenge <key>`
@@ -101,7 +103,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,boss leave` / `,boss abandon`
 - `,join`
 - `,attack` — select Melee, Sword or Magic, then choose an equipped skill to take your turn\n- `,equipskill <melee|sword|magic> <skill>` / `,unequipskill <type> <skill>` — manage up to three equipped skills per category\n- `,skillloadout` — inspect equipped combat skills
-- `,inventory` / `,inv` / `,bag`
+- `,inventory` / `,inv` / `,bag` — icon-based inventory with Gold and Gems
 - `,eat <item>` — bloodline awakenings
 - `,use phoenix_feather` — revive during a raid
 - `,stats [member]` / `,me`
