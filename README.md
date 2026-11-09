@@ -15,7 +15,7 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Nine forgeable signature weapons and ten universal combat skills
 - Eight permanent relic pieces across armor, relic and core slots, with attack and defense bonuses
 - A persistent ten-floor solo Rift Tower with escalating bosses, floor rewards and saved best records
-- Boss-specific chests, exclusive rare drops, Gold and Gems, collectible materials, potions and awakening items
+- Five global chest tiers (Common, Rare, Diamond, Ruby, Mythic) with difficulty-scaled drop rates, tiered loot, exclusive boss drops, Gold and Gems
 - Cooperative turn-based boss raids with party turns, escalating boss phases, retaliation and rewards
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
 - Custom weapon builder and owner-only damage controls
@@ -93,7 +93,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,gear`, `,equipgear <key>`, `,unequipgear <slot>` — manage equipment
 - `,tower start`, `,tower attack`, `,tower`, `,tower retreat` — challenge the ten-floor solo tower
 - `,dimension list` and `,dimension enter <key>` — unlock anime worlds and inspect their boss rosters
-- `,chest open <boss_key>` — open a chest containing loot from that boss only
+- `,chest` / `,chest open <common|rare|diamond|ruby|mythic>` — view and open the five global chest rarities
 - `,wallet` / `,shop` / `,buy <item> [amount]` — earn and spend Gold and Gems
 - `,use <item>` — use raid potions, combat boosts, awakening crystals and Phoenix Feathers
 - `,bosses`
