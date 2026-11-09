@@ -128,3 +128,17 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 The game database is stored in `peak_game.json` inside `BOT_DATA_DIR`. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save and refreshes `peak_game.backup.json` from the last valid database before overwriting it.
 
 Large player values are displayed in scientific notation. A googolplex swarm is represented exactly as 10^(10^100) and its damage, loot, victories, skill points and XP rewards are tracked symbolically. Symbolic XP is kept separate from ordinary level progression because the resulting level cannot be represented as a practical finite integer.
+
+
+## Rift Expeditions update
+
+- Four three-stage solo routes: Cursed Realm Descent, Shinobi Frontier, Grand Line Gauntlet, and Riftfall
+- Saved expedition progress, enemy stages, player HP, route requirements, and route-clear rewards
+- Five collectible companions with persistent ownership and equip slots
+- Companion attack and defense bonuses apply to raids and expeditions
+- Daily login streaks with XP, skill points, and a seven-day Mythic Token reward
+
+Commands:
+- `,expedition`, `,expedition start <route>`, `,expedition status`, `,expedition attack [ability]`, `,expedition retreat`
+- `,pets`, `,pet equip <key>`, `,pet off`
+- `,login`
