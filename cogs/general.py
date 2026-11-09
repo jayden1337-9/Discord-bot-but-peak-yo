@@ -21,7 +21,6 @@ class PollView(discord.ui.View):
         embed.add_field(name="Yes", value=str(yes), inline=True)
         embed.add_field(name="No", value=str(no), inline=True)
         embed.add_field(name="Total votes", value=str(len(self.votes)), inline=True)
-        embed.set_footer(text="PEAK  /  POLLS")
         return embed
 
     async def record(self, interaction: discord.Interaction, vote: bool) -> None:
@@ -59,11 +58,10 @@ class HelpView(discord.ui.View):
     def build_embed(self) -> discord.Embed:
         title, description = self.pages[self.page]
         embed = discord.Embed(
-            title=f"Command index  /  {title}",
+            title=f"{title}  /  COMMAND INDEX",
             description=description,
-            color=discord.Color.from_rgb(48, 61, 82),
+            color=discord.Color.from_rgb(35, 45, 64),
         )
-        embed.set_footer(text=f"PEAK  /  SYSTEM  •  Page {self.page + 1} of {len(self.pages)}")
         return embed
 
     def refresh_buttons(self) -> None:
@@ -102,9 +100,7 @@ class General(commands.Cog):
             title=title,
             description=description,
             color=color,
-            timestamp=datetime.now(timezone.utc),
         )
-        result.set_footer(text="PEAK  /  SYSTEM")
         return result
 
     @commands.command(name="ping", aliases=["latency"])
