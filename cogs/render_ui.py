@@ -83,7 +83,7 @@ def inventory_image(profile, items, page=1, icons=None, page_size=12):
     width, card_w, card_h, gap = 1000, 466, 104, 14
     columns = 2
     rows = max(1, ceil(len(selected) / columns))
-    header_h, footer_h = 228, 78
+    header_h, footer_h = 292, 78
     height = header_h + rows * (card_h + gap) + footer_h
     image = Image.new("RGB", (width, height), BG)
     draw = ImageDraw.Draw(image)
