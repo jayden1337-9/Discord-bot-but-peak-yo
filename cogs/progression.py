@@ -2,10 +2,10 @@ from datetime import datetime, timezone
 from discord.ext import commands
 
 TITLE_RULES = {
-    "rookie": ("Rookie", "Complete your first raid.", lambda p: p.get("wins", 0) + p.get("symbolic_rewards", {}).get("wins", 0) >= 1),
-    "slayer": ("Boss Slayer", "Win 10 raids.", lambda p: p.get("wins", 0) + p.get("symbolic_rewards", {}).get("wins", 0) >= 10),
-    "conqueror": ("Conqueror", "Win 100 raids.", lambda p: p.get("wins", 0) + p.get("symbolic_rewards", {}).get("wins", 0) >= 100),
-    "calamity": ("Calamity", "Deal at least 100,000 total damage.", lambda p: p.get("damage", 0) + p.get("symbolic_rewards", {}).get("damage", 0) >= 100000),
+    "rookie": ("Rookie", "Complete your first raid.", lambda p: p.get("wins", 0) >= 1 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
+    "slayer": ("Boss Slayer", "Win 10 raids.", lambda p: p.get("wins", 0) >= 10 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
+    "conqueror": ("Conqueror", "Win 100 raids.", lambda p: p.get("wins", 0) >= 100 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
+    "calamity": ("Calamity", "Deal at least 100,000 total damage.", lambda p: p.get("damage", 0) >= 100000 or p.get("symbolic_rewards", {}).get("damage", 0) > 0),
     "limitless": ("Limitless", "Reach level 50.", lambda p: p.get("level", 1) >= 50),
     "king_of_curses": ("King of Curses", "Unlock the King of Curses race.", lambda p: p.get("sukuna_race_unlocked", False) or p.get("race") == "sukuna"),
 }
