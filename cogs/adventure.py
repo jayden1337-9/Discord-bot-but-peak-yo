@@ -200,7 +200,7 @@ class Adventure(commands.Cog):
   if remaining:
    sr=p["symbolic_rewards"]
    if sr["inventory"].get(key,0)<=0: return False
-   sr["inventory_spent"][key]=sr["inventory_spent"].get(key,0)+remaining
+   sr['inventory_spent'][key]=sr['inventory_spent'].get(key,0)+remaining
   return True
 
  @commands.command(name="characters",aliases=["roster","weapons"])
@@ -448,8 +448,8 @@ class Adventure(commands.Cog):
   if not lines: lines=["Your inventory is empty."]
   e=self.embed("INVENTORY","\n".join(lines)[:4000])
   six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
-  six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr["inventory_spent"].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
-  finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
+  six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr['inventory_spent'].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
+  finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr['inventory_spent'].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
   e.add_field(name="Awakening progress",value=f"Six Eyes: {six_label}/6\nCursed Fingers: {finger_label}/20\nRace: {RACES[p['race']][0]}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="eat",aliases=["consume"])
