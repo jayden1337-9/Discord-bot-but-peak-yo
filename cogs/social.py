@@ -148,7 +148,7 @@ class Social(commands.Cog):
     @commands.group(name="trade", invoke_without_command=True)
     async def trade(self, ctx):
         p = ctx.clean_prefix
-        await ctx.send(embed=self.embed("Trade commands", f"{p}trade offer @member <item> <amount>\n{p}trade accept <id>\n{p}trade cancel <id>\nOnly regular inventory stacks are transferable."))
+        await ctx.send(embed=self.embed("Trade commands", f"{p}trade offer @member <item> <amount>\n{p}trade accept <id>\n{p}trade cancel <id>\n{p}trade pending\nTrade regular items or Gold."))
 
     @trade.command(name="pending")
     async def trade_pending(self, ctx):
