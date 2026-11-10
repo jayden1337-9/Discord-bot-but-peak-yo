@@ -142,7 +142,10 @@ class General(commands.Cog):
             if command.aliases:
                 embed.add_field(name="Aliases", value=", ".join(f"`{alias}`" for alias in command.aliases), inline=False)
             if isinstance(command, commands.Group) and command.commands:
-                lines = [f"`{ctx.clean_prefix}{child.qualified_name}{chr(32) + child.signature if child.signature else chr(0)}`".replace(chr(0), "") for child in command.commands]
+                lines = []
+                for child in command.commands:
+                    child_suffix = f" {child.signature}" if child.signature else ""
+                    lines.append(f"`{ctx.clean_prefix}{child.qualified_name}{child_suffix}`")
                 embed.add_field(name="Subcommands", value="\n".join(lines)[:1024], inline=False)
             await ctx.reply(embed=embed, mention_author=False)
             return
