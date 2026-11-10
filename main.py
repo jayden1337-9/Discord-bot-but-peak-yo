@@ -157,7 +157,11 @@ class DiscordBot(commands.Bot):
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.CommandNotFound):
-            return
+            from difflib import get_close_matches
+            names = [command.name for command in self.walk_commands()]
+            matches = get_close_matches(ctx.invoked_with or "", names, n=1, cutoff=0.6)
+            suggestion = f" Did you mean `{ctx.clean_prefix}{matches[0]}`?" if matches else ""
+            message = f"Unknown command `{ctx.invoked_with}`.{suggestion} Use `{ctx.clean_prefix}help` to see available commands."
         if isinstance(error, commands.MissingRequiredArgument):
             message = f"Missing argument: `{error.param.name}`. Use `{ctx.clean_prefix}help` for usage."
         elif isinstance(error, commands.BadArgument):
