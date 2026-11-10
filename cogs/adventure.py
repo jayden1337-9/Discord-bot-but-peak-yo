@@ -556,6 +556,49 @@ class BossRegisterView(discord.ui.View):
   await interaction.response.edit_message(embed=self.build_embed(),view=self)
 
 
+class LeaderboardView(discord.ui.View):
+ def __init__(self,cog,ctx,entries):
+  super().__init__(timeout=180)
+  self.cog=cog; self.ctx=ctx; self.owner_id=ctx.author.id; self.entries=entries[:100]; self.page=0; self.page_size=10; self.message=None
+  self.refresh()
+ def refresh(self):
+  pages=max(1,(len(self.entries)+self.page_size-1)//self.page_size)
+  self.previous.disabled=self.page<=0
+  self.next.disabled=self.page>=pages-1
+ def build_embed(self):
+  pages=max(1,(len(self.entries)+self.page_size-1)//self.page_size)
+  start=self.page*self.page_size
+  lines=[]
+  for rank,(uid,profile) in enumerate(self.entries[start:start+self.page_size],start+1):
+   xp=display_number(profile.get("xp",0))
+   symbolic=profile.get("symbolic_rewards",{}).get("xp",0)
+   if symbolic: xp+=f" + {symbolic_quantity(symbolic)} symbolic"
+   ascension=max(0,min(25,int(profile.get("ascension",0))))
+   lines.append(f"**{rank}.** <@{uid}> · Level {display_number(profile.get('level',1))} · {xp} XP · Ascension {ascension}")
+  embed=self.cog.embed(f"PLAYER LEADERBOARD · {self.page+1}/{pages}","\n".join(lines) or "No players yet.")
+  embed.set_footer(text="Top 100 profiles · Sorted by progression")
+  return embed
+ async def interaction_check(self,interaction):
+  if interaction.user.id!=self.owner_id:
+   await interaction.response.send_message("These leaderboard controls belong to the person who opened them.",ephemeral=True)
+   return False
+  return True
+ @discord.ui.button(label="Previous",style=discord.ButtonStyle.secondary)
+ async def previous(self,interaction,button):
+  self.page=max(0,self.page-1); self.refresh()
+  await interaction.response.edit_message(embed=self.build_embed(),view=self)
+ @discord.ui.button(label="Next",style=discord.ButtonStyle.primary)
+ async def next(self,interaction,button):
+  pages=max(1,(len(self.entries)+self.page_size-1)//self.page_size)
+  self.page=min(pages-1,self.page+1); self.refresh()
+  await interaction.response.edit_message(embed=self.build_embed(),view=self)
+ async def on_timeout(self):
+  for child in self.children: child.disabled=True
+  if self.message is not None:
+   try: await self.message.edit(view=self)
+   except discord.HTTPException: pass
+
+
 class InventoryPager(discord.ui.View):
  def __init__(self,ctx,page,pages):
   super().__init__(timeout=180)
@@ -1411,9 +1454,9 @@ class Adventure(commands.Cog):
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
  async def leaderboard(self,ctx):
-  top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("symbolic_rewards",{}).get("xp",0)>0,x[1].get("level",1),x[1].get("xp",0)),reverse=True)[:10]
-  lines=[f"{i}. <@{uid}> · Level {display_number(p['level'])} · {display_number(p['xp'])} XP" for i,(uid,p) in enumerate(top,1)]
-  await ctx.reply(embed=self.embed("ADVENTURER RANKINGS","\n".join(lines) or "No players yet."),mention_author=False)
+  top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("symbolic_rewards",{}).get("xp",0)>0,x[1].get("level",1),x[1].get("xp",0)),reverse=True)
+  view=LeaderboardView(self,ctx,top)
+  view.message=await ctx.reply(embed=view.build_embed(),view=view,mention_author=False)
 
  @commands.command(name="createweapon")
  @commands.is_owner()
