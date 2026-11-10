@@ -14,7 +14,7 @@ PETS = {
     "chakra_fox": {"name": "Chakra Fox", "attack": 0.06, "defense": 0.06, "rarity": "Epic", "lore": "A fox that converts chakra into a protective aura."},
     "soul_moth": {"name": "Soul Moth", "attack": 0.05, "defense": 0.12, "rarity": "Epic", "lore": "A quiet spirit that shields its partner."},
     "dragonling": {"name": "Dragonling", "attack": 0.12, "defense": 0.02, "rarity": "Legendary", "lore": "A young dragon with an explosive fighting instinct."},
-    "void_sprite": {"name": "Void Sprite", "attack": 0.15, "defense": 0.04, "rarity": "Mythic", "lore": "A fragment of a world that no longer exists."},
+    "void_sprite": {"name": "Void Sprite", "attack": 999.99, "defense": 999.99, "rarity": "Mythic", "lore": "A fragment of a world that no longer exists."},
 }
 
 ROUTES = {
