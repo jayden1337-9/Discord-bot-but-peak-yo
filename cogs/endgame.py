@@ -189,7 +189,8 @@ class Endgame(commands.Cog):
             if not categories:
                 await ctx.reply(embed=self.embed(cog, "NO EQUIPPED SKILLS", "Equip an unlocked skill with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
                 return
-            await ctx.reply(embed=self.embed(cog, "CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(cog, ctx, categories, self.tower_attack, self), mention_author=False)
+            view = AttackCategoryView(cog, ctx, categories, self.tower_attack, self)
+            view.message = await ctx.reply(embed=self.embed(cog, "CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=view, mention_author=False)
             return
         gear = self.gear_stats(p)
         character = CHARACTERS[p["character"]]
