@@ -9,9 +9,9 @@ from cogs.adventure import (
 MAX_ASCENSIONS = 25
 ASCENSION_BONUS = 0.02
 WORLD_BOSSES = {
-    "world_eater": {"name": "The World Eater", "hp": 750_000, "damage": (90, 140), "drops": ["rift_crystal", "mythic_token", "abyssal_pearl"]},
-    "celestial_dragon": {"name": "The Celestial Dragon", "hp": 2_500_000, "damage": (150, 220), "drops": ["dragon_scale", "phoenix_ash", "mythic_token"]},
-    "void_emperor": {"name": "The Void Emperor", "hp": 8_000_000, "damage": (240, 340), "drops": ["abyssal_pearl", "spiral_core", "rift_crystal"]},
+    "world_eater": {"name": "The World Eater", "hp": 120_000, "damage": (90, 140), "drops": ["rift_crystal", "mythic_token", "abyssal_pearl"]},
+    "celestial_dragon": {"name": "The Celestial Dragon", "hp": 400_000, "damage": (150, 220), "drops": ["dragon_scale", "phoenix_ash", "mythic_token"]},
+    "void_emperor": {"name": "The Void Emperor", "hp": 1_200_000, "damage": (240, 340), "drops": ["abyssal_pearl", "spiral_core", "rift_crystal"]},
 }
 
 
