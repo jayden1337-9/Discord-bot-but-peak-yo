@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from discord.ext import commands
 
+from core.locking import serialized
+
 TITLE_RULES = {
     "rookie": ("Rookie", "Complete your first raid.", lambda p: p.get("wins", 0) >= 1 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
     "slayer": ("Boss Slayer", "Win 10 raids.", lambda p: p.get("wins", 0) >= 10 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
@@ -74,6 +76,7 @@ class Progression(commands.Cog):
         return new_titles
 
     @commands.command(name="daily")
+    @serialized
     async def daily(self, ctx):
         cog, p = self.profile(ctx.author.id)
         self.ensure_quest(p, "daily")
@@ -85,6 +88,7 @@ class Progression(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="weekly")
+    @serialized
     async def weekly(self, ctx):
         cog, p = self.profile(ctx.author.id)
         self.ensure_quest(p, "weekly")
@@ -96,6 +100,7 @@ class Progression(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="quests")
+    @serialized
     async def quests(self, ctx):
         cog, p = self.profile(ctx.author.id)
         lines = []
@@ -109,6 +114,7 @@ class Progression(commands.Cog):
         await ctx.reply(embed=cog.embed("CONTRACT BOARD", "\n\n".join(lines)), mention_author=False)
 
     @commands.command(name="claim")
+    @serialized
     async def claim(self, ctx, kind: str):
         kind = kind.lower().strip()
         if kind not in {"daily", "weekly"}:
@@ -139,6 +145,7 @@ class Progression(commands.Cog):
         await ctx.reply(embed=cog.embed(f"{kind.upper()} REWARD CLAIMED", f"Received {xp:,} XP and {points} skill points.{extra}"), mention_author=False)
 
     @commands.command(name="achievements", aliases=["achieve"])
+    @serialized
     async def achievements(self, ctx):
         cog, p = self.profile(ctx.author.id)
         new_titles = self.grant_titles(p)
@@ -148,6 +155,7 @@ class Progression(commands.Cog):
         await ctx.reply(embed=cog.embed("ACHIEVEMENT ARCHIVE", "\n\n".join(lines)), mention_author=False)
 
     @commands.command(name="titles")
+    @serialized
     async def titles(self, ctx):
         cog, p = self.profile(ctx.author.id)
         self.grant_titles(p)
@@ -159,6 +167,7 @@ class Progression(commands.Cog):
         await ctx.reply(embed=cog.embed("TITLE COLLECTION", f"**Equipped:** {current}\n\n{listing}\n\nEquip with ,title <key> or clear with ,title off."), mention_author=False)
 
     @commands.command(name="title")
+    @serialized
     async def title(self, ctx, *, key: str):
         cog, p = self.profile(ctx.author.id)
         key = key.lower().strip().replace(" ", "_")
