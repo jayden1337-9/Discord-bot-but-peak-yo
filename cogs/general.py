@@ -124,7 +124,7 @@ class General(commands.Cog):
         embed.add_field(name="Users", value=f"{sum(g.member_count or 0 for g in self.bot.guilds):,}", inline=True)
         embed.add_field(name="Latency", value=f"{round(self.bot.latency * 1000)} ms", inline=True)
         embed.add_field(name="Runtime", value=f"discord.py {discord.__version__}", inline=True)
-        embed.add_field(name="Modules", value="General · Community · Adventure", inline=False)
+        embed.add_field(name="Modules", value="General · Community · Adventure · Progression · Endgame · Expeditions · Social", inline=False)
         await ctx.reply(embed=embed, mention_author=False)
 
     @commands.command(name="help", aliases=["commands", "cmds"])
