@@ -951,6 +951,8 @@ class Adventure(commands.Cog):
        amount=swarm_multiplier
        self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{display_number(amount)}")
      drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
+     if g:
+      self.bot.dispatch("guild_activity", int(g), int(player_id), 25)
     self.data["raids"].pop(g,None); self.flush()
     await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Rewards are multiplied by the selected swarm count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
    boss_hits=random.random() < {1:0.42,2:0.48,3:0.54,4:0.60}[phase]
