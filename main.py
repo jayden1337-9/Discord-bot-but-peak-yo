@@ -56,27 +56,30 @@ CUSTOM_EMOJIS = {
 }
 
 
+UNICODE_TO_NAME = {
+    "🎒": "bag", "🔄": "refresh", "🎉": "reward", "👹": "boss",
+    "❌": "cancel", "⚙️": "settings", "🛡️": "shield", "🎁": "chest",
+    "💰": "coin", "🪙": "coin", "⭐": "star", "🌟": "star",
+    "⚔️": "sword", "🗡️": "sword", "✅": "confirm", "👑": "crown",
+    "🏰": "tower", "🤝": "trade", "📅": "daily", "⬇️": "down",
+    "🔽": "down", "🏆": "trophy", "⬆️": "up", "🔼": "up",
+    "💀": "enemy", "🧭": "expedition", "💎": "gem", "👥": "guild",
+    "❓": "help", "ℹ️": "info", "📊": "leaderboard", "🍀": "lucky",
+    "🏪": "market", "🧪": "potion", "📜": "quest",
+}
+
+
 def render_text(value: str, emoji_map: dict[str, str] | None = None) -> str:
-    for name, custom_emoji in CUSTOM_EMOJIS.items():
-        # Replace the corresponding Unicode symbol wherever it appears.
-        unicode_by_name = {
-            "bag": "🎒", "refresh": "🔄", "reward": "🎉", "boss": "👹",
-            "cancel": "❌", "settings": "⚙️", "shield": "🛡️", "chest": "🎁",
-            "coin": "💰", "star": "⭐", "sword": "⚔️", "confirm": "✅",
-            "crown": "👑", "tower": "🏰", "trade": "🤝", "daily": "📅",
-            "down": "⬇️", "trophy": "🏆", "up": "⬆️", "enemy": "💀",
-            "expedition": "🧭", "gem": "💎", "guild": "👥", "help": "❓",
-            "info": "ℹ️", "leaderboard": "📊", "lucky": "🍀", "market": "🏪",
-            "potion": "🧪", "quest": "📜",
-        }
-        value = value.replace(unicode_by_name[name], custom_emoji)
-    return value
-
-
-
-def render_text(value: str, emoji_map: dict[str, str]) -> str:
-    for unicode_emoji, name in sorted(UNICODE_TO_NAME.items(), key=lambda item: len(item[0]), reverse=True):
-        custom_emoji = emoji_map.get(name)
+    if not isinstance(value, str):
+        return value
+    # Some command strings contain the two literal characters "\\n"
+    # instead of a real newline. Normalize those before sending.
+    value = value.replace("\\r\\n", "\n").replace("\\n", "\n")
+    emojis = emoji_map or CUSTOM_EMOJIS
+    for unicode_emoji, name in sorted(
+        UNICODE_TO_NAME.items(), key=lambda item: len(item[0]), reverse=True
+    ):
+        custom_emoji = emojis.get(name)
         if custom_emoji:
             value = value.replace(unicode_emoji, custom_emoji)
     return value
