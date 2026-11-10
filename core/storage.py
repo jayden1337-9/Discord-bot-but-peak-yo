@@ -6,10 +6,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-# Compatibility hook for existing tests; backups now refresh on every save.
-_BACKUPS_CREATED: set[Path] = set()
-
-
 def atomic_json_save(data: dict[str, Any], path: Path) -> None:
     """Write JSON atomically and refresh a last-known-good recovery snapshot."""
     path = Path(path)
