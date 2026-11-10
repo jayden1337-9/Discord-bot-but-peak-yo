@@ -83,7 +83,7 @@ def split_text(text, limit=1024):
 
 def paginated_embeds(embed):
     """Convert an oversized embed into valid, lossless 1024-char pages."""
-    description_parts = split_text(embed.description or "", 1024)
+    description_parts = split_text(embed.description or "", 4096)
     fields = []
     for field in embed.fields:
         parts = split_text(field.value, 1024)
