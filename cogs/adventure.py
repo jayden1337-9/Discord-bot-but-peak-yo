@@ -438,7 +438,12 @@ class WeaponBuilderModal(discord.ui.Modal, title="Create a custom weapon"):
 
 class WeaponBuilderView(discord.ui.View):
  def __init__(self,cog,owner_id):
-  super().__init__(timeout=180); self.cog=cog; self.owner_id=owner_id
+  super().__init__(timeout=180); self.cog=cog; self.owner_id=owner_id; self.message=None
+ async def on_timeout(self):
+  for child in self.children: child.disabled=True
+  if self.message is not None:
+   try: await self.message.edit(view=self)
+   except discord.HTTPException: pass
  @discord.ui.button(label="Open weapon builder",style=discord.ButtonStyle.primary)
  async def open_builder(self,interaction,button):
   if interaction.user.id!=self.owner_id:
@@ -1414,7 +1419,8 @@ class Adventure(commands.Cog):
  @commands.is_owner()
  async def createweapon(self,ctx):
   e=self.embed("CUSTOM WEAPON FORGE","Open the builder to define a weapon name, description, basic damage and ability damage. Created weapons are stored in the JSON database.")
-  await ctx.reply(embed=e,view=WeaponBuilderView(self,ctx.author.id),mention_author=False)
+  view=WeaponBuilderView(self,ctx.author.id)
+  view.message=await ctx.reply(embed=e,view=view,mention_author=False)
  @commands.group(name="weapon",invoke_without_command=True)
  async def weapon(self,ctx):
   await ctx.reply(embed=self.embed("WEAPON ARCHIVE","Use ,weapon list or ,weapon equip <key>."),mention_author=False)
