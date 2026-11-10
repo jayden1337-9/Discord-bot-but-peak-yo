@@ -348,10 +348,11 @@ class Social(commands.Cog):
         cog = self.bot.get_cog("Adventure")
         if cog is None:
             return
-        ensure_social_data(cog.data)
-        result = award_guild_xp(cog.data, int(server_id), int(user_id), int(amount))
-        if result is not None:
-            cog.flush()
+        async with self.lock:
+            ensure_social_data(cog.data)
+            result = award_guild_xp(cog.data, int(server_id), int(user_id), int(amount))
+            if result is not None:
+                cog.flush()
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -387,13 +388,14 @@ class Social(commands.Cog):
     async def on_ready(self):
         cog = self.bot.get_cog("Adventure")
         if cog:
-            ensure_social_data(cog.data)
-            now = int(time.time())
-            expired = [key for key, offer in cog.data["trades"].items() if int(offer.get("expires", 0)) < now]
-            for key in expired:
-                del cog.data["trades"][key]
-            if expired:
-                cog.flush()
+            async with self.lock:
+                ensure_social_data(cog.data)
+                now = int(time.time())
+                expired = [key for key, offer in cog.data["trades"].items() if int(offer.get("expires", 0)) < now]
+                for key in expired:
+                    del cog.data["trades"][key]
+                if expired:
+                    cog.flush()
 
 
 async def setup(bot):
