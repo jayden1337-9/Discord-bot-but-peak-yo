@@ -186,7 +186,8 @@ class DiscordBot(commands.Bot):
         else:
             log.error("Command failed", exc_info=(type(error), error, error.__traceback__))
             message = "Something went wrong while running that command."
-        embed = discord.Embed(title="Something went wrong", description=message, color=discord.Color.from_rgb(190, 62, 72))
+        title = "Command not found" if isinstance(error, commands.CommandNotFound) else "Something went wrong"
+        embed = discord.Embed(title=title, description=message, color=discord.Color.from_rgb(190, 62, 72))
         await ctx.reply(embed=embed, mention_author=False)
 
 
