@@ -139,7 +139,7 @@ class General(commands.Cog):
             embed.add_field(name="Account status", value="Bot account" if member.bot else "User account", inline=True)
         await ctx.reply(embed=embed, mention_author=False)
 
-    @commands.command(name="serverinfo", aliases=["server", "guild"])
+    @commands.command(name="serverinfo", aliases=["server"])
     @commands.guild_only()
     async def serverinfo(self, ctx: commands.Context) -> None:
         guild = ctx.guild
