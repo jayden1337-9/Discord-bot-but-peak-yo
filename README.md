@@ -14,12 +14,15 @@ A comma-prefix Discord bot for community tools and a persistent anime-themed RPG
 - Anime boss rosters across Jujutsu Kaisen, JoJo's Bizarre Adventure, Naruto, One Piece, Bleach, Demon Slayer, My Hero Academia, Dragon Ball, Hunter x Hunter, Fairy Tail, Black Clover, Attack on Titan, Slime and Gurren Lagann
 - Nine forgeable signature weapons and ten universal combat skills
 - Eight permanent relic pieces across armor, relic and core slots, with attack and defense bonuses
-- A persistent ten-floor solo Rift Tower with escalating bosses, floor rewards and saved best records
+- An endless solo Rift Tower with escalating bosses, floor rewards and saved best records
 - Five global chest tiers (Common, Rare, Diamond, Ruby, Mythic) with difficulty-scaled drop rates, tiered loot, exclusive boss drops, Gold and Gems
 - Cooperative turn-based boss raids with party turns, escalating boss phases, retaliation and rewards
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
 - Custom weapon builder and owner-only damage controls
 - Persistent JSON player profiles, inventories, weapons and active raids
+- Ascension progression with up to 25 permanent damage upgrades; no level or inventory reset
+- Global cooperative world bosses with contribution rankings, one-time rewards and three difficulty tiers
+- Endless Rift Tower floors with rotating bosses and scaling rewards
 - Huge-number display for existing high-level profiles\n- Exact symbolic googolplex swarm rewards, tracked without expanding their decimal digits; symbolic XP is kept separate from ordinary level calculations
 - Owner-only GitHub update/restart with validation and rollback
 
@@ -144,3 +147,11 @@ Commands:
 - `,expedition`, `,expedition start <route>`, `,expedition status`, `,expedition attack [ability]`, `,expedition retreat`
 - `,pets`, `,pet equip <key>`, `,pet off`
 - `,login`
+
+## Final endgame update
+
+- `,ascension` shows requirements and permanent bonus; `,ascend` consumes Rift Crystals, Mythic Tokens and Time Rift Fragments for a permanent +2% damage bonus per rank, up to 25 ranks. Ascension never resets level, XP, inventory, equipment, weapons or skills.
+- `,worldboss` shows the global event; `,worldboss join` joins; `,worldboss attack` opens the normal category-first skill picker; `,worldboss leaderboard` ranks contributions; `,worldboss claim` grants one reward after victory.
+- Owner-only event controls: `,worldboss summon <world_eater|celestial_dragon|void_emperor>` and `,worldboss close`. World boss state is shared across servers and saved in the game database.
+- Ascension bonuses apply to raids, expeditions, Rift Tower and world boss damage.
+- Rift Tower continues indefinitely after floor 10 with rotating bosses, increasing health and damage, and scaled material rewards.
