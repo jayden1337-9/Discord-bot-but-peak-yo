@@ -824,6 +824,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("PLAYER JOINED",f"{ctx.author.mention} entered with 250 HP. Boss health scaled by 25% for the extra party member."),mention_author=False)
  @boss.command(name="status")
  @commands.guild_only()
+ @serialized
  async def status(self,ctx):
   r=self.data["raids"].get(str(ctx.guild.id))
   if not r: await ctx.reply(embed=self.embed("NO RAID","There is no active raid."),mention_author=False); return
