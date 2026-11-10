@@ -27,6 +27,7 @@ class Social(commands.Cog):
                 return key, guild
         return None, None
 
+    @commands.guild_only()
     @commands.group(name="guild", invoke_without_command=True)
     async def guild(self, ctx):
         p = ctx.clean_prefix
@@ -121,6 +122,7 @@ class Social(commands.Cog):
             lines.append(("★ " if uid == guild["leader"] else "") + (member.mention if member else f"<@{uid}>"))
         await ctx.reply(embed=self.embed(f"{guild['name']} members", "\n".join(lines)), mention_author=False)
 
+    @commands.guild_only()
     @commands.group(name="trade", invoke_without_command=True)
     async def trade(self, ctx):
         p = ctx.clean_prefix
@@ -173,6 +175,7 @@ class Social(commands.Cog):
             cog.flush()
         await ctx.reply("Trade offer cancelled.", mention_author=False)
 
+    @commands.guild_only()
     @commands.group(name="market", invoke_without_command=True)
     async def market(self, ctx):
         p = ctx.clean_prefix
@@ -226,6 +229,8 @@ class Social(commands.Cog):
                 return await ctx.reply("You don't have enough Gold.", mention_author=False)
             if int(seller.get("gold", 0)) + listing["price"] > 10**18:
                 return await ctx.reply("Seller's Gold balance is at its limit.", mention_author=False)
+            if int(buyer["inventory"].get(listing["item"], 0)) + int(listing["amount"]) > 10**18:
+                return await ctx.reply("Your item stack would exceed its limit.", mention_author=False)
             try:
                 transfer_gold(buyer, seller, int(listing["price"]))
                 buyer["inventory"][listing["item"]] = int(buyer["inventory"].get(listing["item"], 0)) + int(listing["amount"])
