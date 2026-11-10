@@ -66,7 +66,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 ### System
 - `,ping` / `,latency`
 - `,about` / `,botinfo`
-- `,help` / `,commands`
+- `,help` / `,commands` / `,help <command>` — browse categories or inspect exact command usage and subcommands
 - `,menu` / `,panel` / `,start` — interactive shortcuts for profile, inventory, quests, leaderboard, wallet, guilds, market and bosses
 
 ### Community
