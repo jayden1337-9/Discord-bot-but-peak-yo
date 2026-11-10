@@ -351,14 +351,36 @@ def save(data):
 
 def load():
  ROOT.mkdir(parents=True,exist_ok=True)
+ backup=DB_FILE.with_name(f"{DB_FILE.stem}.backup{DB_FILE.suffix}")
+ broken=DB_FILE.with_name(f"{DB_FILE.stem}.broken{DB_FILE.suffix}")
+ def read_database(path):
+  value=json.loads(path.read_text(encoding="utf-8"))
+  if not isinstance(value,dict) or not isinstance(value.get("profiles"),dict):
+   raise ValueError("database root or profiles collection is invalid")
+  value.setdefault("raids",{}); value.setdefault("custom_weapons",{}); value.setdefault("version",1)
+  return value
  if DB_FILE.exists():
   try:
-   d=json.loads(DB_FILE.read_text(encoding="utf-8"))
-   if isinstance(d,dict) and isinstance(d.get("profiles"),dict):
-    d.setdefault("raids",{}); d.setdefault("custom_weapons",{}); d.setdefault("version",1); return d
-  except (OSError,json.JSONDecodeError):
-   try: DB_FILE.replace(DB_FILE.with_suffix(".broken.json"))
-   except OSError: pass
+   return read_database(DB_FILE)
+  except (OSError,json.JSONDecodeError,ValueError) as primary_error:
+   # Never silently replace a damaged player database with an empty one.
+   if backup.exists():
+    try:
+     recovered=read_database(backup)
+     try: DB_FILE.replace(broken)
+     except OSError: pass
+     save(recovered)
+     return recovered
+    except (OSError,json.JSONDecodeError,ValueError):
+     pass
+   raise RuntimeError(f"Player database is unreadable and no valid backup could be loaded: {primary_error}") from primary_error
+ if backup.exists():
+  try:
+   recovered=read_database(backup)
+   save(recovered)
+   return recovered
+  except (OSError,json.JSONDecodeError,ValueError) as backup_error:
+   raise RuntimeError(f"Player database is missing and its backup is invalid: {backup_error}") from backup_error
  d={"version":1,"profiles":{},"raids":{},"custom_weapons":{}}
  if OLD_DB.exists():
   try:
@@ -375,9 +397,10 @@ def load():
     if values.get("six_eyes",0): p["inventory"]["six_eyes"]=values["six_eyes"]
     p["infinity_unlocked"]=bool(values.get("infinity_unlocked",0)); p["six_eyes_unlocked"]=bool(values.get("six_eyes_unlocked",0))
     d["profiles"][str(uid)]=p
-  except sqlite3.Error: pass
+  except sqlite3.Error:
+   if 'con' in locals(): con.close()
+   raise
  save(d); return d
-
 class WeaponBuilderModal(discord.ui.Modal, title="Create a custom weapon"):
  def __init__(self, cog, owner_id):
   super().__init__(timeout=300); self.cog=cog; self.owner_id=owner_id
