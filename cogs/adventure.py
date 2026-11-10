@@ -456,7 +456,9 @@ class AttackCategoryButton(discord.ui.Button):
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
   skills_map=self.attack_view.cog.attack_skill_options(self.attack_view.ctx.author.id,self.category)
   skills=skills_map.get(self.category,[])
-  await interaction.response.edit_message(embed=self.attack_view.cog.embed(f"{ATTACK_TYPES[self.category].upper()} SKILLS","Choose one of your equipped skills to use this turn."),view=AttackSkillView(self.attack_view.cog,self.attack_view.ctx,self.category,skills,self.attack_view.attack_command,self.attack_view.attack_owner))
+  view=AttackSkillView(self.attack_view.cog,self.attack_view.ctx,self.category,skills,self.attack_view.attack_command,self.attack_view.attack_owner)
+  view.message=interaction.message
+  await interaction.response.edit_message(embed=self.attack_view.cog.embed(f"{ATTACK_TYPES[self.category].upper()} SKILLS","Choose one of your equipped skills to use this turn."),view=view)
 
 class AttackSkillButton(discord.ui.Button):
  def __init__(self, attack_view, key, label, row):
@@ -476,21 +478,28 @@ class AttackBackButton(discord.ui.Button):
   if interaction.user.id!=self.attack_view.ctx.author.id:
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
   categories=self.attack_view.cog.attack_skill_options(self.attack_view.ctx.author.id)
-  await interaction.response.edit_message(embed=self.attack_view.cog.embed("CHOOSE WEAPON TYPE","Choose a category. Then select one of its equipped skills."),view=AttackCategoryView(self.attack_view.cog,self.attack_view.ctx,categories,self.attack_view.attack_command,self.attack_view.attack_owner))
+  view=AttackCategoryView(self.attack_view.cog,self.attack_view.ctx,categories,self.attack_view.attack_command,self.attack_view.attack_owner)
+  view.message=interaction.message
+  await interaction.response.edit_message(embed=self.attack_view.cog.embed("CHOOSE WEAPON TYPE","Choose a category. Then select one of its equipped skills."),view=view)
 
 class AttackCategoryView(discord.ui.View):
  def __init__(self,cog,ctx,categories,attack_command=None,attack_owner=None):
-  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.attack_command=attack_command or cog.attack; self.attack_owner=attack_owner or cog
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.attack_command=attack_command or cog.attack; self.attack_owner=attack_owner or cog; self.message=None
   for category,skills in categories.items():
    self.add_item(AttackCategoryButton(self,category,len(skills),0))
  async def interaction_check(self,interaction):
   if interaction.user.id!=self.ctx.author.id:
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return False
   return True
+ async def on_timeout(self):
+  for child in self.children: child.disabled=True
+  if self.message is not None:
+   try: await self.message.edit(view=self)
+   except discord.HTTPException: pass
 
 class AttackSkillView(discord.ui.View):
  def __init__(self,cog,ctx,category,skills,attack_command=None,attack_owner=None):
-  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.category=category; self.attack_command=attack_command or cog.attack; self.attack_owner=attack_owner or cog
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.category=category; self.attack_command=attack_command or cog.attack; self.attack_owner=attack_owner or cog; self.message=None
   for key,label in skills:
    self.add_item(AttackSkillButton(self,key,label,0))
   self.add_item(AttackBackButton(self))
@@ -498,6 +507,11 @@ class AttackSkillView(discord.ui.View):
   if interaction.user.id!=self.ctx.author.id:
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return False
   return True
+ async def on_timeout(self):
+  for child in self.children: child.disabled=True
+  if self.message is not None:
+   try: await self.message.edit(view=self)
+   except discord.HTTPException: pass
 
 class BossRegisterView(discord.ui.View):
  def __init__(self,cog,owner_id):
