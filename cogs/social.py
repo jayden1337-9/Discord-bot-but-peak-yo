@@ -78,6 +78,55 @@ class TradeOfferView(discord.ui.View):
         await self.finish(interaction, "Trade cancelled", "The offer was cancelled by its sender.")
 
 
+class MarketPurchaseConfirm(discord.ui.View):
+    def __init__(self, cog, server_id, buyer_id, listing_id):
+        super().__init__(timeout=60)
+        self.cog = cog
+        self.server_id = server_id
+        self.buyer_id = buyer_id
+        self.listing_id = listing_id
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id != self.buyer_id or interaction.guild_id != self.server_id:
+            await interaction.response.send_message("This purchase confirmation belongs to another player.", ephemeral=True)
+            return False
+        return True
+
+    @discord.ui.button(label="Confirm purchase", style=discord.ButtonStyle.success)
+    async def confirm(self, interaction, button):
+        game = self.cog.game()
+        async with self.cog.lock:
+            listing = game.data["market"].get(self.listing_id)
+            if not listing or listing.get("server_id") != self.server_id:
+                return await interaction.response.edit_message(content="That listing is no longer available.", embed=None, view=None)
+            buyer = game.p(self.buyer_id)
+            seller = game.p(int(listing["seller"]))
+            price = int(listing["price"])
+            amount = int(listing["amount"])
+            item = listing["item"]
+            if int(buyer.get("gold", 0)) < price:
+                return await interaction.response.edit_message(content="You don't have enough Gold.", embed=None, view=None)
+            if int(seller.get("gold", 0)) + price > 10**18:
+                return await interaction.response.edit_message(content="The seller's Gold balance is at its limit.", embed=None, view=None)
+            if int(buyer["inventory"].get(item, 0)) + amount > 10**18:
+                return await interaction.response.edit_message(content="Your item stack would exceed its limit.", embed=None, view=None)
+            transfer_gold(buyer, seller, price)
+            buyer["inventory"][item] = int(buyer["inventory"].get(item, 0)) + amount
+            del game.data["market"][self.listing_id]
+            game.flush()
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(
+            content=None,
+            embed=self.cog.embed("Purchase complete", f"Bought {amount:,} × {item.replace('_', ' ').title()} for {price:,} Gold."),
+            view=self,
+        )
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.secondary)
+    async def cancel(self, interaction, button):
+        await interaction.response.edit_message(content="Purchase cancelled.", embed=None, view=None)
+
+
 class MarketBrowseView(discord.ui.View):
     def __init__(self, cog, server_id, buyer_id, listings):
         super().__init__(timeout=180)
@@ -108,30 +157,13 @@ class MarketBrowseView(discord.ui.View):
     async def purchase(self, interaction):
         listing_id = self.select.values[0]
         game = self.cog.game()
-        async with self.cog.lock:
-            listing = game.data["market"].get(listing_id)
-            if not listing or listing.get("server_id") != self.server_id:
-                return await interaction.response.send_message("That listing is no longer available. Refresh the market.", ephemeral=True)
-            buyer = game.p(self.buyer_id)
-            seller = game.p(int(listing["seller"]))
-            price = int(listing["price"])
-            amount = int(listing["amount"])
-            item = listing["item"]
-            if int(buyer.get("gold", 0)) < price:
-                return await interaction.response.send_message("You don't have enough Gold for that listing.", ephemeral=True)
-            if int(seller.get("gold", 0)) + price > 10**18:
-                return await interaction.response.send_message("The seller's Gold balance is at its limit. The listing cannot be purchased right now.", ephemeral=True)
-            if int(buyer["inventory"].get(item, 0)) + amount > 10**18:
-                return await interaction.response.send_message("Your item stack would exceed its limit.", ephemeral=True)
-            transfer_gold(buyer, seller, price)
-            buyer["inventory"][item] = int(buyer["inventory"].get(item, 0)) + amount
-            del game.data["market"][listing_id]
-            game.flush()
-        for child in self.children:
-            child.disabled = True
-        await interaction.response.edit_message(
-            embed=self.cog.embed("Purchase complete", f"Bought {amount:,} × {item.replace('_', ' ').title()} for {price:,} Gold."),
-            view=self,
+        listing = game.data["market"].get(listing_id)
+        if not listing or listing.get("server_id") != self.server_id:
+            return await interaction.response.send_message("That listing is no longer available. Refresh the market.", ephemeral=True)
+        await interaction.response.send_message(
+            f"Confirm buying {int(listing['amount']):,} × {listing['item'].replace('_', ' ').title()} for {int(listing['price']):,} Gold.",
+            view=MarketPurchaseConfirm(self.cog, self.server_id, self.buyer_id, listing_id),
+            ephemeral=True,
         )
 
     async def on_timeout(self):
