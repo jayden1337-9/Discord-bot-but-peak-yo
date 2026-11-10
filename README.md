@@ -162,3 +162,12 @@ Commands:
 - `,attack` automatically routes to the encounter you most recently entered: raid, Rift Tower, expedition or joined global world boss. It opens the shared category-first skill picker and uses the same equipped loadout across modes.
 - Entering or joining an encounter sets it as your active attack target. If an older profile has multiple active encounters but no saved target, the router uses a safe fallback order: Rift Tower, expedition, world boss, then raid.
 - The older nested attack commands remain available for compatibility, but are no longer required.
+
+
+## Social systems
+
+- `,guild create <name>` creates a server-scoped guild for 10,000 Gold.
+- `,guild join <name>`, `,guild leave`, `,guild info`, `,guild members`, and `,guild transfer @member` manage guild membership.
+- `,trade offer @member <item> <amount>` creates a 24-hour direct item offer; `,trade accept <id>` and `,trade cancel <id>` resolve it.
+- `,market list <item> <amount> <price>` escrows an item stack for sale. `,market browse`, `,market buy <id>`, and `,market cancel <id>` manage listings.
+- Guilds, trades and listings are scoped to the Discord server. Player profiles remain shared by Discord user ID. Symbolic reward balances are intentionally non-transferable.
