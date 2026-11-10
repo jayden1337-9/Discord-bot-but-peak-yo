@@ -133,7 +133,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 
 ## Data
 
-The player database is stored in `peak_game.json` inside `BOT_DATA_DIR`. The filename is retained for compatibility with existing player data. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save and refreshes `game_data.backup.json` from the last valid database before overwriting it.
+The player database is stored in `peak_game.json` inside `BOT_DATA_DIR`. The filename is retained for compatibility with existing player data. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically and keeps a last-known-good `peak_game.backup.json` recovery snapshot. If the main database is damaged, startup attempts to restore that snapshot; if no valid recovery copy exists, startup stops rather than silently creating an empty database.
 
 Large player values are displayed in scientific notation. A googolplex swarm is represented exactly as 10^(10^100) and its damage, loot, victories, skill points and XP rewards are tracked symbolically. Symbolic XP is kept separate from ordinary level progression because the resulting level cannot be represented as a practical finite integer.
 
