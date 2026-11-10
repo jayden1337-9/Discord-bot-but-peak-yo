@@ -158,22 +158,22 @@ class DiscordBot(commands.Bot):
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.CommandNotFound):
             return
-        if isinstance(error, commands.MissingPermissions):
-            message = "You do not have permission to use that command."
-        elif isinstance(error, commands.BotMissingPermissions):
-            message = "I am missing a permission required to run that command."
         if isinstance(error, commands.MissingRequiredArgument):
             message = f"Missing argument: `{error.param.name}`. Use `{ctx.clean_prefix}help` for usage."
         elif isinstance(error, commands.BadArgument):
             message = "That argument could not be understood. Check the command usage with the help command."
+        elif isinstance(error, commands.MissingPermissions):
+            message = "You do not have permission to use that command."
+        elif isinstance(error, commands.BotMissingPermissions):
+            message = "I am missing a permission required to run that command."
         elif isinstance(error, commands.NotOwner):
             message = "This command is restricted to the bot owner."
-        elif isinstance(error, commands.CheckFailure):
-            message = "You cannot use that command here or with your current permissions."
         elif isinstance(error, commands.NoPrivateMessage):
             message = "This command can only be used inside a server."
         elif isinstance(error, commands.CommandOnCooldown):
             message = f"Try again in {error.retry_after:.1f} seconds."
+        elif isinstance(error, commands.CheckFailure):
+            message = "You cannot use that command here or with your current permissions."
         elif isinstance(error, commands.CommandInvokeError):
             original = error.original
             log.error("Command failed: %s", original, exc_info=(type(original), original, original.__traceback__))
