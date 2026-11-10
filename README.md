@@ -67,6 +67,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,ping` / `,latency`
 - `,about` / `,botinfo`
 - `,help` / `,commands`
+- `,menu` / `,panel` / `,start` — interactive shortcuts for profile, inventory, quests, leaderboard, wallet, guilds, market and bosses
 
 ### Community
 - `,guild create <name>` / `,guild join <name>` / `,guild leave` / `,guild info` / `,guild members` / `,guild transfer @member` / `,guild kick @member` / `,guild top` / `,guild donate <gold>` — server guilds with rate-limited message activity XP, donations, leveling and member-slot unlocks
