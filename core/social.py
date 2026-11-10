@@ -41,3 +41,24 @@ def transfer_gold(source: dict[str, Any], target: dict[str, Any], amount: int) -
         raise ValueError("Recipient Gold limit would be exceeded")
     source["gold"] = int(source.get("gold", 0)) - amount
     target["gold"] = int(target.get("gold", 0)) + amount
+
+
+def award_guild_xp(data: dict[str, Any], server_id: int, user_id: int, amount: int) -> tuple[int, int] | None:
+    """Award guild XP to the member's guild; return (new level, levels gained)."""
+    if amount <= 0:
+        return None
+    for guild in data.get("guilds", {}).values():
+        if guild.get("server_id") != server_id or str(user_id) not in guild.get("members", []):
+            continue
+        old_level = max(1, int(guild.get("level", 1)))
+        guild["xp"] = max(0, int(guild.get("xp", 0))) + int(amount)
+        while int(guild["level"]) < 20 and guild["xp"] >= int(guild["level"]) * 500:
+            guild["xp"] -= int(guild["level"]) * 500
+            guild["level"] += 1
+        return int(guild["level"]), int(guild["level"]) - old_level
+    return None
+
+
+def guild_member_limit(guild: dict[str, Any]) -> int:
+    """Guilds start with 10 slots and unlock up to 20 through levels."""
+    return min(20, 10 + max(1, int(guild.get("level", 1))) // 2)
