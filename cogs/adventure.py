@@ -1066,7 +1066,7 @@ class Adventure(commands.Cog):
   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; key=skill.lower().strip().replace(" ","_")
   if key in SKILL_TREE:
    d=SKILL_TREE[key]
-  missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items() if not self.has_item(p,i,n)]
+   missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items() if not self.has_item(p,i,n)]
    if key in p["unlocked_skills"]:
     await ctx.reply(embed=self.embed("ALREADY UNLOCKED",f"{d['name']} is already available."),mention_author=False); return
    if p["level"]<d["level"] or p["points"]<d["cost"] or missing:
@@ -1154,7 +1154,7 @@ class Adventure(commands.Cog):
   if not d:
    await ctx.reply(embed=self.embed("UNKNOWN DIMENSION","Use ,dimension list."),mention_author=False); return
   if key not in p["unlocked_dimensions"]:
-  missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items() if not self.has_item(p,i,n)]
+   missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items() if not self.has_item(p,i,n)]
    if p["level"]<d["level"] or p["wins"]<d["wins"] or missing:
     await ctx.reply(embed=self.embed("GATE SEALED",f"Level {d['level']} · {d['wins']} victories\nMissing: {', '.join(missing) if missing else 'None'}"),mention_author=False); return
    for i,n in d["materials"].items(): self.consume_item(p,i,n)
