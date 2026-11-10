@@ -343,6 +343,16 @@ class Social(commands.Cog):
         await ctx.reply("Listing cancelled and items returned.", mention_author=False)
 
     @commands.Cog.listener()
+    async def on_guild_activity(self, server_id, user_id, amount):
+        cog = self.bot.get_cog("Adventure")
+        if cog is None:
+            return
+        ensure_social_data(cog.data)
+        result = award_guild_xp(cog.data, int(server_id), int(user_id), int(amount))
+        if result is not None:
+            cog.flush()
+
+    @commands.Cog.listener()
     async def on_message(self, message):
         # Guild activity progression is deliberately slow and rate-limited:
         # commands, bots, DMs and one-word spam do not grant guild XP.
