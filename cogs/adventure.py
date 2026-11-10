@@ -1250,7 +1250,7 @@ class Adventure(commands.Cog):
   title_name={"rookie":"Rookie","slayer":"Boss Slayer","conqueror":"Conqueror","calamity":"Calamity","limitless":"Limitless","king_of_curses":"King of Curses"}.get(equipped_title,"None")
   mastery_level=mastery_tier(p.get("mastery",{}).get(p["character"],0))
   clan_name=CLANS.get(p.get("clan"),{}).get("name","Unassigned")
-  desc=(f"Title: {title_name}\nCharacter: {c[0]}\nClan: {clan_name}\nMastery: Tier {mastery_level}/3 (+{mastery_level*2}% damage)\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
+  desc=(f"Title: {title_name}\nCharacter: {c[0]}\nClan: {clan_name}\nAscension: {int(p.get('ascension',0))}/25 (+{min(25,int(p.get('ascension',0)))*2}% damage)\nMastery: Tier {mastery_level}/3 (+{mastery_level*2}% damage)\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
   e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
