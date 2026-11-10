@@ -58,7 +58,7 @@ def update_from_github() -> bool:
             return False
 
         check = subprocess.run(
-            [sys.executable, "-m", "compileall", "-q", "main.py", "cogs", "run.py"],
+            [sys.executable, "-m", "compileall", "-q", "main.py", "core", "cogs", "run.py"],
             cwd=ROOT,
             text=True,
             stdout=subprocess.PIPE,
