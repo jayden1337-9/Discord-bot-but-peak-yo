@@ -113,7 +113,7 @@ class General(commands.Cog):
 
     @commands.command(name="about", aliases=["botinfo"])
     async def about(self, ctx: commands.Context) -> None:
-        embed = self.embed("Peak", "A multi-purpose Discord system built for communities, tools and cooperative adventures.")
+        embed = self.embed("Bot information", "A multi-purpose Discord bot for community tools and cooperative RPG features.")
         embed.add_field(name="Servers", value=f"{len(self.bot.guilds):,}", inline=True)
         embed.add_field(name="Users", value=f"{sum(g.member_count or 0 for g in self.bot.guilds):,}", inline=True)
         embed.add_field(name="Latency", value=f"{round(self.bot.latency * 1000)} ms", inline=True)
