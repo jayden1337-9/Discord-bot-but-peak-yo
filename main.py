@@ -192,36 +192,53 @@ def paginated_embeds(embed):
 
 
 class BotContext(commands.Context):
+    def _render_embed(self, embed, emoji_map):
+        if embed is None or not emoji_map:
+            return embed
+        embed = embed.copy()
+        if embed.title:
+            embed.title = render_text(embed.title, emoji_map)
+        if embed.description:
+            embed.description = render_text(embed.description, emoji_map)
+        for index, field in enumerate(embed.fields):
+            embed.set_field_at(
+                index,
+                name=render_text(field.name, emoji_map),
+                value=render_text(field.value, emoji_map),
+                inline=field.inline,
+            )
+        if embed.author.name:
+            embed.set_author(
+                name=render_text(embed.author.name, emoji_map),
+                url=embed.author.url,
+                icon_url=embed.author.icon_url,
+            )
+        if embed.footer.text:
+            embed.set_footer(
+                text=render_text(embed.footer.text, emoji_map),
+                icon_url=embed.footer.icon_url,
+            )
+        return embed
+
+    async def reply(self, content=None, *, mention_author=True, **kwargs):
+        # Context.reply normally bypasses Context.send and therefore skipped
+        # the custom-emoji renderer. Route replies through the same pipeline.
+        kwargs["reference"] = self.message
+        kwargs["mention_author"] = mention_author
+        return await self.send(content, **kwargs)
+
     async def send(self, content=None, **kwargs):
         emoji_map = getattr(self.bot, "emoji_map", {})
         if isinstance(content, str):
             content = render_text(content, emoji_map)
-        embed = kwargs.get("embed")
-        if embed is not None and emoji_map:
-            embed = embed.copy()
-            if embed.title:
-                embed.title = render_text(embed.title, emoji_map)
-            if embed.description:
-                embed.description = render_text(embed.description, emoji_map)
-            for index, field in enumerate(embed.fields):
-                embed.set_field_at(index, name=render_text(field.name, emoji_map), value=render_text(field.value, emoji_map), inline=field.inline)
+        embed = self._render_embed(kwargs.get("embed"), emoji_map)
+        if embed is not None:
             kwargs["embed"] = embed
         embeds = kwargs.get("embeds")
         if embeds and emoji_map:
             rendered_embeds = []
             for item in embeds:
-                item = item.copy()
-                if item.title:
-                    item.title = render_text(item.title, emoji_map)
-                if item.description:
-                    item.description = render_text(item.description, emoji_map)
-                for index, field in enumerate(item.fields):
-                    item.set_field_at(index, name=render_text(field.name, emoji_map), value=render_text(field.value, emoji_map), inline=field.inline)
-                if item.author.name:
-                    item.set_author(name=render_text(item.author.name, emoji_map), url=item.author.url, icon_url=item.author.icon_url)
-                if item.footer.text:
-                    item.set_footer(text=render_text(item.footer.text, emoji_map), icon_url=item.footer.icon_url)
-                rendered_embeds.append(item)
+                rendered_embeds.append(self._render_embed(item, emoji_map))
             kwargs["embeds"] = rendered_embeds
             embeds = rendered_embeds
         if embed is not None:
