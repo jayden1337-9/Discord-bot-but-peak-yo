@@ -576,8 +576,12 @@ class Adventure(commands.Cog):
   for key,value in DEFAULT.items():
    if key not in p or (isinstance(value,(dict,list)) and not isinstance(p.get(key),type(value))):
     p[key]=json.loads(json.dumps(value))
-  if p["character"] not in CHARACTERS: p["character"]="sukuna"
-  if p["race"] not in RACES: p["race"]="human"
+  if not isinstance(p.get("character"),str) or p["character"] not in CHARACTERS: p["character"]="sukuna"
+  if not isinstance(p.get("race"),str) or p["race"] not in RACES: p["race"]="human"
+  if p.get("weapon") is not None and not isinstance(p.get("weapon"),str): p["weapon"]=None
+  if p.get("clan") is not None and not isinstance(p.get("clan"),str): p["clan"]=None
+  if not isinstance(p.get("active_dimension"),str): p["active_dimension"]="earth"
+  if p.get("attack_mode") is not None and not isinstance(p.get("attack_mode"),str): p["attack_mode"]=None
   p.setdefault("weapon",None)
   p.setdefault("clan",None)
   p.setdefault("clan_rolls",1)
