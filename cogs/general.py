@@ -13,11 +13,13 @@ class PollView(discord.ui.View):
         super().__init__(timeout=86400)
         self.question = question
         self.votes = {}
+        self.message = None
+        self.closed = False
 
     def build_embed(self) -> discord.Embed:
         yes = sum(1 for vote in self.votes.values() if vote)
         no = sum(1 for vote in self.votes.values() if not vote)
-        embed = discord.Embed(title="Community poll", description=self.question, color=discord.Color.blurple())
+        embed = discord.Embed(title="Poll closed" if self.closed else "Community poll", description=self.question, color=discord.Color.blurple())
         embed.add_field(name="Yes", value=str(yes), inline=True)
         embed.add_field(name="No", value=str(no), inline=True)
         embed.add_field(name="Total votes", value=str(len(self.votes)), inline=True)
@@ -26,6 +28,16 @@ class PollView(discord.ui.View):
     async def record(self, interaction: discord.Interaction, vote: bool) -> None:
         self.votes[interaction.user.id] = vote
         await interaction.response.edit_message(embed=self.build_embed(), view=self)
+
+    async def on_timeout(self) -> None:
+        self.closed = True
+        for item in self.children:
+            item.disabled = True
+        if self.message is not None:
+            try:
+                await self.message.edit(embed=self.build_embed(), view=self)
+            except discord.HTTPException:
+                pass
 
     @discord.ui.button(label="Yes", style=discord.ButtonStyle.success)
     async def yes_button(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
@@ -232,7 +244,7 @@ class General(commands.Cog):
             await ctx.reply(embed=self.embed("Poll too long", "Keep the question under 250 characters.", discord.Color.orange()), mention_author=False)
             return
         view = PollView(question)
-        await ctx.send(embed=view.build_embed(), view=view)
+        view.message = await ctx.send(embed=view.build_embed(), view=view)
 
     @commands.command(name="purge", aliases=["clear"])
     @commands.guild_only()
