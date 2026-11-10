@@ -25,6 +25,7 @@ class EmbedPager(discord.ui.View):
         super().__init__(timeout=180)
         self.pages = pages
         self.owner_id = owner_id
+        self.message = None
         self.index = 0
         self.previous.disabled = True
         self.next.disabled = len(pages) <= 1
@@ -39,6 +40,15 @@ class EmbedPager(discord.ui.View):
         self.previous.disabled = self.index == 0
         self.next.disabled = self.index >= len(self.pages) - 1
         await interaction.response.edit_message(embed=self.pages[self.index], view=self)
+
+    async def on_timeout(self) -> None:
+        for child in self.children:
+            child.disabled = True
+        if self.message is not None:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
 
     @discord.ui.button(label="Previous", style=discord.ButtonStyle.secondary)
     async def previous(self, interaction, button):
@@ -135,8 +145,11 @@ class BotContext(commands.Context):
             kwargs.pop("embed", None)
             kwargs.pop("embeds", None)
             kwargs["embed"] = pages[0]
-            kwargs["view"] = EmbedPager(pages, self.author.id)
-            return await super().send(content, **kwargs)
+            view = EmbedPager(pages, self.author.id)
+            kwargs["view"] = view
+            message = await super().send(content, **kwargs)
+            view.message = message
+            return message
         return await super().send(content, **kwargs)
 
 
