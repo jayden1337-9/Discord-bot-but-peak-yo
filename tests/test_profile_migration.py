@@ -10,7 +10,8 @@ class ProfileMigrationTests(unittest.TestCase):
             "profiles": {
                 "123": {
                     "level": 900,
-                    "inventory": None,
+                    "gold": None,
+                    "inventory": {"bad": "not-a-number", "valid": "12"},
                     "symbolic_rewards": None,
                     "equipped_skills": None,
                     "unlocked_skills": None,
@@ -21,7 +22,8 @@ class ProfileMigrationTests(unittest.TestCase):
         profile = cog.p(123)
 
         self.assertEqual(profile["level"], 900)
-        self.assertEqual(profile["inventory"], {})
+        self.assertEqual(profile["gold"], 0)
+        self.assertEqual(profile["inventory"], {"valid": 12})
         self.assertIsInstance(profile["symbolic_rewards"], dict)
         self.assertIsInstance(profile["equipped_skills"], dict)
         self.assertEqual(profile["unlocked_skills"], [])
