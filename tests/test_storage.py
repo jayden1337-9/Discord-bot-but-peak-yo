@@ -67,6 +67,19 @@ class StorageTests(unittest.TestCase):
         self.assertTrue(broken.exists())
         self.assertEqual(json.loads(database.read_text(encoding="utf-8"))["profiles"]["123"]["level"], 900)
 
+    def test_invalid_profile_shape_recovers_from_backup(self):
+        root = Path(self.temp.name)
+        database = root / "peak_game.json"
+        backup = root / "peak_game.backup.json"
+        expected = {"profiles": {"123": {"level": 900}}, "raids": {}, "custom_weapons": {}}
+        database.write_text(json.dumps({"profiles": {"123": None}}), encoding="utf-8")
+        backup.write_text(json.dumps(expected), encoding="utf-8")
+
+        with patch.object(adventure, "ROOT", root), patch.object(adventure, "DB_FILE", database), patch.object(adventure, "OLD_DB", root / "missing.sqlite3"):
+            recovered = adventure.load()
+
+        self.assertEqual(recovered["profiles"]["123"]["level"], 900)
+
     def test_damaged_player_database_never_silently_becomes_empty(self):
         root = Path(self.temp.name)
         database = root / "peak_game.json"
