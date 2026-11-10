@@ -189,7 +189,8 @@ class Ascension(commands.Cog):
             if not categories:
                 await ctx.reply(embed=self.embed(game, "NO EQUIPPED SKILLS", "Equip an unlocked skill first with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
                 return
-            await ctx.reply(embed=self.embed(game, "CHOOSE WEAPON TYPE", "Choose a category, then choose an equipped skill. No damage is dealt until you select it."), view=AttackCategoryView(self, ctx, categories, self.worldboss_attack, self), mention_author=False)
+            view = AttackCategoryView(self, ctx, categories, self.worldboss_attack, self)
+            view.message = await ctx.reply(embed=self.embed(game, "CHOOSE WEAPON TYPE", "Choose a category, then choose an equipped skill. No damage is dealt until you select it."), view=view, mention_author=False)
             return
         async with game.lock:
             state = game.data.get("world_boss")
