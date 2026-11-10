@@ -1,0 +1,267 @@
+"""Server-scoped guilds, direct trades and a player market."""
+import asyncio
+import time
+import discord
+from discord.ext import commands
+from core.social import ensure_social_data, next_id, transfer_gold, transfer_item, valid_stack
+
+
+class Social(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.lock = asyncio.Lock()
+
+    def game(self):
+        cog = self.bot.get_cog("Adventure")
+        if cog is None:
+            raise RuntimeError("Adventure system is unavailable")
+        ensure_social_data(cog.data)
+        return cog
+
+    def embed(self, title, description=""):
+        return discord.Embed(title=title, description=description, color=discord.Color.from_rgb(48, 61, 82))
+
+    def find_guild(self, data, server_id, user_id):
+        for key, guild in data["guilds"].items():
+            if guild.get("server_id") == server_id and str(user_id) in guild.get("members", []):
+                return key, guild
+        return None, None
+
+    @commands.group(name="guild", invoke_without_command=True)
+    async def guild(self, ctx):
+        p = ctx.clean_prefix
+        await ctx.send(embed=self.embed("Guild commands", f"{p}guild create <name> (10,000 Gold)\n{p}guild join <name>\n{p}guild leave\n{p}guild info\n{p}guild members\n{p}guild transfer @member"))
+
+    @guild.command(name="create")
+    async def guild_create(self, ctx, *, name: str):
+        name = " ".join(name.split())[:32]
+        if len(name) < 3:
+            return await ctx.reply("Guild names must be 3–32 characters.", mention_author=False)
+        cog = self.game()
+        data = cog.data
+        async with self.lock:
+            if self.find_guild(data, ctx.guild.id, ctx.author.id)[1]:
+                return await ctx.reply("You're already in a guild.", mention_author=False)
+            key = name.lower().replace(" ", "_")
+            if any(g.get("server_id") == ctx.guild.id and g.get("key") == key for g in data["guilds"].values()):
+                return await ctx.reply("That guild name is already taken in this server.", mention_author=False)
+            profile = cog.p(ctx.author.id)
+            if int(profile.get("gold", 0)) < 10000:
+                return await ctx.reply("Creating a guild costs 10,000 Gold.", mention_author=False)
+            profile["gold"] -= 10000
+            gid = next_id(data, "G")
+            data["guilds"][gid] = {"key": key, "name": name, "server_id": ctx.guild.id, "leader": str(ctx.author.id), "members": [str(ctx.author.id)], "level": 1, "xp": 0, "created": int(time.time())}
+            cog.flush()
+        await ctx.reply(embed=self.embed("Guild created", f"{name} is now registered. You're the leader."), mention_author=False)
+
+    @guild.command(name="join")
+    async def guild_join(self, ctx, *, name: str):
+        cog = self.game()
+        data = cog.data
+        async with self.lock:
+            if self.find_guild(data, ctx.guild.id, ctx.author.id)[1]:
+                return await ctx.reply("Leave your current guild first.", mention_author=False)
+            found = next(((k, g) for k, g in data["guilds"].items() if g.get("server_id") == ctx.guild.id and g.get("key") == name.lower().replace(" ", "_")), None)
+            if not found:
+                return await ctx.reply("No guild with that name exists in this server.", mention_author=False)
+            _, guild = found
+            if len(guild["members"]) >= 20:
+                return await ctx.reply("That guild is full (20 members).", mention_author=False)
+            guild["members"].append(str(ctx.author.id))
+            cog.flush()
+        await ctx.reply(embed=self.embed("Guild joined", f"You joined {guild['name']}."), mention_author=False)
+
+    @guild.command(name="leave")
+    async def guild_leave(self, ctx):
+        cog = self.game()
+        data = cog.data
+        async with self.lock:
+            gid, guild = self.find_guild(data, ctx.guild.id, ctx.author.id)
+            if not guild:
+                return await ctx.reply("You're not in a guild.", mention_author=False)
+            if guild["leader"] == str(ctx.author.id) and len(guild["members"]) > 1:
+                return await ctx.reply("Transfer leadership before leaving.", mention_author=False)
+            guild["members"].remove(str(ctx.author.id))
+            if not guild["members"]:
+                del data["guilds"][gid]
+            cog.flush()
+        await ctx.reply("You left your guild.", mention_author=False)
+
+    @guild.command(name="transfer")
+    async def guild_transfer(self, ctx, member: discord.Member):
+        cog = self.game()
+        async with self.lock:
+            _, guild = self.find_guild(cog.data, ctx.guild.id, ctx.author.id)
+            if not guild or guild["leader"] != str(ctx.author.id):
+                return await ctx.reply("Only the guild leader can transfer leadership.", mention_author=False)
+            if str(member.id) not in guild["members"]:
+                return await ctx.reply("That member isn't in your guild.", mention_author=False)
+            guild["leader"] = str(member.id)
+            cog.flush()
+        await ctx.reply(f"Leadership transferred to {member.mention}.", mention_author=False)
+
+    @guild.command(name="info")
+    async def guild_info(self, ctx):
+        cog = self.game()
+        _, guild = self.find_guild(cog.data, ctx.guild.id, ctx.author.id)
+        if not guild:
+            return await ctx.reply("You're not in a guild.", mention_author=False)
+        leader = ctx.guild.get_member(int(guild["leader"]))
+        await ctx.reply(embed=self.embed(guild["name"], f"Leader: {leader.mention if leader else 'Unknown'}\nMembers: {len(guild['members'])}/20\nLevel: {guild['level']}\nGuild XP: {guild['xp']:,}"), mention_author=False)
+
+    @guild.command(name="members")
+    async def guild_members(self, ctx):
+        cog = self.game()
+        _, guild = self.find_guild(cog.data, ctx.guild.id, ctx.author.id)
+        if not guild:
+            return await ctx.reply("You're not in a guild.", mention_author=False)
+        lines = []
+        for uid in guild["members"]:
+            member = ctx.guild.get_member(int(uid))
+            lines.append(("★ " if uid == guild["leader"] else "") + (member.mention if member else f"<@{uid}>"))
+        await ctx.reply(embed=self.embed(f"{guild['name']} members", "\n".join(lines)), mention_author=False)
+
+    @commands.group(name="trade", invoke_without_command=True)
+    async def trade(self, ctx):
+        p = ctx.clean_prefix
+        await ctx.send(embed=self.embed("Trade commands", f"{p}trade offer @member <item> <amount>\n{p}trade accept <id>\n{p}trade cancel <id>\nOnly regular inventory stacks are transferable."))
+
+    @trade.command(name="offer")
+    async def trade_offer(self, ctx, member: discord.Member, item: str, amount: int):
+        if member.bot or member.id == ctx.author.id:
+            return await ctx.reply("Choose another player.", mention_author=False)
+        cog = self.game()
+        data = cog.data
+        item = item.lower().replace(" ", "_")
+        async with self.lock:
+            if not valid_stack(cog.p(ctx.author.id), item, amount):
+                return await ctx.reply("You don't have that many transferable items.", mention_author=False)
+            tid = next_id(data, "T")
+            data["trades"][tid] = {"from": str(ctx.author.id), "to": str(member.id), "server_id": ctx.guild.id, "item": item, "amount": amount, "expires": int(time.time()) + 86400}
+            cog.flush()
+        await ctx.reply(embed=self.embed(f"Trade offer {tid}", f"{ctx.author.mention} offers {amount:,} × {item.replace('_', ' ').title()} to {member.mention}.\nAccept with {ctx.clean_prefix}trade accept {tid}. Expires in 24 hours."), mention_author=False)
+
+    @trade.command(name="accept")
+    async def trade_accept(self, ctx, trade_id: str):
+        cog = self.game()
+        data = cog.data
+        key = trade_id.upper()
+        async with self.lock:
+            offer = data["trades"].get(key)
+            if not offer or offer["to"] != str(ctx.author.id) or offer["server_id"] != ctx.guild.id or offer["expires"] < int(time.time()):
+                return await ctx.reply("That offer is missing, expired or not addressed to you.", mention_author=False)
+            try:
+                transfer_item(cog.p(int(offer["from"])), cog.p(ctx.author.id), offer["item"], int(offer["amount"]))
+            except ValueError as exc:
+                del data["trades"][key]
+                cog.flush()
+                return await ctx.reply(f"{exc}. The offer was cancelled.", mention_author=False)
+            del data["trades"][key]
+            cog.flush()
+        await ctx.reply(embed=self.embed("Trade completed", f"Received {offer['amount']:,} × {offer['item'].replace('_', ' ').title()}."), mention_author=False)
+
+    @trade.command(name="cancel")
+    async def trade_cancel(self, ctx, trade_id: str):
+        cog = self.game()
+        data = cog.data
+        key = trade_id.upper()
+        async with self.lock:
+            offer = data["trades"].get(key)
+            if not offer or offer["from"] != str(ctx.author.id) or offer["server_id"] != ctx.guild.id:
+                return await ctx.reply("You don't own that active offer.", mention_author=False)
+            del data["trades"][key]
+            cog.flush()
+        await ctx.reply("Trade offer cancelled.", mention_author=False)
+
+    @commands.group(name="market", invoke_without_command=True)
+    async def market(self, ctx):
+        p = ctx.clean_prefix
+        await ctx.send(embed=self.embed("Player market", f"{p}market browse\n{p}market list <item> <amount> <price>\n{p}market buy <id>\n{p}market cancel <id>"))
+
+    @market.command(name="browse")
+    async def market_browse(self, ctx):
+        cog = self.game()
+        listings = [x for x in cog.data["market"].values() if x["server_id"] == ctx.guild.id and x["seller"] != str(ctx.author.id)]
+        listings.sort(key=lambda x: x["created"])
+        if not listings:
+            return await ctx.reply("No listings are available.", mention_author=False)
+        body = "\n".join(f"{x['id']} · {x['amount']:,} × {x['item'].replace('_', ' ').title()} · {x['price']:,} Gold · <@{x['seller']}>" for x in listings[:20])
+        await ctx.reply(embed=self.embed("Player market", body), mention_author=False)
+
+    @market.command(name="list")
+    async def market_list(self, ctx, item: str, amount: int, price: int):
+        if not 1 <= amount <= 10**18 or not 1 <= price <= 10**18:
+            return await ctx.reply("Amount and price must be between 1 and 10^18.", mention_author=False)
+        cog = self.game()
+        data = cog.data
+        item = item.lower().replace(" ", "_")
+        async with self.lock:
+            profile = cog.p(ctx.author.id)
+            if sum(1 for x in data["market"].values() if x["seller"] == str(ctx.author.id)) >= 10:
+                return await ctx.reply("You can have at most 10 active listings.", mention_author=False)
+            if not valid_stack(profile, item, amount):
+                return await ctx.reply("You don't have that many transferable items.", mention_author=False)
+            profile["inventory"][item] -= amount
+            if not profile["inventory"][item]:
+                del profile["inventory"][item]
+            lid = next_id(data, "M")
+            data["market"][lid] = {"id": lid, "seller": str(ctx.author.id), "server_id": ctx.guild.id, "item": item, "amount": amount, "price": price, "created": int(time.time())}
+            cog.flush()
+        await ctx.reply(embed=self.embed("Listing created", f"{lid}: {amount:,} × {item.replace('_', ' ').title()} for {price:,} Gold. Your items are held until sale or cancellation."), mention_author=False)
+
+    @market.command(name="buy")
+    async def market_buy(self, ctx, listing_id: str):
+        cog = self.game()
+        data = cog.data
+        key = listing_id.upper()
+        async with self.lock:
+            listing = data["market"].get(key)
+            if not listing or listing["server_id"] != ctx.guild.id:
+                return await ctx.reply("That listing is unavailable.", mention_author=False)
+            if listing["seller"] == str(ctx.author.id):
+                return await ctx.reply("You can't buy your own listing.", mention_author=False)
+            buyer = cog.p(ctx.author.id)
+            seller = cog.p(int(listing["seller"]))
+            if int(buyer.get("gold", 0)) < listing["price"]:
+                return await ctx.reply("You don't have enough Gold.", mention_author=False)
+            if int(seller.get("gold", 0)) + listing["price"] > 10**18:
+                return await ctx.reply("Seller's Gold balance is at its limit.", mention_author=False)
+            try:
+                transfer_gold(buyer, seller, int(listing["price"]))
+                buyer["inventory"][listing["item"]] = int(buyer["inventory"].get(listing["item"], 0)) + int(listing["amount"])
+            except ValueError as exc:
+                return await ctx.reply(str(exc), mention_author=False)
+            del data["market"][key]
+            cog.flush()
+        await ctx.reply(embed=self.embed("Purchase complete", f"Bought {listing['amount']:,} × {listing['item'].replace('_', ' ').title()} for {listing['price']:,} Gold."), mention_author=False)
+
+    @market.command(name="cancel")
+    async def market_cancel(self, ctx, listing_id: str):
+        cog = self.game()
+        data = cog.data
+        key = listing_id.upper()
+        async with self.lock:
+            listing = data["market"].get(key)
+            if not listing or listing["seller"] != str(ctx.author.id) or listing["server_id"] != ctx.guild.id:
+                return await ctx.reply("You don't own that listing.", mention_author=False)
+            profile = cog.p(ctx.author.id)
+            profile["inventory"][listing["item"]] = int(profile["inventory"].get(listing["item"], 0)) + int(listing["amount"])
+            del data["market"][key]
+            cog.flush()
+        await ctx.reply("Listing cancelled and items returned.", mention_author=False)
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        cog = self.bot.get_cog("Adventure")
+        if cog:
+            ensure_social_data(cog.data)
+            now = int(time.time())
+            expired = [key for key, offer in cog.data["trades"].items() if int(offer.get("expires", 0)) < now]
+            for key in expired:
+                del cog.data["trades"][key]
+            if expired:
+                cog.flush()
+
+
+async def setup(bot):
+    await bot.add_cog(Social(bot))
