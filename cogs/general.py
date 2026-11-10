@@ -130,18 +130,19 @@ class General(commands.Cog):
     @commands.command(name="help", aliases=["commands", "cmds"])
     async def help_command(self, ctx: commands.Context, *, command_name: str = None) -> None:
         if command_name:
-            command = self.bot.get_command(command_name.strip())
+            command = self.bot.get_command(command_name.strip().lower())
             if command is None:
                 await ctx.reply(embed=self.embed("Command not found", f"No command named `{command_name}` exists. Use `{ctx.clean_prefix}help` to browse the command index.", discord.Color.orange()), mention_author=False)
                 return
-            usage = f"`{ctx.clean_prefix}{command.qualified_name} {command.signature}`".strip()
+            suffix = f" {command.signature}" if command.signature else ""
+            usage = f"`{ctx.clean_prefix}{command.qualified_name}{suffix}`"
             description = command.help or command.short_doc or "No additional description is available."
             embed = self.embed(f"Command help / {command.qualified_name}", description)
             embed.add_field(name="Usage", value=usage, inline=False)
             if command.aliases:
                 embed.add_field(name="Aliases", value=", ".join(f"`{alias}`" for alias in command.aliases), inline=False)
             if isinstance(command, commands.Group) and command.commands:
-                lines = [f"`{ctx.clean_prefix}{child.qualified_name} {child.signature}`".strip() for child in command.commands]
+                lines = [f"`{ctx.clean_prefix}{child.qualified_name}{chr(32) + child.signature if child.signature else chr(0)}`".replace(chr(0), "") for child in command.commands]
                 embed.add_field(name="Subcommands", value="\n".join(lines)[:1024], inline=False)
             await ctx.reply(embed=embed, mention_author=False)
             return
