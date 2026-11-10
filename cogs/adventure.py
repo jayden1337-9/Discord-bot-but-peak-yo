@@ -277,7 +277,19 @@ ITEM_RECIPES = {
  "naruto_key":{"name":"Naruto Key","materials":{"chakra_crystal":12,"uchiha_relic":8,"dimensional_eye":2}},
  "clan_token":{"name":"Clan Reroll","materials":{"chakra_crystal":4,"cursed_ash":4,"soul_fragment":4}},
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_inventory":{},"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"gold":0,"gems":0,"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_inventory":{},"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"gold":0,"gems":0,"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}, "attack_mode":None}
+
+def active_attack_mode(profile, raid_member=False, worldboss_member=False):
+ active=set()
+ if profile.get("tower"): active.add("tower")
+ if profile.get("expedition"): active.add("expedition")
+ if worldboss_member: active.add("worldboss")
+ if raid_member: active.add("raid")
+ preferred=profile.get("attack_mode")
+ if preferred in active: return preferred
+ for mode in ("tower","expedition","worldboss","raid"):
+  if mode in active: return mode
+ return None
 
 def apply_level_ups(profile):
  xp=max(0,int(profile.get("xp",0))); level=max(1,int(profile.get("level",1)))
@@ -428,7 +440,7 @@ class AttackCategoryButton(discord.ui.Button):
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
   skills_map=self.attack_view.cog.attack_skill_options(self.attack_view.ctx.author.id,self.category)
   skills=skills_map.get(self.category,[])
-  await interaction.response.edit_message(embed=self.attack_view.cog.embed(f"{ATTACK_TYPES[self.category].upper()} SKILLS","Choose one of your equipped skills to use this turn."),view=AttackSkillView(self.attack_view.cog,self.attack_view.ctx,self.category,skills,self.attack_view.attack_command))
+  await interaction.response.edit_message(embed=self.attack_view.cog.embed(f"{ATTACK_TYPES[self.category].upper()} SKILLS","Choose one of your equipped skills to use this turn."),view=AttackSkillView(self.attack_view.cog,self.attack_view.ctx,self.category,skills,self.attack_view.attack_command,self.attack_view.attack_owner))
 
 class AttackSkillButton(discord.ui.Button):
  def __init__(self, attack_view, key, label, row):
@@ -438,7 +450,7 @@ class AttackSkillButton(discord.ui.Button):
   if interaction.user.id!=self.attack_view.ctx.author.id:
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
   await interaction.response.edit_message(content="Skill selected. Resolving your turn...",embed=None,view=None)
-  await self.attack_view.attack_command.callback(self.attack_view.cog,self.attack_view.ctx,ability=self.skill_key)
+  await self.attack_view.attack_command.callback(self.attack_view.attack_owner,self.attack_view.ctx,ability=self.skill_key)
 
 class AttackBackButton(discord.ui.Button):
  def __init__(self, attack_view):
@@ -448,11 +460,11 @@ class AttackBackButton(discord.ui.Button):
   if interaction.user.id!=self.attack_view.ctx.author.id:
    await interaction.response.send_message("This attack menu belongs to another player.",ephemeral=True); return
   categories=self.attack_view.cog.attack_skill_options(self.attack_view.ctx.author.id)
-  await interaction.response.edit_message(embed=self.attack_view.cog.embed("CHOOSE WEAPON TYPE","Choose a category. Then select one of its equipped skills."),view=AttackCategoryView(self.attack_view.cog,self.attack_view.ctx,categories,self.attack_view.attack_command))
+  await interaction.response.edit_message(embed=self.attack_view.cog.embed("CHOOSE WEAPON TYPE","Choose a category. Then select one of its equipped skills."),view=AttackCategoryView(self.attack_view.cog,self.attack_view.ctx,categories,self.attack_view.attack_command,self.attack_view.attack_owner))
 
 class AttackCategoryView(discord.ui.View):
- def __init__(self,cog,ctx,categories,attack_command=None):
-  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.attack_command=attack_command or cog.attack
+ def __init__(self,cog,ctx,categories,attack_command=None,attack_owner=None):
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.attack_command=attack_command or cog.attack; self.attack_owner=attack_owner or cog
   for category,skills in categories.items():
    self.add_item(AttackCategoryButton(self,category,len(skills),0))
  async def interaction_check(self,interaction):
@@ -461,8 +473,8 @@ class AttackCategoryView(discord.ui.View):
   return True
 
 class AttackSkillView(discord.ui.View):
- def __init__(self,cog,ctx,category,skills,attack_command=None):
-  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.category=category; self.attack_command=attack_command or cog.attack
+ def __init__(self,cog,ctx,category,skills,attack_command=None,attack_owner=None):
+  super().__init__(timeout=120); self.cog=cog; self.ctx=ctx; self.category=category; self.attack_command=attack_command or cog.attack; self.attack_owner=attack_owner or cog
   for key,label in skills:
    self.add_item(AttackSkillButton(self,key,label,0))
   self.add_item(AttackBackButton(self))
@@ -729,6 +741,7 @@ class Adventure(commands.Cog):
    if uid in r["players"]: await ctx.reply(embed=self.embed("ALREADY JOINED","You are already in this raid."),mention_author=False); return
    if len(r["players"])>=6: await ctx.reply(embed=self.embed("PARTY FULL","Raids support up to 6 players."),mention_author=False); return
    r["players"][uid]=250; r["turns"].append(uid)
+   self.p(ctx.author.id)["attack_mode"]="raid"
    added=max(1,int(BOSSES[r["boss"]][1]*0.25)); r["hp"]+=added; r["max_hp"]+=added; self.flush()
   await ctx.reply(embed=self.embed("PLAYER JOINED",f"{ctx.author.mention} entered with 250 HP. Boss health scaled by 25% for the extra party member."),mention_author=False)
  @boss.command(name="status")
@@ -773,6 +786,22 @@ class Adventure(commands.Cog):
  @commands.guild_only()
  @commands.cooldown(1,1,commands.BucketType.user)
  async def attack(self,ctx,ability=None):
+  uid=str(ctx.author.id); profile=self.p(ctx.author.id)
+  raid=self.data["raids"].get(str(ctx.guild.id))
+  worldboss=self.data.get("world_boss")
+  worldboss_member=bool(worldboss and worldboss.get("active") and uid in worldboss.get("players",{}))
+  raid_member=bool(raid and uid in raid.get("players",{}))
+  mode=active_attack_mode(profile,raid_member=raid_member,worldboss_member=worldboss_member)
+  if mode in {"tower","expedition","worldboss"}:
+   cog_name,command_name={"tower":("Endgame","tower_attack"),"expedition":("Expeditions","expedition_attack"),"worldboss":("Ascension","worldboss_attack")}[mode]
+   target=self.bot.get_cog(cog_name)
+   command=getattr(target,command_name,None) if target else None
+   if command is None:
+    await ctx.reply(embed=self.embed("ATTACK SYSTEM UNAVAILABLE",f"The {mode} combat module is not loaded. Restart the bot and try again."),mention_author=False); return
+   await command.callback(target,ctx,ability=ability)
+   return
+  if mode is None and worldboss and worldboss.get("active") and not profile.get("tower") and not profile.get("expedition") and not raid_member:
+   await ctx.reply(embed=self.embed("GLOBAL BOSS ACTIVE","Join the event first with ,worldboss join. After joining, use ,attack."),mention_author=False); return
   async with self.lock:
    g=str(ctx.guild.id); r=self.data["raids"].get(g); uid=str(ctx.author.id)
    if not r: await ctx.reply(embed=self.embed("NO RAID","Start one with ,boss challenge mahito."),mention_author=False); return
