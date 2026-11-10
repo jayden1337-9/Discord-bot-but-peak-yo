@@ -152,7 +152,7 @@ class Ascension(commands.Cog):
                 "players": {}, "claimed": [], "drops": boss["drops"],
             }
             game.flush()
-        await ctx.reply(embed=self.embed(game, "WORLD BOSS SUMMONED", f"**{boss['name']}** has appeared across every server.\nHealth: {display_number(boss['hp'])}\nJoin with ,worldboss join and fight with ,worldboss attack. Rewards are based on your contribution."), mention_author=False)
+        await ctx.reply(embed=self.embed(game, "WORLD BOSS SUMMONED", f"**{boss['name']}** has appeared across every server.\nHealth: {display_number(boss['hp'])}\nJoin with ,worldboss join and fight with ,attack. Rewards are based on your contribution."), mention_author=False)
 
     @worldboss.command(name="join")
     async def worldboss_join(self, ctx):
@@ -164,9 +164,10 @@ class Ascension(commands.Cog):
                 return
             uid = str(ctx.author.id)
             state.setdefault("players", {}).setdefault(uid, {"damage": 0, "attacks": 0})
+            p["attack_mode"] = "worldboss"
             game.flush()
             name = state["name"]
-        await ctx.reply(embed=self.embed(game, "WORLD BOSS PARTY", f"You joined **{name}**. Use ,worldboss attack to choose an equipped skill."), mention_author=False)
+        await ctx.reply(embed=self.embed(game, "WORLD BOSS PARTY", f"You joined **{name}**. Use ,attack to choose an equipped skill."), mention_author=False)
 
     @worldboss.command(name="attack")
     @commands.cooldown(1, 3.0, commands.BucketType.user)
@@ -185,7 +186,7 @@ class Ascension(commands.Cog):
             if not categories:
                 await ctx.reply(embed=self.embed(game, "NO EQUIPPED SKILLS", "Equip an unlocked skill first with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
                 return
-            await ctx.reply(embed=self.embed(game, "CHOOSE WEAPON TYPE", "Choose a category, then choose an equipped skill. No damage is dealt until you select it."), view=AttackCategoryView(self, ctx, categories, self.worldboss_attack), mention_author=False)
+            await ctx.reply(embed=self.embed(game, "CHOOSE WEAPON TYPE", "Choose a category, then choose an equipped skill. No damage is dealt until you select it."), view=AttackCategoryView(self, ctx, categories, self.worldboss_attack, self), mention_author=False)
             return
         async with game.lock:
             state = game.data.get("world_boss")
