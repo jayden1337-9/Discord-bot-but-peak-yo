@@ -43,6 +43,7 @@ class HelpView(discord.ui.View):
         self.prefix = prefix
         self.page = 0
         self.pages = self.build_pages()
+        self.message = None
         self.refresh_buttons()
 
     def build_pages(self) -> list[tuple[str, str]]:
@@ -89,6 +90,11 @@ class HelpView(discord.ui.View):
     async def on_timeout(self) -> None:
         for item in self.children:
             item.disabled = True
+        if self.message is not None:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
 
 
 class General(commands.Cog):
@@ -124,7 +130,7 @@ class General(commands.Cog):
     @commands.command(name="help", aliases=["commands", "cmds"])
     async def help_command(self, ctx: commands.Context) -> None:
         view = HelpView(ctx.author.id, ctx.clean_prefix)
-        await ctx.reply(embed=view.build_embed(), view=view, mention_author=False)
+        view.message = await ctx.reply(embed=view.build_embed(), view=view, mention_author=False)
 
     @commands.command(name="userinfo", aliases=["whois"])
     async def userinfo(self, ctx: commands.Context, member: discord.Member = None) -> None:
