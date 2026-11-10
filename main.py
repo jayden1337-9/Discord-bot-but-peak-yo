@@ -2,6 +2,8 @@ import asyncio
 import logging
 import os
 
+from core.emoji_pack import render_text, sync_emoji_pack
+
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -128,7 +130,19 @@ def paginated_embeds(embed):
 
 class BotContext(commands.Context):
     async def send(self, content=None, **kwargs):
+        emoji_map = getattr(self.bot, "emoji_map", {})
+        if isinstance(content, str):
+            content = render_text(content, emoji_map)
         embed = kwargs.get("embed")
+        if embed is not None and emoji_map:
+            embed = embed.copy()
+            if embed.title:
+                embed.title = render_text(embed.title, emoji_map)
+            if embed.description:
+                embed.description = render_text(embed.description, emoji_map)
+            for index, field in enumerate(embed.fields):
+                embed.set_field_at(index, name=render_text(field.name, emoji_map), value=render_text(field.value, emoji_map), inline=field.inline)
+            kwargs["embed"] = embed
         embeds = kwargs.get("embeds")
         if embed is not None:
             pages = paginated_embeds(embed)
@@ -167,6 +181,7 @@ class DiscordBot(commands.Bot):
 
     async def on_ready(self) -> None:
         log.info("Logged in as %s (ID: %s)", self.user, self.user.id)
+        self.emoji_map = await sync_emoji_pack(self)
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         # Keep one ordered chain so CommandNotFound is not overwritten by fallback handling.
