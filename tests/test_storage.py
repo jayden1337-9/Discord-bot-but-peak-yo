@@ -66,8 +66,8 @@ class StorageTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 adventure.load()
 
-        self.assertFalse(database.exists())
-        self.assertTrue(database.with_name("peak_game.broken.json").exists())
+        self.assertTrue(database.exists())
+        self.assertEqual(database.read_text(encoding="utf-8"), "{ damaged json")
 
 if __name__ == "__main__":
     unittest.main()
