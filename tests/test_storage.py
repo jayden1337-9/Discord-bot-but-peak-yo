@@ -31,7 +31,6 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(json.loads(backup.read_text(encoding="utf-8")), original)
 
     def test_backup_tracks_latest_valid_database_before_each_save(self):
-        storage._BACKUPS_CREATED.clear()
         storage.atomic_json_save({"profiles": {"123": {"level": 1}}}, self.path)
         storage.atomic_json_save({"profiles": {"123": {"level": 2}}}, self.path)
         storage.atomic_json_save({"profiles": {"123": {"level": 3}}}, self.path)
@@ -56,7 +55,6 @@ class StorageTests(unittest.TestCase):
         expected = {"profiles": {"123": {"level": 900}}, "raids": {}, "custom_weapons": {}}
         database.write_text("{ damaged json", encoding="utf-8")
         backup.write_text(json.dumps(expected), encoding="utf-8")
-        storage._BACKUPS_CREATED.clear()
 
         with patch.object(adventure, "ROOT", root), patch.object(adventure, "DB_FILE", database), patch.object(adventure, "OLD_DB", root / "missing.sqlite3"):
             recovered = adventure.load()
@@ -82,7 +80,6 @@ class StorageTests(unittest.TestCase):
         root = Path(self.temp.name)
         database = root / "peak_game.json"
         database.write_text("{ damaged json", encoding="utf-8")
-        storage._BACKUPS_CREATED.clear()
 
         with patch.object(adventure, "ROOT", root), patch.object(adventure, "DB_FILE", database), patch.object(adventure, "OLD_DB", root / "missing.sqlite3"):
             with self.assertRaises(RuntimeError):
