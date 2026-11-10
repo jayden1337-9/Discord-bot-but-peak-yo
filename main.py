@@ -19,7 +19,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("discord_bot")
 
-EMOJI_GUILD_ID = 1569387744575103117
+EMOJI_GUILD_ID = 1561348664142860328
 
 # These names are the custom emoji names to add manually in the server.
 UNICODE_TO_NAME = {
