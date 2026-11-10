@@ -4,6 +4,8 @@ from datetime import datetime, timedelta, timezone
 import discord
 from discord.ext import commands
 
+from core.locking import serialized
+
 from cogs.adventure import (
     CHARACTERS, CLANS, CHARACTER_ATTACK_TYPES, RACES, SKILL_TREE,
     apply_level_ups, display_number, mastery_tier, AttackCategoryView,
@@ -126,6 +128,7 @@ class Expeditions(commands.Cog):
 
     @expedition.command(name="start")
     @commands.guild_only()
+    @serialized
     async def expedition_start(self, ctx, *, route: str):
         game, p = self.profile(ctx)
         key = route.lower().strip().replace(" ", "_")
@@ -292,6 +295,7 @@ class Expeditions(commands.Cog):
 
     @expedition.command(name="retreat")
     @commands.guild_only()
+    @serialized
     async def expedition_retreat(self, ctx):
         game, p = self.profile(ctx)
         if not p.get("expedition"):
@@ -327,6 +331,7 @@ class Expeditions(commands.Cog):
 
     @pet.command(name="equip")
     @commands.guild_only()
+    @serialized
     async def pet_equip(self, ctx, *, key: str):
         game, p = self.profile(ctx)
         key = key.lower().strip().replace(" ", "_")
@@ -340,6 +345,7 @@ class Expeditions(commands.Cog):
 
     @pet.command(name="off")
     @commands.guild_only()
+    @serialized
     async def pet_off(self, ctx):
         game, p = self.profile(ctx)
         p["pet_equipped"] = None
@@ -348,6 +354,7 @@ class Expeditions(commands.Cog):
 
     @commands.command(name="login", aliases=["dailylogin"])
     @commands.guild_only()
+    @serialized
     async def login(self, ctx):
         game, p = self.profile(ctx)
         today = datetime.now(timezone.utc).date()
