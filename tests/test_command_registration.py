@@ -23,9 +23,10 @@ class CommandRegistrationTests(unittest.IsolatedAsyncioTestCase):
                 patch.object(adventure, "DB_FILE", root / "peak_game.json"),
                 patch.object(adventure, "OLD_DB", root / "missing.sqlite3"),
             ):
+                await bot.load_extension("cogs.general")
+                await bot.add_cog(adventure.Adventure(bot))
                 for extension in (
-                    "cogs.general",
-                    "cogs.adventure",
+                    "cogs.progression",
                     "cogs.progression",
                     "cogs.endgame",
                     "cogs.expeditions",
