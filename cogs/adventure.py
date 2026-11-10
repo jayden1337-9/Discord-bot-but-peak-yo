@@ -702,8 +702,9 @@ class Adventure(commands.Cog):
    hp=max(1,int(b[1]*dim.get("hp_mult",1))) if scaled else b[1]
    damage_scale=dim.get("damage_mult",1.0) if scaled else 1.0
    self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":damage_scale,"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1}
+   p=self.p(ctx.author.id); p["attack_mode"]="raid"
    self.flush()
-  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {display_number(hp)}\nWorld scaling: {'enabled' if scaled else 'base stats (switch to '+world+' for dimension scaling)'}\nFirst turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
+  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {display_number(hp)}\nWorld scaling: {'enabled' if scaled else 'base stats (switch to '+world+' for dimension scaling)'}\nFirst turn: {ctx.author.mention}. Use ,attack for your turn. Others can use ,join."),mention_author=False)
  @boss.command(name="challenge")
  @commands.guild_only()
  async def challenge(self,ctx,*,key):
@@ -717,6 +718,7 @@ class Adventure(commands.Cog):
     await ctx.reply(embed=self.embed("WRONG ANIME WORLD",f"{b[0]} belongs to {DIMENSIONS.get(world,DIMENSIONS['earth'])['name']}. Travel there with ,dimension enter {world} first."),mention_author=False); return
    dim=DIMENSIONS.get(world,DIMENSIONS["earth"]); hp=max(1,int(b[1]*dim.get("hp_mult",1)))
    self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":dim.get("damage_mult",1.0),"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
+   p["attack_mode"]="raid"
    self.flush()
   await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{display_number(hp)} HP. World: {dim['name']}. First turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
  @boss.command(name="abandon")
@@ -738,7 +740,9 @@ class Adventure(commands.Cog):
   async with self.lock:
    r=self.data["raids"].get(str(ctx.guild.id)); uid=str(ctx.author.id)
    if not r: await ctx.reply(embed=self.embed("NO RAID","Start a raid with ,boss challenge <key>."),mention_author=False); return
-   if uid in r["players"]: await ctx.reply(embed=self.embed("ALREADY JOINED","You are already in this raid."),mention_author=False); return
+   if uid in r["players"]:
+    self.p(ctx.author.id)["attack_mode"]="raid"; self.flush()
+    await ctx.reply(embed=self.embed("ALREADY JOINED","You are already in this raid. Use ,attack for your turn."),mention_author=False); return
    if len(r["players"])>=6: await ctx.reply(embed=self.embed("PARTY FULL","Raids support up to 6 players."),mention_author=False); return
    r["players"][uid]=250; r["turns"].append(uid)
    self.p(ctx.author.id)["attack_mode"]="raid"
