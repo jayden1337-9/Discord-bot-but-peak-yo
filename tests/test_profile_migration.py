@@ -15,6 +15,12 @@ class ProfileMigrationTests(unittest.TestCase):
                     "symbolic_rewards": None,
                     "equipped_skills": None,
                     "unlocked_skills": None,
+                    "character": [],
+                    "race": {},
+                    "weapon": [],
+                    "clan": [],
+                    "active_dimension": [],
+                    "attack_mode": [],
                 }
             }
         }
@@ -27,6 +33,12 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertIsInstance(profile["symbolic_rewards"], dict)
         self.assertIsInstance(profile["equipped_skills"], dict)
         self.assertEqual(profile["unlocked_skills"], [])
+        self.assertEqual(profile["character"], "sukuna")
+        self.assertEqual(profile["race"], "human")
+        self.assertIsNone(profile["weapon"])
+        self.assertIsNone(profile["clan"])
+        self.assertEqual(profile["active_dimension"], "earth")
+        self.assertIsNone(profile["attack_mode"])
 
 
 if __name__ == "__main__":
