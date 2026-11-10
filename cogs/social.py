@@ -377,10 +377,11 @@ class Social(commands.Cog):
         cog = self.bot.get_cog("Adventure")
         if cog is None:
             return
-        ensure_social_data(cog.data)
-        result = award_guild_xp(cog.data, message.guild.id, message.author.id, 5)
-        if result is not None:
-            cog.flush()
+        async with self.lock:
+            ensure_social_data(cog.data)
+            result = award_guild_xp(cog.data, message.guild.id, message.author.id, 5)
+            if result is not None:
+                cog.flush()
 
     @commands.Cog.listener()
     async def on_ready(self):
