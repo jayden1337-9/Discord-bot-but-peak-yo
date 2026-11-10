@@ -11,13 +11,11 @@ from core import storage
 
 class StorageTests(unittest.TestCase):
     def setUp(self):
-        storage._BACKUPS_CREATED.clear()
         self.temp = tempfile.TemporaryDirectory()
         self.path = Path(self.temp.name) / "profiles.json"
 
     def tearDown(self):
         self.temp.cleanup()
-        storage._BACKUPS_CREATED.clear()
 
     def test_atomic_save_writes_valid_json(self):
         payload = {"profiles": {"123": {"level": 9}}, "version": 2}
