@@ -32,6 +32,17 @@ class StorageTests(unittest.TestCase):
         backup = self.path.with_name("profiles.backup.json")
         self.assertEqual(json.loads(backup.read_text(encoding="utf-8")), original)
 
+    def test_backup_tracks_latest_valid_database_before_each_save(self):
+        storage._BACKUPS_CREATED.clear()
+        storage.atomic_json_save({"profiles": {"123": {"level": 1}}}, self.path)
+        storage.atomic_json_save({"profiles": {"123": {"level": 2}}}, self.path)
+        storage.atomic_json_save({"profiles": {"123": {"level": 3}}}, self.path)
+        backup = self.path.with_name("profiles.backup.json")
+        self.assertEqual(
+            json.loads(backup.read_text(encoding="utf-8")),
+            {"profiles": {"123": {"level": 2}}},
+        )
+
     def test_invalid_existing_file_is_not_promoted_to_backup(self):
         self.path.write_text("not json", encoding="utf-8")
         storage.atomic_json_save({"profiles": {}}, self.path)
