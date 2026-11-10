@@ -69,6 +69,9 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,help` / `,commands`
 
 ### Community
+- `,guild create <name>` / `,guild join <name>` / `,guild leave` / `,guild info` / `,guild members` / `,guild transfer @member` / `,guild donate <gold>` — server guilds with raid XP, leveling and member-slot unlocks
+- `,trade offer @member <item|gold> <amount>` / `,trade accept <id>` / `,trade cancel <id>` — direct 24-hour offers for items or Gold
+- `,market browse` / `,market list <item> <amount> <price>` / `,market buy <id>` / `,market cancel <id>` — server-scoped player market
 - `,userinfo [member]`
 - `,serverinfo`
 - `,avatar [member]`
