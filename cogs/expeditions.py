@@ -148,8 +148,9 @@ class Expeditions(commands.Cog):
             "enemy_max_hp": int(first[1] * scale), "player_hp": max_hp,
             "player_max_hp": max_hp, "started_at": datetime.now(timezone.utc).isoformat(),
         }
+        p["attack_mode"] = "expedition"
         game.flush()
-        await ctx.reply(embed=self.embed("EXPEDITION STARTED", f"**{data['name']}**\n{data['description']}\n\nFirst target: **{first[0]}**\nEnemy HP: {display_number(p['expedition']['enemy_hp'])}\nYour HP: {max_hp}/{max_hp}\n\nUse `,expedition attack` to take your turn."), mention_author=False)
+        await ctx.reply(embed=self.embed("EXPEDITION STARTED", f"**{data['name']}**\n{data['description']}\n\nFirst target: **{first[0]}**\nEnemy HP: {display_number(p['expedition']['enemy_hp'])}\nYour HP: {max_hp}/{max_hp}\n\nUse `,attack` to take your turn."), mention_author=False)
 
     @expedition.command(name="status", aliases=["info"])
     @commands.guild_only()
@@ -172,14 +173,14 @@ class Expeditions(commands.Cog):
         async with game.lock:
             state = p.get("expedition")
             if not state:
-                await ctx.reply(embed=self.embed("NO ACTIVE EXPEDITION", "Start one with `,expedition start <route>`."), mention_author=False)
+                await ctx.reply(embed=self.embed("NO ACTIVE EXPEDITION", "Start one with `,expedition start <route>`, then use `,attack`."), mention_author=False)
                 return
             if ability is None:
                 categories = game.attack_skill_options(ctx.author.id)
                 if not categories:
                     await ctx.reply(embed=self.embed("NO EQUIPPED SKILLS", "Equip an unlocked skill with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
                     return
-                await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(game, ctx, categories, self.expedition_attack), mention_author=False)
+                await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(game, ctx, categories, self.expedition_attack, self), mention_author=False)
                 return
             route = ROUTES[state["route"]]
             stage = route["stages"][state["stage"]]
