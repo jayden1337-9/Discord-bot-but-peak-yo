@@ -2,13 +2,9 @@
 
 import json
 import os
-import shutil
 import tempfile
 from pathlib import Path
 from typing import Any
-
-_BACKUPS_CREATED: set[Path] = set()
-
 
 def atomic_json_save(data: dict[str, Any], path: Path) -> None:
     """Write JSON atomically and retain one last-known-good backup per process."""
@@ -16,16 +12,29 @@ def atomic_json_save(data: dict[str, Any], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     backup = path.with_name(f"{path.stem}.backup{path.suffix}")
 
-    if path not in _BACKUPS_CREATED:
-        if path.exists():
-            try:
-                # Only preserve a readable JSON file as the recovery snapshot.
-                with path.open("r", encoding="utf-8") as current:
-                    json.load(current)
-                shutil.copy2(path, backup)
-            except (OSError, json.JSONDecodeError):
-                pass
-        _BACKUPS_CREATED.add(path)
+    if path.exists():
+        backup_temp = None
+        try:
+            # Refresh the recovery point on every save, not only at process
+            # startup, so it never trails hours of successful gameplay.
+            with path.open("r", encoding="utf-8") as current:
+                json.load(current)
+            fd, backup_temp = tempfile.mkstemp(
+                dir=str(path.parent), prefix=f"{backup.stem}-", suffix=".tmp"
+            )
+            with path.open("rb") as source, os.fdopen(fd, "wb") as target:
+                while chunk := source.read(1024 * 1024):
+                    target.write(chunk)
+                target.flush()
+                os.fsync(target.fileno())
+            os.replace(backup_temp, backup)
+            backup_temp = None
+        except (OSError, json.JSONDecodeError):
+            # A bad current file must never overwrite a valid recovery copy.
+            pass
+        finally:
+            if backup_temp and os.path.exists(backup_temp):
+                os.unlink(backup_temp)
 
     fd, temporary_name = tempfile.mkstemp(
         dir=str(path.parent), prefix=f"{path.stem}-", suffix=".tmp"
