@@ -14,6 +14,12 @@ class EmbedPaginationTests(unittest.TestCase):
         self.assertEqual("".join(page.description or "" for page in pages), source)
         self.assertTrue(all(len(page.description or "") <= 4096 for page in pages))
 
+    def test_valid_discord_description_does_not_create_unneeded_pages(self):
+        embed = discord.Embed(title="Normal response", description="x" * 2000)
+        pages = paginated_embeds(embed)
+        self.assertEqual(len(pages), 1)
+        self.assertEqual(pages[0].description, "x" * 2000)
+
     def test_long_field_is_split_into_continuation_fields(self):
         source = "field-content " * 300
         embed = discord.Embed(title="Long field")
