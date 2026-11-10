@@ -124,7 +124,7 @@ def render_emoji(name: str) -> bytes:
         d.rounded_rectangle((58,53,84,73),radius=9,fill="#b7d7ff",outline="#28243a",width=2)
     elif name == "trade":
         line([(20,34),(70,34)],fg,8); poly([(62,23),(77,34),(62,45)])
-        line([(76,62),(26,62],"#ffd8a9",8); poly([(34,51),(19,62),(34,73)],"#ffd8a9")
+        line([(76,62),(26,62)],"#ffd8a9",8); poly([(34,51),(19,62),(34,73)],"#ffd8a9")
     elif name == "market":
         rr((23,39,73,76),5,"#e8b18b")
         poly([(18,39),(27,20),(69,20),(78,39)],"#ffcf9f")
