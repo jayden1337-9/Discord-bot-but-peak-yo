@@ -1453,8 +1453,10 @@ class Adventure(commands.Cog):
   e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
+ @serialized
  async def leaderboard(self,ctx):
-  top=sorted(self.data["profiles"].items(),key=lambda x:(x[1].get("symbolic_rewards",{}).get("xp",0)>0,x[1].get("level",1),x[1].get("xp",0)),reverse=True)
+  profiles=[(uid,self.p(uid)) for uid in list(self.data["profiles"])]
+  top=sorted(profiles,key=lambda x:(x[1].get("symbolic_rewards",{}).get("xp",0)>0,x[1].get("level",1),x[1].get("xp",0)),reverse=True)
   view=LeaderboardView(self,ctx,top)
   view.message=await ctx.reply(embed=view.build_embed(),view=view,mention_author=False)
 
