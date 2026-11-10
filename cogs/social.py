@@ -150,6 +150,26 @@ class Social(commands.Cog):
         p = ctx.clean_prefix
         await ctx.send(embed=self.embed("Trade commands", f"{p}trade offer @member <item> <amount>\n{p}trade accept <id>\n{p}trade cancel <id>\nOnly regular inventory stacks are transferable."))
 
+    @trade.command(name="pending")
+    async def trade_pending(self, ctx):
+        cog = self.game()
+        now = int(time.time())
+        offers = [
+            offer for offer in cog.data["trades"].values()
+            if offer.get("server_id") == ctx.guild.id
+            and str(ctx.author.id) in {offer.get("from"), offer.get("to")}
+            and int(offer.get("expires", 0)) >= now
+        ]
+        if not offers:
+            return await ctx.reply("You have no active trade offers in this server.", mention_author=False)
+        offers.sort(key=lambda offer: int(offer.get("expires", 0)))
+        lines = []
+        for offer in offers[:20]:
+            direction = "Incoming" if offer["to"] == str(ctx.author.id) else "Outgoing"
+            item = "Gold" if offer["item"] == "gold" else offer["item"].replace("_", " ").title()
+            lines.append(f"`{offer['id']}` · {direction} · {offer['amount']:,} × {item} · <@{offer['from']}> → <@{offer['to']}>")
+        await ctx.reply(embed=self.embed("Active trade offers", "\n".join(lines)), mention_author=False)
+
     @trade.command(name="offer")
     async def trade_offer(self, ctx, member: discord.Member, item: str, amount: int):
         if member.bot or member.id == ctx.author.id:
