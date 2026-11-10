@@ -141,17 +141,20 @@ class Endgame(commands.Cog):
         await ctx.reply(embed=self.embed(cog, "GEAR UNEQUIPPED", f"{slot.title()} slot is now empty."), mention_author=False)
 
     def tower_enemy(self, floor):
-        return {"name": TOWER_BOSSES[floor - 1], "max_hp": 650 * floor * floor, "hp": 650 * floor * floor, "damage": (22 + floor * 13, 38 + floor * 18)}
+        base_name = TOWER_BOSSES[(floor - 1) % len(TOWER_BOSSES)]
+        name = base_name if floor <= len(TOWER_BOSSES) else f"{base_name} · Ascended Floor {floor}"
+        hp = 650 * floor * floor
+        return {"name": name, "max_hp": hp, "hp": hp, "damage": (22 + floor * 13, 38 + floor * 18)}
 
     @commands.group(name="tower", invoke_without_command=True)
     async def tower(self, ctx):
         cog, p = self.services(ctx)
         state = p.get("tower")
         if not state:
-            await ctx.reply(embed=self.embed(cog, "RIFT TOWER", f"Ten floors. Ten bosses. A permanent record.\nBest floor cleared: {p.get('best_tower', 0)}/10\nStart with ,tower start."), mention_author=False)
+            await ctx.reply(embed=self.embed(cog, "RIFT TOWER", f"Endless floors. Scaling bosses. A permanent record.\nBest floor cleared: {p.get('best_tower', 0)}\nStart with ,tower start."), mention_author=False)
             return
         enemy = state["enemy"]
-        await ctx.reply(embed=self.embed(cog, "RIFT TOWER STATUS", f"Floor {state['floor']}/10\n{enemy['name']}: {enemy['hp']:,}/{enemy['max_hp']:,} HP\nYour HP: {state['hp']}/{state['max_hp']}\nDamage dealt: {state['damage']:,}\nUse ,tower attack."), mention_author=False)
+        await ctx.reply(embed=self.embed(cog, "RIFT TOWER STATUS", f"Floor {state['floor']}\n{enemy['name']}: {enemy['hp']:,}/{enemy['max_hp']:,} HP\nYour HP: {state['hp']}/{state['max_hp']}\nDamage dealt: {state['damage']:,}\nUse ,tower attack."), mention_author=False)
 
     @tower.command(name="start")
     async def tower_start(self, ctx):
@@ -231,7 +234,7 @@ class Endgame(commands.Cog):
             damage *= 2
             p["focus_boosts"] -= 1
         dimension_mult = DIMENSIONS.get(p.get("active_dimension"), DIMENSIONS["earth"])["bonus"]
-        damage = max(1, int((damage + gear["attack"]) * race[1] * clan_mult * level_mult * mastery_mult * pet_mult * dimension_mult))
+        damage = max(1, int((damage + gear["attack"]) * race[1] * clan_mult * level_mult * mastery_mult * pet_mult * dimension_mult * (1 + 0.02 * min(25, max(0, int(p.get("ascension", 0)))))))
         damage = min(state["enemy"]["hp"], damage)
         state["enemy"]["hp"] = max(0, state["enemy"]["hp"] - damage)
         state["damage"] += damage
@@ -239,22 +242,17 @@ class Endgame(commands.Cog):
             floor = state["floor"]
             p["xp"] += floor * 350
             p["points"] += 1 if floor % 2 == 0 else 0
-            material, low, high = TOWER_LOOT[floor - 1]
-            amount = random.randint(low, high)
+            material, low, high = TOWER_LOOT[(floor - 1) % len(TOWER_LOOT)]
+            amount = random.randint(low, high) + floor // 10
             cog.item(p, material, amount)
             from cogs.adventure import apply_level_ups
             levels = apply_level_ups(p)
             p["best_tower"] = max(int(p.get("best_tower", 0)), floor)
-            if floor == 10:
-                p["tower"] = None
-                cog.flush()
-                await ctx.reply(embed=self.embed(cog, "RIFT TOWER CONQUERED", f"You cleared all ten floors.\nTotal damage: {state['damage']:,}\nRewards: {floor * 350:,} XP, {amount} {ITEMS.get(material, material)}, {1 if floor % 2 == 0 else 0} skill points.\nLevels gained: {levels}"), mention_author=False)
-                return
             next_floor = floor + 1
             enemy = self.tower_enemy(next_floor)
             state.update({"floor": next_floor, "enemy": enemy})
             cog.flush()
-            await ctx.reply(embed=self.embed(cog, f"FLOOR {floor} CLEARED", f"Defeated {TOWER_BOSSES[floor - 1]}.\nRewards: {floor * 350:,} XP, {amount} {ITEMS.get(material, material)}.\nNext: Floor {next_floor} — {enemy['name']} ({enemy['hp']:,} HP).\nYour HP carries over: {state['hp']}/{state['max_hp']}."), mention_author=False)
+            await ctx.reply(embed=self.embed(cog, f"FLOOR {floor} CLEARED", f"Defeated {TOWER_BOSSES[(floor - 1) % len(TOWER_BOSSES)]}.\nRewards: {floor * 350:,} XP, {amount} {ITEMS.get(material, material)}.\nNext: Floor {next_floor} — {enemy['name']} ({enemy['hp']:,} HP).\nYour HP carries over: {state['hp']}/{state['max_hp']}."), mention_author=False)
             return
         enemy = state["enemy"]
         incoming = random.randint(*enemy["damage"])
@@ -268,7 +266,7 @@ class Endgame(commands.Cog):
             p["best_tower"] = max(int(p.get("best_tower", 0)), floor - 1)
             p["tower"] = None
             cog.flush()
-            await ctx.reply(embed=self.embed(cog, "TOWER RUN ENDED", f"You reached floor {floor} and cleared {floor - 1} floors.\nDamage dealt: {state['damage']:,}\nYour best record is now {p['best_tower']}/10.\nRewards from completed floors are kept."), mention_author=False)
+            await ctx.reply(embed=self.embed(cog, "TOWER RUN ENDED", f"You reached floor {floor} and cleared {floor - 1} floors.\nDamage dealt: {state['damage']:,}\nYour best record is now floor {p['best_tower']}.\nRewards from completed floors are kept."), mention_author=False)
             return
         cog.flush()
         await ctx.reply(embed=self.embed(cog, "TOWER TURN", f"You dealt {damage:,} damage to {enemy['name']}.\nThe boss retaliated for {incoming} damage.\nYour HP: {state['hp']}/{state['max_hp']}\nEnemy HP: {enemy['hp']:,}/{enemy['max_hp']:,}."), mention_author=False)
