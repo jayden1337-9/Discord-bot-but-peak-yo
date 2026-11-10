@@ -1341,7 +1341,7 @@ class Adventure(commands.Cog):
  @commands.command(name="wallet",aliases=["balance","bal"])
  async def wallet(self,ctx):
   p=self.p(ctx.author.id)
-  await ctx.reply(embed=self.embed("💰 WALLET",f"🪙 Gold: {display_number(p.get('gold',0))}\\n💎 Gems: {display_number(p.get('gems',0))}\\nEarn both by clearing raids and opening boss chests."),mention_author=False)
+  await ctx.reply(embed=self.embed("💰 WALLET",f"<:coin1:1569656729640378499> Gold: {display_number(p.get('gold',0))}\n<:gem1:1569656792483627018> Gems: {display_number(p.get('gems',0))}\nEarn both by clearing raids and opening boss chests."),mention_author=False)
 
  @commands.command(name="shop")
  async def shop(self,ctx):
