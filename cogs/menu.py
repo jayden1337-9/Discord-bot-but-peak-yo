@@ -47,6 +47,22 @@ class CommandMenu(discord.ui.View):
     async def help(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.run(interaction, "help")
 
+    @discord.ui.button(label="Wallet", style=discord.ButtonStyle.secondary, row=1)
+    async def wallet(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "wallet")
+
+    @discord.ui.button(label="Guild", style=discord.ButtonStyle.secondary, row=1)
+    async def guild(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "guild")
+
+    @discord.ui.button(label="Market", style=discord.ButtonStyle.secondary, row=1)
+    async def market(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "market")
+
+    @discord.ui.button(label="Bosses", style=discord.ButtonStyle.secondary, row=1)
+    async def bosses(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "bosses")
+
     @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
     async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
         for child in self.children:
