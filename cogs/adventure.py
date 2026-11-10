@@ -512,17 +512,10 @@ class InventoryPager(discord.ui.View):
   return True
  async def change_page(self,interaction,delta):
   self.page=max(1,min(self.pages,self.page+delta))
-  self.previous.disabled=self.page<=1
-  self.next.disabled=self.page>=self.pages
+  cog=self.ctx.bot.get_cog("Adventure")
+  embed,file,view=cog.inventory_payload(self.ctx,self.page)
   await interaction.response.defer()
-  command=self.ctx.bot.get_command("inventory")
-  await self.ctx.invoke(command,page=self.page)
-  for child in self.children:
-   child.disabled=True
-  try:
-   await interaction.message.edit(view=self)
-  except discord.HTTPException:
-   pass
+  await interaction.message.edit(embed=embed,attachments=[file],view=view)
  @discord.ui.button(label="Previous",style=discord.ButtonStyle.secondary)
  async def previous(self,interaction,button):
   await self.change_page(interaction,-1)
@@ -1224,8 +1217,7 @@ class Adventure(commands.Cog):
   p["gold"]-=gold_cost; p["gems"]-=gems_cost; self.item(p,key,amount); self.flush()
   await ctx.reply(embed=self.embed("PURCHASE COMPLETE",f"{ITEM_ICONS.get(key,'📦')} {ITEMS[key]} x{amount}\\nPaid: 🪙 {gold_cost:,} Gold · 💎 {gems_cost:,} Gems."),mention_author=False)
 
- @commands.command(name="inventory",aliases=["inv","bag"])
- async def inventory(self,ctx,page:int=1):
+ def inventory_payload(self,ctx,page=1):
   from cogs.render_ui import inventory_image
   p=self.p(ctx.author.id); sr=p["symbolic_rewards"]
   entries=sum(1 for v in p["inventory"].values() if v>0)+sum(1 for v in sr["inventory"].values() if v>0)
@@ -1239,7 +1231,12 @@ class Adventure(commands.Cog):
   e.add_field(name="Awakening progress",value=f"Six Eyes: {six_label}/6\nCursed Fingers: {finger_label}/20\nRace: {RACES[p['race']][0]}",inline=False)
   e.set_image(url="attachment://inventory.png")
   view=InventoryPager(ctx,page,pages) if pages>1 else None
-  await ctx.reply(embed=e,file=file,view=view,mention_author=False)
+  return e,file,view
+
+ @commands.command(name="inventory",aliases=["inv","bag"])
+ async def inventory(self,ctx,page:int=1):
+  embed,file,view=self.inventory_payload(ctx,page)
+  await ctx.reply(embed=embed,file=file,view=view,mention_author=False)
  @commands.command(name="eat",aliases=["consume"])
  async def eat(self,ctx,*,item):
   key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
