@@ -279,7 +279,10 @@ class Social(commands.Cog):
             if not listing or listing["seller"] != str(ctx.author.id) or listing["server_id"] != ctx.guild.id:
                 return await ctx.reply("You don't own that listing.", mention_author=False)
             profile = cog.p(ctx.author.id)
-            profile["inventory"][listing["item"]] = int(profile["inventory"].get(listing["item"], 0)) + int(listing["amount"])
+            returned_total = int(profile["inventory"].get(listing["item"], 0)) + int(listing["amount"])
+            if returned_total > 10**18:
+                return await ctx.reply("Your inventory stack is at its limit. Free some space before cancelling this listing.", mention_author=False)
+            profile["inventory"][listing["item"]] = returned_total
             del data["market"][key]
             cog.flush()
         await ctx.reply("Listing cancelled and items returned.", mention_author=False)
