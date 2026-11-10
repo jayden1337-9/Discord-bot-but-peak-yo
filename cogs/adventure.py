@@ -428,11 +428,12 @@ class WeaponBuilderModal(discord.ui.Modal, title="Create a custom weapon"):
   except (ValueError,TypeError):
    await interaction.response.send_message("Damage ranges must use MIN-MAX format. Both values must be positive, and the maximum must be at least the minimum.",ephemeral=True); return
   name=self.weapon_name.value.strip(); key=name.lower().replace(" ","_")
-  if not key or key in self.cog.data["custom_weapons"] or key in CHARACTERS:
-   await interaction.response.send_message("That weapon name is empty or already in use.",ephemeral=True); return
-  self.cog.data["custom_weapons"][key]={"name":name,"damage":[low,high],"ability":self.ability.value.strip(),"ability_key":self.ability.value.strip().lower().replace(" ","_"),"ability_damage":[skill_low,skill_high],"description":self.description.value.strip() or "A custom weapon forged by the bot owner.","creator_id":self.owner_id}
-  owner_profile=self.cog.p(self.owner_id); owner_profile.setdefault("weapon_inventory",{})[key]=owner_profile.setdefault("weapon_inventory",{}).get(key,0)+1
-  self.cog.flush()
+  async with self.cog.lock:
+   if not key or key in self.cog.data["custom_weapons"] or key in CHARACTERS:
+    await interaction.response.send_message("That weapon name is empty or already in use.",ephemeral=True); return
+   self.cog.data["custom_weapons"][key]={"name":name,"damage":[low,high],"ability":self.ability.value.strip(),"ability_key":self.ability.value.strip().lower().replace(" ","_"),"ability_damage":[skill_low,skill_high],"description":self.description.value.strip() or "A custom weapon forged by the bot owner.","creator_id":self.owner_id}
+   owner_profile=self.cog.p(self.owner_id); owner_profile.setdefault("weapon_inventory",{})[key]=owner_profile.setdefault("weapon_inventory",{}).get(key,0)+1
+   self.cog.flush()
   await interaction.response.send_message(embed=self.cog.embed("WEAPON CREATED",f"**{name}** is now in the weapon archive.\nBasic damage: {low}-{high}\n{self.ability.value}: {skill_low}-{skill_high}\nPlayers can equip it with ,weapon equip {key}."),ephemeral=True)
 
 class WeaponBuilderView(discord.ui.View):
