@@ -8,6 +8,7 @@ class CommandMenu(discord.ui.View):
         super().__init__(timeout=180)
         self.ctx = ctx
         self.owner_id = ctx.author.id
+        self.message = None
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
         if interaction.user.id != self.owner_id:
@@ -63,6 +64,15 @@ class CommandMenu(discord.ui.View):
     async def bosses(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.run(interaction, "bosses")
 
+    async def on_timeout(self) -> None:
+        for child in self.children:
+            child.disabled = True
+        if self.message is not None:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
+
     @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
     async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
         for child in self.children:
@@ -93,7 +103,8 @@ class Menu(commands.Cog):
             color=discord.Color.from_rgb(48, 61, 82),
         )
         embed.set_footer(text=f"Opened by {ctx.author}")
-        await ctx.reply(embed=embed, view=CommandMenu(ctx), mention_author=False)
+        view = CommandMenu(ctx)
+        view.message = await ctx.reply(embed=embed, view=view, mention_author=False)
 
 
 async def setup(bot: commands.Bot) -> None:
