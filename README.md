@@ -4,10 +4,11 @@ A lightweight, prefix-based Discord bot with community utilities and a persisten
 
 ## Features
 
-- Consistent Discord-native embeds, interactive command menus, owner-locked pagination and a Pillow-rendered inventory
+- Consistent Discord-native embeds, a player-aware quick menu, interactive trade and market controls, owner-locked pagination and a Pillow-rendered inventory
 - Community tools, polls, moderation utilities and random tools
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
-- Character-specific signature abilities, a material-and-level gated universal skill tree, race passives, clan-based melee/sword/magic bonuses and character mastery\n- Tactical raid combat with separate melee, sword and magic loadouts; each turn requires selecting a weapon type and an equipped skill
+- Character-specific signature abilities, a material-and-level gated universal skill tree, race passives, clan-based melee/sword/magic bonuses and character mastery
+- Tactical raid combat with separate melee, sword and magic loadouts; each turn requires selecting a weapon type and an equipped skill
 - Three craftable anime boss keys for JJK, JoJo and Naruto boss pools, plus clan rerolls and expanded bloodlines
 - Five craftable weapons with distinct damage ranges and signature abilities
 - Anime-specific dimensions with their own boss rosters, level/material gates and scaling up to billions of HP
@@ -20,10 +21,13 @@ A lightweight, prefix-based Discord bot with community utilities and a persisten
 - Party scaling, a six-player raid limit, raid exit/abandon controls and Phoenix Feather revives
 - Custom weapon builder and owner-only damage controls
 - Persistent JSON player profiles, inventories, weapons and active raids
+- Shared transaction locking across combat, crafting, progression, economy, expeditions and social features
+- Atomic item consumption with symbolic-stack support and no partial item loss
 - Ascension progression with up to 25 permanent damage upgrades; no level or inventory reset
 - Global cooperative world bosses with contribution rankings, one-time rewards and three difficulty tiers
 - Endless Rift Tower floors with rotating bosses and scaling rewards
-- Huge-number display for existing high-level profiles\n- Exact symbolic googolplex swarm rewards, tracked without expanding their decimal digits; symbolic XP is kept separate from ordinary level calculations
+- Huge-number display for existing high-level profiles
+- Exact symbolic googolplex swarm rewards, tracked without expanding their decimal digits; symbolic XP is kept separate from ordinary level calculations
 - Owner-only GitHub update/restart with validation and rollback
 
 ## Requirements
@@ -67,12 +71,12 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,ping` / `,latency`
 - `,about` / `,botinfo`
 - `,help` / `,commands` / `,help <command>` — browse categories or inspect exact command usage and subcommands
-- `,menu` / `,panel` / `,start` — interactive shortcuts for profile, inventory, quests, leaderboard, wallet, guilds, market and bosses
+- `,menu` / `,panel` / `,start` — player-aware shortcuts for profile, inventory, quests, leaderboard, wallet, guilds, market, bosses, attack, daily, tower and expeditions
 
 ### Community
 - `,guild create <name>` / `,guild join <name>` / `,guild leave` / `,guild info` / `,guild members` / `,guild transfer @member` / `,guild kick @member` / `,guild top` / `,guild donate <gold>` — server guilds with rate-limited message activity XP, donations, leveling and member-slot unlocks
-- `,trade offer @member <item|gold> <amount>` / `,trade pending` / `,trade accept <id>` / `,trade cancel <id>` — direct 24-hour offers for items or Gold
-- `,market browse` / `,market my` / `,market list <item> <amount> <price>` / `,market buy <id>` / `,market cancel <id>` — server-scoped player market
+- `,trade offer @member <item|gold> <amount>` / `,trade pending` / `,trade accept <id>` / `,trade cancel <id>` — direct 24-hour item or Gold offers with recipient-only accept/decline and sender-only cancel buttons
+- `,market browse` / `,market my` / `,market list <item> <amount> <price>` / `,market buy <id>` / `,market cancel <id>` — server-scoped player market with listing selector and purchase confirmation
 - `,userinfo [member]`
 - `,serverinfo`
 - `,avatar [member]`
@@ -109,7 +113,9 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,boss status`
 - `,boss leave` / `,boss abandon`
 - `,join`
-- `,attack` — universal combat command; automatically attacks your current raid, tower, expedition or joined global world boss. Select Melee, Sword or Magic, then choose an equipped skill\n- `,equipskill <melee|sword|magic> <skill>` / `,unequipskill <type> <skill>` — manage up to three equipped skills per category\n- `,skillloadout` — inspect equipped combat skills
+- `,attack` — universal combat command; automatically attacks your current raid, tower, expedition or joined global world boss. Select Melee, Sword or Magic, then choose an equipped skill
+- `,equipskill <melee|sword|magic> <skill>` / `,unequipskill <type> <skill>` — manage up to three equipped skills per category
+- `,skillloadout` — inspect equipped combat skills
 - `,inventory` / `,inv` / `,bag` — icon-based inventory with Gold and Gems
 - `,eat <item>` — bloodline awakenings
 - `,use phoenix_feather` — revive during a raid
@@ -134,7 +140,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 
 ## Data
 
-The player database is stored in `peak_game.json` inside `BOT_DATA_DIR`. The filename is retained for compatibility with existing player data. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically and keeps a last-known-good `peak_game.backup.json` recovery snapshot. If the main database is damaged, startup attempts to restore that snapshot; if no valid recovery copy exists, startup stops rather than silently creating an empty database.
+The player database is stored in `peak_game.json` inside `BOT_DATA_DIR`. The filename is retained for compatibility with existing player data. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically and refreshes a last-known-good `peak_game.backup.json` recovery snapshot before every save. If the main database is damaged, startup attempts to restore that snapshot; if no valid recovery copy exists, startup stops rather than silently creating an empty database.
 
 Large player values are displayed in scientific notation. A googolplex swarm is represented exactly as 10^(10^100) and its damage, loot, victories, skill points and XP rewards are tracked symbolically. Symbolic XP is kept separate from ordinary level progression because the resulting level cannot be represented as a practical finite integer.
 
