@@ -2,8 +2,6 @@ import asyncio
 import logging
 import os
 
-from core.emoji_pack import render_text, sync_emoji_pack
-
 import discord
 from dotenv import load_dotenv
 from discord.ext import commands
@@ -20,6 +18,28 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 log = logging.getLogger("discord_bot")
+
+EMOJI_GUILD_ID = 1569387744575103117
+
+# These names are the custom emoji names to add manually in the server.
+UNICODE_TO_NAME = {
+    "💰": "coin", "🪙": "coin", "💎": "gem", "🔮": "crystal",
+    "⭐": "star", "🌟": "star", "👑": "crown", "⚔️": "sword",
+    "🗡️": "sword", "🛡️": "shield", "🧪": "potion", "🎁": "chest",
+    "🏆": "trophy", "📜": "quest", "👥": "guild", "🤝": "trade",
+    "🏪": "market", "💀": "boss", "🏰": "tower", "🧭": "expedition",
+    "📅": "daily", "🎒": "inventory", "📊": "leaderboard", "⚙️": "settings",
+    "❓": "help", "✅": "success", "❌": "error", "ℹ️": "info",
+    "⚠️": "warning", "🎉": "reward", "👾": "enemy",
+}
+
+
+def render_text(value: str, emoji_map: dict[str, str]) -> str:
+    for unicode_emoji, name in sorted(UNICODE_TO_NAME.items(), key=lambda item: len(item[0]), reverse=True):
+        custom_emoji = emoji_map.get(name)
+        if custom_emoji:
+            value = value.replace(unicode_emoji, custom_emoji)
+    return value
 
 
 class EmbedPager(discord.ui.View):
@@ -181,7 +201,12 @@ class DiscordBot(commands.Bot):
 
     async def on_ready(self) -> None:
         log.info("Logged in as %s (ID: %s)", self.user, self.user.id)
-        self.emoji_map = await sync_emoji_pack(self)
+        guild = self.get_guild(EMOJI_GUILD_ID)
+        self.emoji_map = {
+            emoji.name: str(emoji)
+            for emoji in guild.emojis
+        } if guild else {}
+        log.info("Loaded %s manually added custom emojis", len(self.emoji_map))
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         # Keep one ordered chain so CommandNotFound is not overwritten by fallback handling.
