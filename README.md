@@ -94,7 +94,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,recipes` and `,craft <key>` — forge permanent weapons from boss materials
 - `,forge list` / `,forge craft <key>` — create permanent armor, relics and cores
 - `,gear`, `,equipgear <key>`, `,unequipgear <slot>` — manage equipment
-- `,tower start`, `,tower attack`, `,tower`, `,tower retreat` — challenge the ten-floor solo tower
+- `,tower start`, `,tower`, `,tower retreat` — challenge the endless solo tower; use `,attack` for combat
 - `,dimension list` and `,dimension enter <key>` — unlock anime worlds and inspect their boss rosters
 - `,chest` / `,chest open <common|rare|diamond|ruby|mythic>` — view and open the five global chest rarities
 - `,wallet` / `,shop` / `,buy <item> [amount]` — earn and spend Gold and Gems
@@ -105,7 +105,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,boss status`
 - `,boss leave` / `,boss abandon`
 - `,join`
-- `,attack` — select Melee, Sword or Magic, then choose an equipped skill to take your turn\n- `,equipskill <melee|sword|magic> <skill>` / `,unequipskill <type> <skill>` — manage up to three equipped skills per category\n- `,skillloadout` — inspect equipped combat skills
+- `,attack` — universal combat command; automatically attacks your current raid, tower, expedition or joined global world boss. Select Melee, Sword or Magic, then choose an equipped skill\n- `,equipskill <melee|sword|magic> <skill>` / `,unequipskill <type> <skill>` — manage up to three equipped skills per category\n- `,skillloadout` — inspect equipped combat skills
 - `,inventory` / `,inv` / `,bag` — icon-based inventory with Gold and Gems
 - `,eat <item>` — bloodline awakenings
 - `,use phoenix_feather` — revive during a raid
@@ -144,14 +144,21 @@ Large player values are displayed in scientific notation. A googolplex swarm is 
 - Daily login streaks with XP, skill points, and a seven-day Mythic Token reward
 
 Commands:
-- `,expedition`, `,expedition start <route>`, `,expedition status`, `,expedition attack [ability]`, `,expedition retreat`
+- `,expedition`, `,expedition start <route>`, `,expedition status`, `,expedition retreat` — use `,attack` during the run
 - `,pets`, `,pet equip <key>`, `,pet off`
 - `,login`
 
 ## Final endgame update
 
 - `,ascension` shows requirements and permanent bonus; `,ascend` consumes Rift Crystals, Mythic Tokens and Time Rift Fragments for a permanent +2% damage bonus per rank, up to 25 ranks. Ascension never resets level, XP, inventory, equipment, weapons or skills.
-- `,worldboss` shows the global event; `,worldboss join` joins; `,worldboss attack` opens the normal category-first skill picker; `,worldboss leaderboard` ranks contributions; `,worldboss claim` grants one reward after victory.
+- `,worldboss` shows the global event; `,worldboss join` joins; `,attack` opens the normal category-first skill picker during the event; `,worldboss leaderboard` ranks contributions; `,worldboss claim` grants one reward after victory.
 - Owner-only event controls: `,worldboss summon <world_eater|celestial_dragon|void_emperor>` and `,worldboss close`. World boss state is shared across servers and saved in the game database.
 - Ascension bonuses apply to raids, expeditions, Rift Tower and world boss damage.
 - Rift Tower continues indefinitely after floor 10 with rotating bosses, increasing health and damage, and scaled material rewards.
+
+
+## Universal combat command
+
+- `,attack` automatically routes to the encounter you most recently entered: raid, Rift Tower, expedition or joined global world boss. It opens the shared category-first skill picker and uses the same equipped loadout across modes.
+- Entering or joining an encounter sets it as your active attack target. If an older profile has multiple active encounters but no saved target, the router uses a safe fallback order: Rift Tower, expedition, world boss, then raid.
+- The older nested attack commands remain available for compatibility, but are no longer required.
