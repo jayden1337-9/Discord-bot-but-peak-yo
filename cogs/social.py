@@ -3,7 +3,7 @@ import asyncio
 import time
 import discord
 from discord.ext import commands
-from core.social import ensure_social_data, next_id, transfer_gold, transfer_item, valid_stack
+from core.social import award_guild_xp, ensure_social_data, guild_member_limit, next_id, transfer_gold, transfer_item, valid_stack
 
 
 class Social(commands.Cog):
@@ -66,8 +66,9 @@ class Social(commands.Cog):
             if not found:
                 return await ctx.reply("No guild with that name exists in this server.", mention_author=False)
             _, guild = found
-            if len(guild["members"]) >= 20:
-                return await ctx.reply("That guild is full (20 members).", mention_author=False)
+            limit = guild_member_limit(guild)
+            if len(guild["members"]) >= limit:
+                return await ctx.reply(f"That guild is full ({limit} members). Level up the guild to unlock more slots.", mention_author=False)
             guild["members"].append(str(ctx.author.id))
             cog.flush()
         await ctx.reply(embed=self.embed("Guild joined", f"You joined {guild['name']}."), mention_author=False)
@@ -101,6 +102,27 @@ class Social(commands.Cog):
             cog.flush()
         await ctx.reply(f"Leadership transferred to {member.mention}.", mention_author=False)
 
+    @guild.command(name="donate")
+    async def guild_donate(self, ctx, amount: int):
+        if amount < 100 or amount > 10**18:
+            return await ctx.reply("Donate between 100 and 10^18 Gold. Every 100 Gold adds 1 Guild XP.", mention_author=False)
+        cog = self.game()
+        async with self.lock:
+            _, guild = self.find_guild(cog.data, ctx.guild.id, ctx.author.id)
+            if not guild:
+                return await ctx.reply("Join a guild before donating.", mention_author=False)
+            profile = cog.p(ctx.author.id)
+            if int(profile.get("gold", 0)) < amount:
+                return await ctx.reply("Insufficient Gold.", mention_author=False)
+            xp = amount // 100
+            profile["gold"] -= amount
+            old_level = int(guild.get("level", 1))
+            award_guild_xp(cog.data, ctx.guild.id, ctx.author.id, xp)
+            new_level = int(guild.get("level", 1))
+            cog.flush()
+        note = f" The guild reached level {new_level} and unlocked more member slots." if new_level > old_level else ""
+        await ctx.reply(embed=self.embed("Guild donation", f"Donated {amount:,} Gold for {xp:,} Guild XP.{note}"), mention_author=False)
+
     @guild.command(name="info")
     async def guild_info(self, ctx):
         cog = self.game()
@@ -108,7 +130,7 @@ class Social(commands.Cog):
         if not guild:
             return await ctx.reply("You're not in a guild.", mention_author=False)
         leader = ctx.guild.get_member(int(guild["leader"]))
-        await ctx.reply(embed=self.embed(guild["name"], f"Leader: {leader.mention if leader else 'Unknown'}\nMembers: {len(guild['members'])}/20\nLevel: {guild['level']}\nGuild XP: {guild['xp']:,}"), mention_author=False)
+        await ctx.reply(embed=self.embed(guild["name"], f"Leader: {leader.mention if leader else 'Unknown'}\nMembers: {len(guild['members'])}/{guild_member_limit(guild)}\nLevel: {guild['level']}/20\nGuild XP: {guild['xp']:,}/{int(guild['level']) * 500:,}\nNext level unlocks more member slots."), mention_author=False)
 
     @guild.command(name="members")
     async def guild_members(self, ctx):
@@ -254,6 +276,16 @@ class Social(commands.Cog):
             del data["market"][key]
             cog.flush()
         await ctx.reply("Listing cancelled and items returned.", mention_author=False)
+
+    @commands.Cog.listener()
+    async def on_guild_activity(self, server_id, user_id, amount):
+        cog = self.bot.get_cog("Adventure")
+        if cog is None:
+            return
+        ensure_social_data(cog.data)
+        result = award_guild_xp(cog.data, int(server_id), int(user_id), int(amount))
+        if result is not None:
+            cog.flush()
 
     @commands.Cog.listener()
     async def on_ready(self):
