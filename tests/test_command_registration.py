@@ -27,7 +27,6 @@ class CommandRegistrationTests(unittest.IsolatedAsyncioTestCase):
                 await bot.add_cog(adventure.Adventure(bot))
                 for extension in (
                     "cogs.progression",
-                    "cogs.progression",
                     "cogs.endgame",
                     "cogs.expeditions",
                     "cogs.ascension",
