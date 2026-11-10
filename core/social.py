@@ -6,15 +6,25 @@ MAX_GOLD = 10**18
 
 
 def ensure_social_data(data: dict[str, Any]) -> None:
-    data.setdefault("guilds", {})
-    data.setdefault("trades", {})
-    data.setdefault("market", {})
+    for key in ("guilds", "trades", "market"):
+        data.setdefault(key, {})
+        if not isinstance(data[key], dict):
+            raise ValueError(f"Social database collection '{key}' is invalid")
     data.setdefault("social_sequence", 0)
+    try:
+        data["social_sequence"] = max(0, int(data["social_sequence"]))
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Social sequence counter is invalid") from exc
 
 
 def valid_stack(profile: dict[str, Any], item: str, amount: int) -> bool:
     inventory = profile.get("inventory", {})
-    return 1 <= amount <= MAX_STACK and isinstance(inventory, dict) and int(inventory.get(item, 0)) >= amount
+    if not 1 <= amount <= MAX_STACK or not isinstance(inventory, dict):
+        return False
+    try:
+        return int(inventory.get(item, 0)) >= amount
+    except (TypeError, ValueError):
+        return False
 
 
 def next_id(data: dict[str, Any], prefix: str) -> str:
@@ -50,7 +60,8 @@ def award_guild_xp(data: dict[str, Any], server_id: int, user_id: int, amount: i
     for guild in data.get("guilds", {}).values():
         if guild.get("server_id") != server_id or str(user_id) not in guild.get("members", []):
             continue
-        old_level = max(1, int(guild.get("level", 1)))
+        old_level = max(1, min(20, int(guild.get("level", 1))))
+        guild["level"] = old_level
         guild["xp"] = max(0, int(guild.get("xp", 0))) + int(amount)
         while int(guild["level"]) < 20 and guild["xp"] >= int(guild["level"]) * 500:
             guild["xp"] -= int(guild["level"]) * 500
