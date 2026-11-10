@@ -6,6 +6,78 @@ from discord.ext import commands
 from core.social import award_guild_xp, ensure_social_data, guild_member_limit, next_id, transfer_gold, transfer_item, valid_stack
 
 
+class TradeOfferView(discord.ui.View):
+    def __init__(self, cog, trade_id, server_id, sender_id, recipient_id):
+        super().__init__(timeout=86400)
+        self.cog = cog
+        self.trade_id = trade_id
+        self.server_id = server_id
+        self.sender_id = sender_id
+        self.recipient_id = recipient_id
+        self.message = None
+
+    async def finish(self, interaction, title, description):
+        for child in self.children:
+            child.disabled = True
+        embed = self.cog.embed(title, description)
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+        if self.message is not None:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
+
+    @discord.ui.button(label="Accept", style=discord.ButtonStyle.success)
+    async def accept(self, interaction, button):
+        if interaction.user.id != self.recipient_id or interaction.guild_id != self.server_id:
+            return await interaction.response.send_message("Only the intended recipient can accept this offer in its original server.", ephemeral=True)
+        cog = self.cog.game()
+        async with self.cog.lock:
+            offer = cog.data["trades"].get(self.trade_id)
+            if not offer or offer.get("to") != str(self.recipient_id) or int(offer.get("expires", 0)) < int(time.time()):
+                for child in self.children:
+                    child.disabled = True
+                return await interaction.response.edit_message(embed=self.cog.embed("Trade unavailable", "This offer is missing or expired."), view=self)
+            try:
+                if offer["item"] == "gold":
+                    transfer_gold(cog.p(int(offer["from"])), cog.p(self.recipient_id), int(offer["amount"]))
+                else:
+                    transfer_item(cog.p(int(offer["from"])), cog.p(self.recipient_id), offer["item"], int(offer["amount"]))
+            except ValueError as exc:
+                del cog.data["trades"][self.trade_id]
+                cog.flush()
+                for child in self.children:
+                    child.disabled = True
+                return await interaction.response.edit_message(embed=self.cog.embed("Trade cancelled", f"{exc}. The offer could not be completed."), view=self)
+            del cog.data["trades"][self.trade_id]
+            cog.flush()
+        await self.finish(interaction, "Trade completed", f"Received {offer['amount']:,} × {offer['item'].replace('_', ' ').title()}.")
+
+    @discord.ui.button(label="Decline", style=discord.ButtonStyle.secondary)
+    async def decline(self, interaction, button):
+        if interaction.user.id != self.recipient_id or interaction.guild_id != self.server_id:
+            return await interaction.response.send_message("Only the intended recipient can decline this offer.", ephemeral=True)
+        cog = self.cog.game()
+        async with self.cog.lock:
+            cog.data["trades"].pop(self.trade_id, None)
+            cog.flush()
+        await self.finish(interaction, "Trade declined", "The offer was declined.")
+
+    @discord.ui.button(label="Cancel", style=discord.ButtonStyle.danger)
+    async def cancel(self, interaction, button):
+        if interaction.user.id != self.sender_id or interaction.guild_id != self.server_id:
+            return await interaction.response.send_message("Only the sender can cancel this offer.", ephemeral=True)
+        cog = self.cog.game()
+        async with self.cog.lock:
+            cog.data["trades"].pop(self.trade_id, None)
+            cog.flush()
+        await self.finish(interaction, "Trade cancelled", "The offer was cancelled by its sender.")
+
+
 class Social(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -213,7 +285,9 @@ class Social(commands.Cog):
             tid = next_id(data, "T")
             data["trades"][tid] = {"from": str(ctx.author.id), "to": str(member.id), "server_id": ctx.guild.id, "item": item, "amount": amount, "expires": int(time.time()) + 86400}
             cog.flush()
-        await ctx.reply(embed=self.embed(f"Trade offer {tid}", f"{ctx.author.mention} offers {amount:,} × {item.replace('_', ' ').title()} to {member.mention}.\nAccept with {ctx.clean_prefix}trade accept {tid}. Expires in 24 hours."), mention_author=False)
+        embed = self.embed(f"Trade offer {tid}", f"{ctx.author.mention} offers {amount:,} × {item.replace('_', ' ').title()} to {member.mention}.\nThe recipient can accept or decline below. This offer expires in 24 hours.")
+        view = TradeOfferView(self, tid, ctx.guild.id, ctx.author.id, member.id)
+        view.message = await ctx.reply(embed=embed, view=view, mention_author=False)
 
     @trade.command(name="accept")
     async def trade_accept(self, ctx, trade_id: str):
