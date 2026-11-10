@@ -9,7 +9,8 @@ from core.social import award_guild_xp, ensure_social_data, guild_member_limit, 
 class Social(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.lock = asyncio.Lock()
+        game = bot.get_cog("Adventure")
+        self.lock = game.lock if game is not None else asyncio.Lock()
         self.activity_cooldowns = {}
 
     def game(self):
