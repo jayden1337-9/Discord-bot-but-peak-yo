@@ -4,6 +4,8 @@ from pathlib import Path
 import discord
 from discord.ext import commands
 
+from core.storage import atomic_json_save
+
 ROOT = Path(os.getenv("BOT_DATA_DIR", "/home/container/data"))
 DB_FILE = ROOT / "peak_game.json"
 OLD_DB = Path("/home/container/peak_adventure.sqlite3")
@@ -344,26 +346,8 @@ def display_number(value):
   leading=value*100//power
   return f"{leading/100:.2f}e{exponent}"
 
-_BACKUP_CREATED = False
-
 def save(data):
- global _BACKUP_CREATED
- ROOT.mkdir(parents=True,exist_ok=True)
- # Keep one recovery snapshot per process instead of rereading and copying
- # the entire database on every command save.
- if not _BACKUP_CREATED and DB_FILE.exists():
-  try:
-   shutil.copy2(DB_FILE,DB_FILE.with_suffix(".backup.json"))
-  except OSError:
-   pass
-  _BACKUP_CREATED = True
- fd,name=tempfile.mkstemp(dir=ROOT,prefix="peak-",suffix=".tmp")
- try:
-  with os.fdopen(fd,"w",encoding="utf-8") as f:
-   json.dump(data,f,ensure_ascii=False,separators=(",",":")); f.flush(); os.fsync(f.fileno())
-  os.replace(name,DB_FILE)
- finally:
-  if os.path.exists(name): os.unlink(name)
+ atomic_json_save(data, DB_FILE)
 
 def load():
  ROOT.mkdir(parents=True,exist_ok=True)
