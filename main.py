@@ -228,7 +228,7 @@ class BotContext(commands.Context):
         return await self.send(content, **kwargs)
 
     async def send(self, content=None, **kwargs):
-        emoji_map = getattr(self.bot, "emoji_map", {})
+        emoji_map = getattr(self.bot, "emoji_map", None) or CUSTOM_EMOJIS
         if isinstance(content, str):
             content = render_text(content, emoji_map)
         embed = self._render_embed(kwargs.get("embed"), emoji_map)
