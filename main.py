@@ -164,9 +164,11 @@ class DiscordBot(commands.Bot):
             suggestion = f" Did you mean `{ctx.clean_prefix}{matches[0]}`?" if matches else ""
             message = f"Unknown command `{ctx.invoked_with}`.{suggestion} Use `{ctx.clean_prefix}help` to see available commands."
         elif isinstance(error, commands.MissingRequiredArgument):
-            message = f"Missing argument: `{error.param.name}`. Use `{ctx.clean_prefix}help` for usage."
+            usage = f"{ctx.clean_prefix}{ctx.command.qualified_name} {ctx.command.signature}".strip()
+            message = f"Missing argument: `{error.param.name}`. Usage: `{usage}`"
         elif isinstance(error, commands.BadArgument):
-            message = "That argument could not be understood. Check the command usage with the help command."
+            usage = f"{ctx.clean_prefix}{ctx.command.qualified_name} {ctx.command.signature}".strip()
+            message = f"That argument could not be understood. Usage: `{usage}`"
         elif isinstance(error, commands.MissingPermissions):
             message = "You do not have permission to use that command."
         elif isinstance(error, commands.BotMissingPermissions):
@@ -186,7 +188,16 @@ class DiscordBot(commands.Bot):
         else:
             log.error("Command failed", exc_info=(type(error), error, error.__traceback__))
             message = "Something went wrong while running that command."
-        title = "Command not found" if isinstance(error, commands.CommandNotFound) else "Something went wrong"
+        if isinstance(error, commands.CommandNotFound):
+            title = "Command not found"
+        elif isinstance(error, commands.CommandOnCooldown):
+            title = "Slow down"
+        elif isinstance(error, (commands.MissingRequiredArgument, commands.BadArgument)):
+            title = "Invalid command input"
+        elif isinstance(error, (commands.MissingPermissions, commands.BotMissingPermissions, commands.NotOwner, commands.NoPrivateMessage, commands.CheckFailure)):
+            title = "Permission denied"
+        else:
+            title = "Something went wrong"
         embed = discord.Embed(title=title, description=message, color=discord.Color.from_rgb(190, 62, 72))
         await ctx.reply(embed=embed, mention_author=False)
 
