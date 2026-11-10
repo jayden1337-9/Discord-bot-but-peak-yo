@@ -112,7 +112,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 - `,inventory` / `,inv` / `,bag` — icon-based inventory with Gold and Gems
 - `,eat <item>` — bloodline awakenings
 - `,use phoenix_feather` — revive during a raid
-- `,stats [member]` / `,me`
+- `,profile` / `,stats [member]` / `,me`
 - `,leaderboard` / `,top`
 - `,daily`, `,weekly`, `,quests`, `,claim <daily|weekly>`
 - `,achievements`, `,titles`, `,title <key|off>`
