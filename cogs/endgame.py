@@ -151,10 +151,10 @@ class Endgame(commands.Cog):
         cog, p = self.services(ctx)
         state = p.get("tower")
         if not state:
-            await ctx.reply(embed=self.embed(cog, "RIFT TOWER", f"Endless floors. Scaling bosses. A permanent record.\nBest floor cleared: {p.get('best_tower', 0)}\nStart with ,tower start."), mention_author=False)
+            await ctx.reply(embed=self.embed(cog, "RIFT TOWER", f"Endless floors. Scaling bosses. A permanent record.\nBest floor cleared: {p.get('best_tower', 0)}\nStart with ,tower start, then use ,attack."), mention_author=False)
             return
         enemy = state["enemy"]
-        await ctx.reply(embed=self.embed(cog, "RIFT TOWER STATUS", f"Floor {state['floor']}\n{enemy['name']}: {enemy['hp']:,}/{enemy['max_hp']:,} HP\nYour HP: {state['hp']}/{state['max_hp']}\nDamage dealt: {state['damage']:,}\nUse ,tower attack."), mention_author=False)
+        await ctx.reply(embed=self.embed(cog, "RIFT TOWER STATUS", f"Floor {state['floor']}\n{enemy['name']}: {enemy['hp']:,}/{enemy['max_hp']:,} HP\nYour HP: {state['hp']}/{state['max_hp']}\nDamage dealt: {state['damage']:,}\nUse ,attack."), mention_author=False)
 
     @tower.command(name="start")
     async def tower_start(self, ctx):
@@ -166,6 +166,7 @@ class Endgame(commands.Cog):
         hp = 300 + min(100, int(p["level"])) * 2 + gear["hp"]
         enemy = self.tower_enemy(1)
         p["tower"] = {"floor": 1, "hp": hp, "max_hp": hp, "enemy": enemy, "damage": 0, "started": True}
+        p["attack_mode"] = "tower"
         cog.flush()
         await ctx.reply(embed=self.embed(cog, "RIFT TOWER ENTERED", f"Floor 1: **{enemy['name']}**\nEnemy HP: {enemy['hp']:,}\nYour HP: {hp}\nThe run ends if you are defeated. Progress is saved."), mention_author=False)
 
@@ -182,7 +183,7 @@ class Endgame(commands.Cog):
             if not categories:
                 await ctx.reply(embed=self.embed(cog, "NO EQUIPPED SKILLS", "Equip an unlocked skill with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
                 return
-            await ctx.reply(embed=self.embed(cog, "CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(cog, ctx, categories, self.tower_attack), mention_author=False)
+            await ctx.reply(embed=self.embed(cog, "CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(cog, ctx, categories, self.tower_attack, self), mention_author=False)
             return
         gear = self.gear_stats(p)
         character = CHARACTERS[p["character"]]
