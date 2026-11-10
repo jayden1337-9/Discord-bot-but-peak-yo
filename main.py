@@ -156,13 +156,14 @@ class DiscordBot(commands.Bot):
         log.info("Logged in as %s (ID: %s)", self.user, self.user.id)
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
+        # Keep one ordered chain so CommandNotFound is not overwritten by fallback handling.
         if isinstance(error, commands.CommandNotFound):
             from difflib import get_close_matches
-            names = [command.name for command in self.walk_commands()]
+            names = [command.qualified_name for command in self.walk_commands()]
             matches = get_close_matches(ctx.invoked_with or "", names, n=1, cutoff=0.6)
             suggestion = f" Did you mean `{ctx.clean_prefix}{matches[0]}`?" if matches else ""
             message = f"Unknown command `{ctx.invoked_with}`.{suggestion} Use `{ctx.clean_prefix}help` to see available commands."
-        if isinstance(error, commands.MissingRequiredArgument):
+        elif isinstance(error, commands.MissingRequiredArgument):
             message = f"Missing argument: `{error.param.name}`. Use `{ctx.clean_prefix}help` for usage."
         elif isinstance(error, commands.BadArgument):
             message = "That argument could not be understood. Check the command usage with the help command."
@@ -187,9 +188,6 @@ class DiscordBot(commands.Bot):
             message = "Something went wrong while running that command."
         embed = discord.Embed(title="Something went wrong", description=message, color=discord.Color.from_rgb(190, 62, 72))
         await ctx.reply(embed=embed, mention_author=False)
-
-    async def is_owner(self, user: discord.User | discord.Member) -> bool:
-        return settings.owner_id is not None and user.id == settings.owner_id
 
 
 async def main() -> None:
