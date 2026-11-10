@@ -918,7 +918,8 @@ class Adventure(commands.Cog):
     categories=self.attack_skill_options(ctx.author.id)
     if not categories:
      await ctx.reply(embed=self.embed("NO EQUIPPED SKILLS","Unlock skills, then equip them with ,equipskill <melee|sword|magic> <skill>. Your equipped weapon ability is available automatically."),mention_author=False); return
-    await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE","Choose Melee, Sword or Magic. Then choose one equipped skill. No attack happens until you select a skill."),view=AttackCategoryView(self,ctx,categories),mention_author=False); return
+    view=AttackCategoryView(self,ctx,categories)
+    view.message=await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE","Choose Melee, Sword or Magic. Then choose one equipped skill. No attack happens until you select a skill."),view=view,mention_author=False); return
    ability_key=ability.lower().strip().replace(" ","_")
    options=self.attack_skill_options(ctx.author.id)
    selected_category=next((kind for kind,items in options.items() if any(key==ability_key for key,_ in items)),None)
