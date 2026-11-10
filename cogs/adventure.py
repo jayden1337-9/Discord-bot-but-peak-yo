@@ -824,7 +824,7 @@ class Adventure(commands.Cog):
    damage+=gear_attack
    dimension_mult=DIMENSIONS.get(p.get("active_dimension"),DIMENSIONS["earth"])["bonus"]
    pet=PETS.get(p.get("pet_equipped")); pet_mult=1+(pet["attack"] if pet else 0)
-   damage=min(r["hp"],max(1,int(damage*race_mult*clan_mult*level_mult*mastery_mult*dimension_mult*pet_mult))); r["hp"]-=damage
+   damage=min(r["hp"],max(1,int(damage*race_mult*clan_mult*level_mult*mastery_mult*dimension_mult*pet_mult*(1+0.02*min(25,max(0,int(p.get("ascension",0)))))))); r["hp"]-=damage
    mastery[p["character"]]=mastery_xp+damage
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
    phase_line=""
