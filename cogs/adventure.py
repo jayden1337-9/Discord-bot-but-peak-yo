@@ -586,7 +586,8 @@ class Adventure(commands.Cog):
   p.setdefault("unlocked_dimensions",["earth"])
   p.setdefault("unlocked_skills",[])
   p.setdefault("equipped_skills",{"melee":[],"sword":[],"magic":[]})
-  for category in ATTACK_TYPES: p["equipped_skills"].setdefault(category,[])
+  for category in ATTACK_TYPES:
+   if not isinstance(p["equipped_skills"].get(category),list): p["equipped_skills"][category]=[]
   p.setdefault("damage_boosts",0)
   p.setdefault("focus_boosts",0)
   p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
@@ -594,6 +595,29 @@ class Adventure(commands.Cog):
   for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items():
    if key not in sr or (isinstance(value,dict) and not isinstance(sr.get(key),dict)):
     sr[key]=json.loads(json.dumps(value))
+  for field,default in {"xp":0,"level":1,"points":0,"clan_rolls":1,"gold":0,"gems":0,"wins":0,"damage":0,"damage_boosts":0,"focus_boosts":0}.items():
+   try: p[field]=int(p.get(field,default))
+   except (TypeError,ValueError,OverflowError): p[field]=default
+  p["level"]=max(1,p["level"])
+  for field in ("xp","points","clan_rolls","gold","gems","wins","damage","damage_boosts","focus_boosts"): p[field]=max(0,p[field])
+  for key,amount in list(p["inventory"].items()):
+   try: amount=int(amount)
+   except (TypeError,ValueError,OverflowError): amount=0
+   if amount>0: p["inventory"][key]=amount
+   else: p["inventory"].pop(key,None)
+  for key,amount in list(sr["inventory"].items()):
+   try: amount=int(amount)
+   except (TypeError,ValueError,OverflowError): amount=0
+   if amount>0: sr["inventory"][key]=amount
+   else: sr["inventory"].pop(key,None)
+  for field in ("xp","points","points_spent","wins","damage"):
+   try: sr[field]=max(0,int(sr[field]))
+   except (TypeError,ValueError,OverflowError): sr[field]=0
+  for key,amount in list(sr["inventory_spent"].items()):
+   try: amount=max(0,int(amount))
+   except (TypeError,ValueError,OverflowError): amount=0
+   if amount: sr["inventory_spent"][key]=amount
+   else: sr["inventory_spent"].pop(key,None)
   return p
  def attack_skill_options(self,uid,category=None):
   p=self.p(uid); custom=self.data.get("custom_weapons",{}).get(p.get("weapon"))
