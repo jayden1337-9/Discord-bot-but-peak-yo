@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from core.storage import atomic_json_save
+from core.inventory import has_item as inventory_has_item, consume_item as inventory_consume_item
 
 ROOT = Path(os.getenv("BOT_DATA_DIR", "/home/container/data"))
 DB_FILE = ROOT / "peak_game.json"
@@ -604,17 +605,9 @@ class Adventure(commands.Cog):
   p["inventory"][key]=max(0,p["inventory"].get(key,0)+n)
   if not p["inventory"][key]: p["inventory"].pop(key,None)
  def has_item(self,p,key,n):
-  if p["inventory"].get(key,0)>=n: return True
-  sr=p["symbolic_rewards"]; return sr["inventory"].get(key,0)>0
+  return inventory_has_item(p,key,n)
  def consume_item(self,p,key,n):
-  normal=p["inventory"].get(key,0); take=min(normal,n)
-  if take: self.item(p,key,-take)
-  remaining=n-take
-  if remaining:
-   sr=p["symbolic_rewards"]
-   if sr["inventory"].get(key,0)<=0: return False
-   sr['inventory_spent'][key]=sr['inventory_spent'].get(key,0)+remaining
-  return True
+  return inventory_consume_item(p,key,n)
 
  @commands.command(name="characters",aliases=["roster","weapons"])
  async def characters(self,ctx):
