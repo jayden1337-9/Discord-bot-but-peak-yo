@@ -130,7 +130,8 @@ class Social(commands.Cog):
         if not guild:
             return await ctx.reply("You're not in a guild.", mention_author=False)
         leader = ctx.guild.get_member(int(guild["leader"]))
-        await ctx.reply(embed=self.embed(guild["name"], f"Leader: {leader.mention if leader else 'Unknown'}\nMembers: {len(guild['members'])}/{guild_member_limit(guild)}\nLevel: {guild['level']}/20\nGuild XP: {guild['xp']:,}/{int(guild['level']) * 500:,}\nNext level unlocks more member slots."), mention_author=False)
+        progress = "MAX LEVEL" if int(guild["level"]) >= 20 else f"Guild XP: {int(guild['xp']):,}/{int(guild['level']) * 500:,}"
+        await ctx.reply(embed=self.embed(guild["name"], f"Leader: {leader.mention if leader else 'Unknown'}\nMembers: {len(guild['members'])}/{guild_member_limit(guild)}\nLevel: {guild['level']}/20\n{progress}\nLeveling unlocks more member slots."), mention_author=False)
 
     @guild.command(name="kick")
     async def guild_kick(self, ctx, member: discord.Member):
@@ -257,7 +258,7 @@ class Social(commands.Cog):
     async def market_browse(self, ctx):
         cog = self.game()
         listings = [x for x in cog.data["market"].values() if x["server_id"] == ctx.guild.id and x["seller"] != str(ctx.author.id)]
-        listings.sort(key=lambda x: x["created"])
+        listings.sort(key=lambda x: (int(x["price"]), int(x["created"])))
         if not listings:
             return await ctx.reply("No listings are available.", mention_author=False)
         body = "\n".join(f"{x['id']} · {x['amount']:,} × {x['item'].replace('_', ' ').title()} · {x['price']:,} Gold · <@{x['seller']}>" for x in listings[:20])
