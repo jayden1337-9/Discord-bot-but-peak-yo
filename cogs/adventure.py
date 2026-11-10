@@ -499,6 +499,39 @@ class BossRegisterView(discord.ui.View):
   await interaction.response.edit_message(embed=self.build_embed(),view=self)
 
 
+class InventoryPager(discord.ui.View):
+ def __init__(self,ctx,page,pages):
+  super().__init__(timeout=180)
+  self.ctx=ctx; self.owner_id=ctx.author.id; self.page=page; self.pages=pages
+  self.previous.disabled=page<=1
+  self.next.disabled=page>=pages
+ async def interaction_check(self,interaction):
+  if interaction.user.id!=self.owner_id:
+   await interaction.response.send_message("These inventory controls belong to the person who opened them.",ephemeral=True)
+   return False
+  return True
+ async def change_page(self,interaction,delta):
+  self.page=max(1,min(self.pages,self.page+delta))
+  self.previous.disabled=self.page<=1
+  self.next.disabled=self.page>=self.pages
+  await interaction.response.defer()
+  command=self.ctx.bot.get_command("inventory")
+  await self.ctx.invoke(command,page=self.page)
+  try:
+   await interaction.message.edit(view=self)
+  except discord.HTTPException:
+   pass
+ @discord.ui.button(label="Previous",style=discord.ButtonStyle.secondary)
+ async def previous(self,interaction,button):
+  await self.change_page(interaction,-1)
+ @discord.ui.button(label="Next",style=discord.ButtonStyle.primary)
+ async def next(self,interaction,button):
+  await self.change_page(interaction,1)
+ async def on_timeout(self):
+  for child in self.children:
+   child.disabled=True
+
+
 class Adventure(commands.Cog):
  def __init__(self,bot):
   self.bot=bot; self.data=load(); self.lock=asyncio.Lock()
@@ -1201,7 +1234,8 @@ class Adventure(commands.Cog):
   finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
   e.add_field(name="Awakening progress",value=f"Six Eyes: {six_label}/6\nCursed Fingers: {finger_label}/20\nRace: {RACES[p['race']][0]}",inline=False)
   e.set_image(url="attachment://inventory.png")
-  await ctx.reply(embed=e,file=file,mention_author=False)
+  view=InventoryPager(ctx,page,pages) if pages>1 else None
+  await ctx.reply(embed=e,file=file,view=view,mention_author=False)
  @commands.command(name="eat",aliases=["consume"])
  async def eat(self,ctx,*,item):
   key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
