@@ -38,7 +38,7 @@ class TradeOfferView(discord.ui.View):
         cog = self.cog.game()
         async with self.cog.lock:
             offer = cog.data["trades"].get(self.trade_id)
-            if not offer or offer.get("to") != str(self.recipient_id) or int(offer.get("expires", 0)) < int(time.time()):
+            if not offer or offer.get("server_id") != self.server_id or offer.get("to") != str(self.recipient_id) or int(offer.get("expires", 0)) < int(time.time()):
                 for child in self.children:
                     child.disabled = True
                 return await interaction.response.edit_message(embed=self.cog.embed("Trade unavailable", "This offer is missing or expired."), view=self)
@@ -63,7 +63,10 @@ class TradeOfferView(discord.ui.View):
             return await interaction.response.send_message("Only the intended recipient can decline this offer.", ephemeral=True)
         cog = self.cog.game()
         async with self.cog.lock:
-            cog.data["trades"].pop(self.trade_id, None)
+            offer = cog.data["trades"].get(self.trade_id)
+            if not offer or offer.get("server_id") != self.server_id or offer.get("to") != str(self.recipient_id):
+                return await interaction.response.edit_message(embed=self.cog.embed("Trade unavailable", "This offer is no longer active."), view=None)
+            del cog.data["trades"][self.trade_id]
             cog.flush()
         await self.finish(interaction, "Trade declined", "The offer was declined.")
 
@@ -73,7 +76,10 @@ class TradeOfferView(discord.ui.View):
             return await interaction.response.send_message("Only the sender can cancel this offer.", ephemeral=True)
         cog = self.cog.game()
         async with self.cog.lock:
-            cog.data["trades"].pop(self.trade_id, None)
+            offer = cog.data["trades"].get(self.trade_id)
+            if not offer or offer.get("server_id") != self.server_id or offer.get("from") != str(self.sender_id):
+                return await interaction.response.edit_message(embed=self.cog.embed("Trade unavailable", "This offer is no longer active."), view=None)
+            del cog.data["trades"][self.trade_id]
             cog.flush()
         await self.finish(interaction, "Trade cancelled", "The offer was cancelled by its sender.")
 
@@ -85,10 +91,16 @@ class MarketPurchaseConfirm(discord.ui.View):
         self.server_id = server_id
         self.buyer_id = buyer_id
         self.listing_id = listing_id
+        self.message = None
 
     async def on_timeout(self):
         for child in self.children:
             child.disabled = True
+        if self.message is not None:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
 
     async def interaction_check(self, interaction):
         if interaction.user.id != self.buyer_id or interaction.guild_id != self.server_id:
@@ -165,11 +177,13 @@ class MarketBrowseView(discord.ui.View):
         listing = game.data["market"].get(listing_id)
         if not listing or listing.get("server_id") != self.server_id:
             return await interaction.response.send_message("That listing is no longer available. Refresh the market.", ephemeral=True)
+        confirm_view = MarketPurchaseConfirm(self.cog, self.server_id, self.buyer_id, listing_id)
         await interaction.response.send_message(
             f"Confirm buying {int(listing['amount']):,} × {listing['item'].replace('_', ' ').title()} for {int(listing['price']):,} Gold.",
-            view=MarketPurchaseConfirm(self.cog, self.server_id, self.buyer_id, listing_id),
+            view=confirm_view,
             ephemeral=True,
         )
+        confirm_view.message = await interaction.original_response()
 
     async def on_timeout(self):
         for child in self.children:
