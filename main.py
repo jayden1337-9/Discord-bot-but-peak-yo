@@ -22,38 +22,56 @@ log = logging.getLogger("discord_bot")
 EMOJI_GUILD_ID = 1561348664142860328
 
 # These names are the custom emoji names to add manually in the server.
-UNICODE_TO_NAME = {
-    "💰": "coin1", "🪙": "coin1",
-    "💎": "gem1",
-    "⭐": "star1", "🌟": "star1",
-    "👑": "crown1",
-    "⚔️": "sword1", "🗡️": "sword1",
-    "🛡️": "shield1",
-    "🧪": "potion1",
-    "🎁": "chest1",
-    "🏆": "trophy1",
-    "📜": "quest1",
-    "👥": "guild1",
-    "🤝": "trade1",
-    "🏪": "market1",
-    "👹": "boss1",
-    "🏰": "tower1",
-    "🧭": "expediton1",
-    "📅": "daily1",
-    "🎒": "bag1",
-    "📊": "leaderboard1",
-    "⚙️": "settings1",
-    "❓": "help1",
-    "✅": "confirm1",
-    "❌": "cancel1",
-    "⬆️": "up", "🔼": "up",
-    "⬇️": "down", "🔽": "down",
-    "ℹ️": "info1",
-    "🔄": "refresh1",
-    "🎉": "reward1",
-    "🍀": "lucky1",
-    "💀": "enemy1",
+CUSTOM_EMOJIS = {
+    "bag": "<:bag1:1569655521953325066>",
+    "refresh": "<:refresh1:1569654788973666426>",
+    "reward": "<:reward1:1569654864693305404>",
+    "boss": "<:boss1:1569655739323129967>",
+    "cancel": "<:cancel1:1569655124924698735>",
+    "settings": "<:settings1:1569655344739778683>",
+    "shield": "<:shield1:1569656398894202931>",
+    "chest": "<:chest1:1569656335644102758>",
+    "coin": "<:coin1:1569656729640378499>",
+    "star": "<:star1:1569656593736405122>",
+    "sword": "<:sword1:1569656535775322112>",
+    "confirm": "<:confirm1:1569655189110128640>",
+    "crown": "<:crown1:1569656669468626974>",
+    "tower": "<:tower1:1569655891484221470>",
+    "trade": "<:trade1:1569655960673325077>",
+    "daily": "<:daily1:1569655584813224088>",
+    "down": "<:down:1569655001591316500>",
+    "trophy": "<:trophy1:1569656193658392706>",
+    "up": "<:up:1569655064719523910>",
+    "enemy": "<:enemy1:1569654578738106408>",
+    "expedition": "<:expediton1:1569655659555725415>",
+    "gem": "<:gem1:1569656792483627018>",
+    "guild": "<:guild1:1569656030189584456>",
+    "help": "<:help1:1569655259909853195>",
+    "info": "<:info1:1569654931730731090>",
+    "leaderboard": "<:leaderboard1:1569655422179090542>",
+    "lucky": "<:lucky1:1569654706375237662>",
+    "market": "<:market1:1569655825759215726>",
+    "potion": "<:potion1:1569656462958137364>",
+    "quest": "<:quest1:1569656122896552036>",
 }
+
+
+def render_text(value: str, emoji_map: dict[str, str] | None = None) -> str:
+    for name, custom_emoji in CUSTOM_EMOJIS.items():
+        # Replace the corresponding Unicode symbol wherever it appears.
+        unicode_by_name = {
+            "bag": "🎒", "refresh": "🔄", "reward": "🎉", "boss": "👹",
+            "cancel": "❌", "settings": "⚙️", "shield": "🛡️", "chest": "🎁",
+            "coin": "💰", "star": "⭐", "sword": "⚔️", "confirm": "✅",
+            "crown": "👑", "tower": "🏰", "trade": "🤝", "daily": "📅",
+            "down": "⬇️", "trophy": "🏆", "up": "⬆️", "enemy": "💀",
+            "expedition": "🧭", "gem": "💎", "guild": "👥", "help": "❓",
+            "info": "ℹ️", "leaderboard": "📊", "lucky": "🍀", "market": "🏪",
+            "potion": "🧪", "quest": "📜",
+        }
+        value = value.replace(unicode_by_name[name], custom_emoji)
+    return value
+
 
 
 def render_text(value: str, emoji_map: dict[str, str]) -> str:
@@ -240,17 +258,8 @@ class DiscordBot(commands.Bot):
 
     async def on_ready(self) -> None:
         log.info("Logged in as %s (ID: %s)", self.user, self.user.id)
-        guild = self.get_guild(EMOJI_GUILD_ID)
-        if guild is None:
-            try:
-                guild = await self.fetch_guild(EMOJI_GUILD_ID)
-            except discord.HTTPException as exc:
-                log.warning("Could not fetch emoji server %s: %s", EMOJI_GUILD_ID, exc)
-        self.emoji_map = {
-            emoji.name: str(emoji)
-            for emoji in guild.emojis
-        } if guild else {}
-        log.info("Loaded %s manually added custom emojis: %s", len(self.emoji_map), ", ".join(sorted(self.emoji_map)) or "none")
+        self.emoji_map = CUSTOM_EMOJIS.copy()
+        log.info("Loaded %s custom emojis directly by ID", len(self.emoji_map))
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         # Keep one ordered chain so CommandNotFound is not overwritten by fallback handling.
