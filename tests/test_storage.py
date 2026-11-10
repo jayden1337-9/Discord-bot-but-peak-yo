@@ -2,6 +2,9 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
+
+from cogs import adventure
 
 from core import storage
 
@@ -35,6 +38,36 @@ class StorageTests(unittest.TestCase):
         self.assertFalse(self.path.with_name("profiles.backup.json").exists())
         self.assertEqual(json.loads(self.path.read_text(encoding="utf-8")), {"profiles": {}})
 
+
+    def test_player_database_recovers_from_last_known_good_backup(self):
+        root = Path(self.temp.name)
+        database = root / "peak_game.json"
+        backup = root / "peak_game.backup.json"
+        broken = root / "peak_game.broken.json"
+        expected = {"profiles": {"123": {"level": 900}}, "raids": {}, "custom_weapons": {}}
+        database.write_text("{ damaged json", encoding="utf-8")
+        backup.write_text(json.dumps(expected), encoding="utf-8")
+        storage._BACKUPS_CREATED.clear()
+
+        with patch.object(adventure, "ROOT", root), patch.object(adventure, "DB_FILE", database), patch.object(adventure, "OLD_DB", root / "missing.sqlite3"):
+            recovered = adventure.load()
+
+        self.assertEqual(recovered["profiles"]["123"]["level"], 900)
+        self.assertTrue(broken.exists())
+        self.assertEqual(json.loads(database.read_text(encoding="utf-8"))["profiles"]["123"]["level"], 900)
+
+    def test_damaged_player_database_never_silently_becomes_empty(self):
+        root = Path(self.temp.name)
+        database = root / "peak_game.json"
+        database.write_text("{ damaged json", encoding="utf-8")
+        storage._BACKUPS_CREATED.clear()
+
+        with patch.object(adventure, "ROOT", root), patch.object(adventure, "DB_FILE", database), patch.object(adventure, "OLD_DB", root / "missing.sqlite3"):
+            with self.assertRaises(RuntimeError):
+                adventure.load()
+
+        self.assertFalse(database.exists())
+        self.assertTrue(database.with_name("peak_game.broken.json").exists())
 
 if __name__ == "__main__":
     unittest.main()
