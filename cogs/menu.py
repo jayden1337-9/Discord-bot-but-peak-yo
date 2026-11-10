@@ -87,8 +87,8 @@ class Menu(commands.Cog):
         embed = discord.Embed(
             title="Quick menu",
             description=(
-                "Use the buttons to open your profile, inventory, quests, "
-                "leaderboard or command help. You can still use every command normally."
+                "Open your profile, inventory, quests, leaderboard, wallet, guild, "
+                "market, boss register or command help. Commands still work normally."
             ),
             color=discord.Color.from_rgb(48, 61, 82),
         )
