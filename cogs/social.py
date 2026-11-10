@@ -31,7 +31,7 @@ class Social(commands.Cog):
     @commands.group(name="guild", invoke_without_command=True)
     async def guild(self, ctx):
         p = ctx.clean_prefix
-        await ctx.send(embed=self.embed("Guild commands", f"{p}guild create <name> (10,000 Gold)\n{p}guild join <name>\n{p}guild leave\n{p}guild info\n{p}guild members\n{p}guild transfer @member"))
+        await ctx.send(embed=self.embed("Guild commands", f"{p}guild create <name> (10,000 Gold)\n{p}guild join <name>\n{p}guild leave\n{p}guild info\n{p}guild members\n{p}guild kick @member\n{p}guild top\n{p}guild donate <gold>"))
 
     @guild.command(name="create")
     async def guild_create(self, ctx, *, name: str):
@@ -251,7 +251,7 @@ class Social(commands.Cog):
     @commands.group(name="market", invoke_without_command=True)
     async def market(self, ctx):
         p = ctx.clean_prefix
-        await ctx.send(embed=self.embed("Player market", f"{p}market browse\n{p}market list <item> <amount> <price>\n{p}market buy <id>\n{p}market cancel <id>"))
+        await ctx.send(embed=self.embed("Player market", f"{p}market browse\n{p}market my\n{p}market list <item> <amount> <price>\n{p}market buy <id>\n{p}market cancel <id>"))
 
     @market.command(name="browse")
     async def market_browse(self, ctx):
