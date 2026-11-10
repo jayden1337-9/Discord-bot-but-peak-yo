@@ -1,10 +1,10 @@
 # Discord Bot
 
-A prefix-based Discord bot with community utilities and a persistent anime-themed RPG system. Built with Python and discord.py for lightweight hosting such as Wispbyte.
+A lightweight, prefix-based Discord bot with community utilities and a persistent anime RPG. Built with Python and discord.py for hosts such as Wispbyte.
 
 ## Features
 
-- Dark anime RPG interface with item icons, emoji labels and a Pillow-rendered inventory
+- Consistent Discord-native embeds, interactive command menus, owner-locked pagination and a Pillow-rendered inventory
 - Community tools, polls, moderation utilities and random tools
 - Anime character roster inspired by Jujutsu Kaisen, One Piece, Naruto, Bleach, Dragon Ball and more
 - Character-specific signature abilities, a material-and-level gated universal skill tree, race passives, clan-based melee/sword/magic bonuses and character mastery\n- Tactical raid combat with separate melee, sword and magic loadouts; each turn requires selecting a weapon type and an equipped skill
@@ -130,7 +130,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 
 ## Data
 
-The game database is stored in `peak_game.json` inside `BOT_DATA_DIR`. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save and refreshes `game_data.backup.json` from the last valid database before overwriting it.
+The player database is stored in `peak_game.json` inside `BOT_DATA_DIR`. The filename is retained for compatibility with existing player data. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically to reduce the chance of a partially written save and refreshes `game_data.backup.json` from the last valid database before overwriting it.
 
 Large player values are displayed in scientific notation. A googolplex swarm is represented exactly as 10^(10^100) and its damage, loot, victories, skill points and XP rewards are tracked symbolically. Symbolic XP is kept separate from ordinary level progression because the resulting level cannot be represented as a practical finite integer.
 
