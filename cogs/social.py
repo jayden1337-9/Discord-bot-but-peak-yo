@@ -78,6 +78,67 @@ class TradeOfferView(discord.ui.View):
         await self.finish(interaction, "Trade cancelled", "The offer was cancelled by its sender.")
 
 
+class MarketBrowseView(discord.ui.View):
+    def __init__(self, cog, server_id, buyer_id, listings):
+        super().__init__(timeout=180)
+        self.cog = cog
+        self.server_id = server_id
+        self.buyer_id = buyer_id
+        options = []
+        for listing in listings[:25]:
+            item = listing["item"].replace("_", " ").title()
+            label = f"{item} ×{listing['amount']:,}"[:100]
+            description = f"{int(listing['price']):,} Gold · Seller {listing['seller']}"[:100]
+            options.append(discord.SelectOption(label=label, value=listing["id"], description=description))
+        self.select = discord.ui.Select(
+            placeholder="Choose a listing to purchase",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
+        self.select.callback = self.purchase
+        self.add_item(self.select)
+
+    async def interaction_check(self, interaction):
+        if interaction.user.id != self.buyer_id or interaction.guild_id != self.server_id:
+            await interaction.response.send_message("This market view belongs to the player who opened it in this server.", ephemeral=True)
+            return False
+        return True
+
+    async def purchase(self, interaction):
+        listing_id = self.select.values[0]
+        game = self.cog.game()
+        async with self.cog.lock:
+            listing = game.data["market"].get(listing_id)
+            if not listing or listing.get("server_id") != self.server_id:
+                return await interaction.response.send_message("That listing is no longer available. Refresh the market.", ephemeral=True)
+            buyer = game.p(self.buyer_id)
+            seller = game.p(int(listing["seller"]))
+            price = int(listing["price"])
+            amount = int(listing["amount"])
+            item = listing["item"]
+            if int(buyer.get("gold", 0)) < price:
+                return await interaction.response.send_message("You don't have enough Gold for that listing.", ephemeral=True)
+            if int(seller.get("gold", 0)) + price > 10**18:
+                return await interaction.response.send_message("The seller's Gold balance is at its limit. The listing cannot be purchased right now.", ephemeral=True)
+            if int(buyer["inventory"].get(item, 0)) + amount > 10**18:
+                return await interaction.response.send_message("Your item stack would exceed its limit.", ephemeral=True)
+            transfer_gold(buyer, seller, price)
+            buyer["inventory"][item] = int(buyer["inventory"].get(item, 0)) + amount
+            del game.data["market"][listing_id]
+            game.flush()
+        for child in self.children:
+            child.disabled = True
+        await interaction.response.edit_message(
+            embed=self.cog.embed("Purchase complete", f"Bought {amount:,} × {item.replace('_', ' ').title()} for {price:,} Gold."),
+            view=self,
+        )
+
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+
+
 class Social(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -337,8 +398,10 @@ class Social(commands.Cog):
         listings.sort(key=lambda x: (int(x["price"]), int(x["created"])))
         if not listings:
             return await ctx.reply("No listings are available.", mention_author=False)
-        body = "\n".join(f"{x['id']} · {x['amount']:,} × {x['item'].replace('_', ' ').title()} · {x['price']:,} Gold · <@{x['seller']}>" for x in listings[:20])
-        await ctx.reply(embed=self.embed("Player market", body), mention_author=False)
+        shown = listings[:25]
+        body = "\n".join(f"`{x['id']}` · {x['amount']:,} × {x['item'].replace('_', ' ').title()} · {x['price']:,} Gold · <@{x['seller']}>" for x in shown)
+        view = MarketBrowseView(self, ctx.guild.id, ctx.author.id, shown)
+        await ctx.reply(embed=self.embed("Player market", body + "\n\nSelect a listing below to buy it."), view=view, mention_author=False)
 
     @market.command(name="list")
     async def market_list(self, ctx, item: str, amount: int, price: int):
