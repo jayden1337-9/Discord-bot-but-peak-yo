@@ -2,6 +2,7 @@ import random
 from discord.ext import commands
 
 from cogs.adventure import CHARACTERS, ITEMS, display_number, AttackCategoryView
+from core.locking import serialized
 
 GEAR = {
     "cursed_mantle": {"name": "Cursed Mantle", "slot": "armor", "level": 8, "attack": 12, "defense": 0.08, "hp": 35, "materials": {"cursed_ash": 12, "transfigured_soul": 4}},
@@ -77,6 +78,7 @@ class Endgame(commands.Cog):
         await ctx.reply(embed=embed, mention_author=False)
 
     @forge.command(name="craft")
+    @serialized
     async def forge_craft(self, ctx, *, key: str):
         key = key.lower().strip().replace(" ", "_")
         cog, p = self.services(ctx)
@@ -115,6 +117,7 @@ class Endgame(commands.Cog):
         await ctx.reply(embed=embed, file=file, mention_author=False)
 
     @commands.command(name="equipgear")
+    @serialized
     async def equipgear(self, ctx, *, key: str):
         key = key.lower().strip().replace(" ", "_")
         cog, p = self.services(ctx)
@@ -130,6 +133,7 @@ class Endgame(commands.Cog):
         await ctx.reply(embed=self.embed(cog, "GEAR EQUIPPED", f"{GEAR[key]['name']} equipped in {slot}."), mention_author=False)
 
     @commands.command(name="unequipgear")
+    @serialized
     async def unequipgear(self, ctx, slot: str):
         cog, p = self.services(ctx)
         slot = slot.lower().strip()
@@ -157,6 +161,7 @@ class Endgame(commands.Cog):
         await ctx.reply(embed=self.embed(cog, "RIFT TOWER STATUS", f"Floor {state['floor']}\n{enemy['name']}: {enemy['hp']:,}/{enemy['max_hp']:,} HP\nYour HP: {state['hp']}/{state['max_hp']}\nDamage dealt: {state['damage']:,}\nUse ,attack."), mention_author=False)
 
     @tower.command(name="start")
+    @serialized
     async def tower_start(self, ctx):
         cog, p = self.services(ctx)
         if p.get("tower"):
@@ -172,6 +177,7 @@ class Endgame(commands.Cog):
 
     @tower.command(name="attack")
     @commands.cooldown(1, 1.0, commands.BucketType.user)
+    @serialized
     async def tower_attack(self, ctx, *, ability: str = None):
         cog, p = self.services(ctx)
         state = p.get("tower")
@@ -273,6 +279,7 @@ class Endgame(commands.Cog):
         await ctx.reply(embed=self.embed(cog, "TOWER TURN", f"You dealt {damage:,} damage to {enemy['name']}.\nThe boss retaliated for {incoming} damage.\nYour HP: {state['hp']}/{state['max_hp']}\nEnemy HP: {enemy['hp']:,}/{enemy['max_hp']:,}."), mention_author=False)
 
     @tower.command(name="retreat")
+    @serialized
     async def tower_retreat(self, ctx):
         cog, p = self.services(ctx)
         state = p.get("tower")
