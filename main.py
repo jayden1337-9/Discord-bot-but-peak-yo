@@ -17,16 +17,23 @@ logging.basicConfig(
     level=settings.log_level,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
-log = logging.getLogger("peakbot")
+log = logging.getLogger("discord_bot")
 
 
 class EmbedPager(discord.ui.View):
-    def __init__(self, pages):
+    def __init__(self, pages, owner_id):
         super().__init__(timeout=180)
         self.pages = pages
+        self.owner_id = owner_id
         self.index = 0
         self.previous.disabled = True
         self.next.disabled = len(pages) <= 1
+
+    async def interaction_check(self, interaction: discord.Interaction) -> bool:
+        if interaction.user.id != self.owner_id:
+            await interaction.response.send_message("These controls belong to the person who opened this response.", ephemeral=True)
+            return False
+        return True
 
     async def show(self, interaction):
         self.previous.disabled = self.index == 0
@@ -109,7 +116,7 @@ def paginated_embeds(embed):
     return pages
 
 
-class PeakContext(commands.Context):
+class BotContext(commands.Context):
     async def send(self, content=None, **kwargs):
         embed = kwargs.get("embed")
         embeds = kwargs.get("embeds")
@@ -128,12 +135,12 @@ class PeakContext(commands.Context):
             kwargs.pop("embed", None)
             kwargs.pop("embeds", None)
             kwargs["embed"] = pages[0]
-            kwargs["view"] = EmbedPager(pages)
+            kwargs["view"] = EmbedPager(pages, self.author.id)
             return await super().send(content, **kwargs)
         return await super().send(content, **kwargs)
 
 
-class PeakBot(commands.Bot):
+class DiscordBot(commands.Bot):
     async def setup_hook(self) -> None:
         await self.load_extension("cogs.general")
         await self.load_extension("cogs.adventure")
@@ -142,6 +149,7 @@ class PeakBot(commands.Bot):
         await self.load_extension("cogs.expeditions")
         await self.load_extension("cogs.ascension")
         await self.load_extension("cogs.social")
+        await self.load_extension("cogs.menu")
         log.info("Extensions loaded")
 
     async def on_ready(self) -> None:
@@ -150,14 +158,26 @@ class PeakBot(commands.Bot):
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         if isinstance(error, commands.CommandNotFound):
             return
+        if isinstance(error, commands.MissingPermissions):
+            message = "You do not have permission to use that command."
+        elif isinstance(error, commands.BotMissingPermissions):
+            message = "I am missing a permission required to run that command."
         if isinstance(error, commands.MissingRequiredArgument):
             message = f"Missing argument: `{error.param.name}`. Use `{ctx.clean_prefix}help` for usage."
         elif isinstance(error, commands.BadArgument):
             message = "That argument could not be understood. Check the command usage with the help command."
+        elif isinstance(error, commands.NotOwner):
+            message = "This command is restricted to the bot owner."
+        elif isinstance(error, commands.CheckFailure):
+            message = "You cannot use that command here or with your current permissions."
         elif isinstance(error, commands.NoPrivateMessage):
             message = "This command can only be used inside a server."
         elif isinstance(error, commands.CommandOnCooldown):
             message = f"Try again in {error.retry_after:.1f} seconds."
+        elif isinstance(error, commands.CommandInvokeError):
+            original = error.original
+            log.error("Command failed: %s", original, exc_info=(type(original), original, original.__traceback__))
+            message = "Something went wrong while running that command. The error has been logged."
         else:
             log.error("Command failed", exc_info=(type(error), error, error.__traceback__))
             message = "Something went wrong while running that command."
@@ -173,11 +193,11 @@ async def main() -> None:
 
     intents = discord.Intents.default()
     intents.message_content = True
-    bot = PeakBot(
+    bot = DiscordBot(
         command_prefix=settings.prefix,
         intents=intents,
         help_command=None,
-        context=PeakContext,
+        context=BotContext,
     )
     try:
         await bot.start(token)
