@@ -1289,7 +1289,7 @@ class Adventure(commands.Cog):
     await ctx.reply(embed=self.embed("CRYSTAL CONSUMED","You gained 5 skill points."),mention_author=False); return
   await ctx.reply(embed=self.embed("ITEM NOT USABLE","Try Healing Potion, Battle Tonic, Focus Elixir, Awakening Crystal or Phoenix Feather."),mention_author=False)
 
- @commands.command(name="stats",aliases=["me"])
+ @commands.command(name="stats",aliases=["me","profile"])
  async def stats(self,ctx,member:discord.Member=None):
   member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
   sr=p["symbolic_rewards"]
