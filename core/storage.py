@@ -6,8 +6,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+# Compatibility hook for existing tests; backups now refresh on every save.
+_BACKUPS_CREATED: set[Path] = set()
+
+
 def atomic_json_save(data: dict[str, Any], path: Path) -> None:
-    """Write JSON atomically and retain one last-known-good backup per process."""
+    """Write JSON atomically and refresh a last-known-good recovery snapshot."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     backup = path.with_name(f"{path.stem}.backup{path.suffix}")
@@ -22,7 +26,7 @@ def atomic_json_save(data: dict[str, Any], path: Path) -> None:
             fd, backup_temp = tempfile.mkstemp(
                 dir=str(path.parent), prefix=f"{backup.stem}-", suffix=".tmp"
             )
-            with path.open("rb") as source, os.fdopen(fd, "wb") as target:
+            with os.fdopen(fd, "wb") as target, path.open("rb") as source:
                 while chunk := source.read(1024 * 1024):
                     target.write(chunk)
                 target.flush()
