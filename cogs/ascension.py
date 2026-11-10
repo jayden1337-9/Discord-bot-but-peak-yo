@@ -120,7 +120,7 @@ class Ascension(commands.Cog):
                 f"**{state['name']}** · {status}\n"
                 f"HP: {display_number(state.get('hp', 0))}/{display_number(state.get('max_hp', 0))}\n"
                 f"Contributors: {len(state.get('players', {}))}\n\n**Top damage**\n{board}\n\n"
-                + ("Join with ,worldboss join, then attack with ,worldboss attack." if state.get("active") else "Claim your reward with ,worldboss claim.")
+                + ("Join with ,worldboss join, then use ,attack." if state.get("active") else "Claim your reward with ,worldboss claim.")
             )
         await ctx.reply(embed=self.embed(game, "GLOBAL WORLD BOSS", description), mention_author=False)
 
