@@ -1368,7 +1368,7 @@ class Adventure(commands.Cog):
   pages=max(1,(entries+14)//15); page=max(1,min(page,pages))
   image=inventory_image(p,ITEMS,page,ITEM_ICONS)
   file=discord.File(image,filename="inventory.png")
-  e=self.embed("🎒 INVENTORY",f"{entries} item stacks · page {page}/{pages}\n🪙 Gold: {display_number(p.get('gold',0))}   💎 Gems: {display_number(p.get('gems',0))}\nUse ,inventory <page> to browse.")
+  e=self.embed(f"{CUSTOM_EMOJIS['bag']} INVENTORY",f"{entries} item stacks · page {page}/{pages}\n{CUSTOM_EMOJIS['coin']} Gold: {display_number(p.get('gold',0))}   {CUSTOM_EMOJIS['gem']} Gems: {display_number(p.get('gems',0))}\nUse ,inventory <page> to browse.")
   six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
   six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr["inventory_spent"].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
   finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
