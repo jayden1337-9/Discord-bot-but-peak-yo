@@ -5,6 +5,7 @@ import discord
 from discord.ext import commands
 
 from core.storage import atomic_json_save
+from core.locking import serialized
 from core.inventory import has_item as inventory_has_item, consume_item as inventory_consume_item
 
 ROOT = Path(os.getenv("BOT_DATA_DIR", "/home/container/data"))
@@ -623,6 +624,7 @@ class Adventure(commands.Cog):
    e.add_field(name=f"{c[0]} / {state}",value=f"{c[1]} · {c[3][0]}–{c[3][1]} damage\nSignature: {c[4]}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="character",aliases=["equip"])
+ @serialized
  async def character(self,ctx,*,key):
   key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id); c=CHARACTERS.get(key)
   if not c or p["level"]<c[2]:
@@ -643,6 +645,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("CLAN STATUS",f"Current clan: {d['name'] if d else 'Unassigned'}\nRerolls: {p.get('clan_rolls',0)}\nUse ,clans to view bonuses or ,clan roll to reroll."),mention_author=False)
 
  @clan.command(name="roll")
+ @serialized
  async def clan_roll(self,ctx):
   p=self.p(ctx.author.id)
   if p.get("clan_rolls",0)<1:
@@ -657,6 +660,7 @@ class Adventure(commands.Cog):
 
  @clan.command(name="set",aliases=["choose","select"])
  @commands.is_owner()
+ @serialized
  async def clan_set(self,ctx,*,key):
   key=key.lower().strip().replace(" ","_")
   if key in {"none","off","clear"}:
@@ -677,6 +681,7 @@ class Adventure(commands.Cog):
    e.add_field(name=r[0],value=f"{r[3]}\nSelect with ,race {k}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="race")
+ @serialized
  async def race(self,ctx,*,key):
   key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if key not in RACES or (key=="sukuna" and not p["sukuna_race_unlocked"]):
@@ -1009,6 +1014,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=e,mention_author=False)
 
  @commands.command(name="equipskill")
+ @serialized
  async def equipskill(self,ctx,category,*,skill):
   category=category.lower().strip(); key=skill.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if category not in ATTACK_TYPES:
@@ -1029,6 +1035,7 @@ class Adventure(commands.Cog):
   label=SKILL_TREE[key]["name"] if key in SKILL_TREE else c[4]
   await ctx.reply(embed=self.embed("SKILL EQUIPPED",f"{label} is equipped under {ATTACK_TYPES[category]}. Use ,attack to choose it in combat."),mention_author=False)
  @commands.command(name="unequipskill")
+ @serialized
  async def unequipskill(self,ctx,category,*,skill):
   category=category.lower().strip(); key=skill.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if category not in ATTACK_TYPES or key not in p.get("equipped_skills",{}).get(category,[]):
@@ -1054,16 +1061,17 @@ class Adventure(commands.Cog):
   lines.append("Equip: ,equipskill <type> <skill> · View: ,skillloadout")
   await ctx.reply(embed=self.embed("TECHNIQUE RECORD","\n".join(lines)),mention_author=False)
  @commands.command(name="unlock")
+ @serialized
  async def unlock(self,ctx,*,skill):
   p=self.p(ctx.author.id); c=CHARACTERS[p["character"]]; key=skill.lower().strip().replace(" ","_")
   if key in SKILL_TREE:
    d=SKILL_TREE[key]
-   missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in d["materials"].items() if int(p["inventory"].get(i,0))<n]
+  missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items() if not self.has_item(p,i,n)]
    if key in p["unlocked_skills"]:
     await ctx.reply(embed=self.embed("ALREADY UNLOCKED",f"{d['name']} is already available."),mention_author=False); return
    if p["level"]<d["level"] or p["points"]<d["cost"] or missing:
     await ctx.reply(embed=self.embed("SKILL REQUIREMENTS",f"Level {d['level']} · {d['cost']} points\nMissing: {', '.join(missing) if missing else 'None'}"),mention_author=False); return
-   for i,n in d["materials"].items(): self.item(p,i,-n)
+   for i,n in d["materials"].items(): self.consume_item(p,i,n)
    p["points"]-=d["cost"]; p["unlocked_skills"].append(key); self.flush()
    await ctx.reply(embed=self.embed("SKILL UNLOCKED",f"{d['name']} is ready. Damage multiplier x{d['multiplier']:.2f}."),mention_author=False); return
   if key!=c[5]: await ctx.reply(embed=self.embed("UNKNOWN SKILL",f"Your character uses {c[5]}. Use ,skilltree for more skills."),mention_author=False); return
@@ -1094,16 +1102,17 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=e,mention_author=False)
 
  @commands.command(name="craft")
+ @serialized
  async def craft(self,ctx,*,key):
   key=key.lower().strip().replace(" ","_")
   if key.startswith("item_"): key=key[5:]
   if key.startswith("i_"): key=key[2:]
   if key in ITEM_RECIPES:
    p=self.p(ctx.author.id); recipe=ITEM_RECIPES[key]
-   missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in recipe["materials"].items() if int(p["inventory"].get(i,0))<n]
+   missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in recipe["materials"].items() if not self.has_item(p,i,n)]
    if missing:
     await ctx.reply(embed=self.embed("CRAFTING MATERIALS MISSING",", ".join(missing)),mention_author=False); return
-   for item_key,amount in recipe["materials"].items(): self.item(p,item_key,-amount)
+   for item_key,amount in recipe["materials"].items(): self.consume_item(p,item_key,amount)
    if key=="clan_token":
     p["clan_rolls"]=p.get("clan_rolls",1)+1; result=f"Added one clan reroll. You now have {p['clan_rolls']}."
    else:
@@ -1116,10 +1125,10 @@ class Adventure(commands.Cog):
   owned=self.data.setdefault("crafted_weapons",{}).setdefault(str(ctx.author.id),[])
   if key in owned:
    await ctx.reply(embed=self.embed("ALREADY FORGED","You already crafted this weapon."),mention_author=False); return
-  missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in d["materials"].items() if int(p["inventory"].get(i,0))<n]
+  missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items() if not self.has_item(p,i,n)]
   if p["level"]<d["level"] or missing:
    await ctx.reply(embed=self.embed("FORGE REQUIREMENTS",f"Required level: {d['level']}\nMissing materials: {', '.join(missing) if missing else 'None'}"),mention_author=False); return
-  for i,n in d["materials"].items(): self.item(p,i,-n)
+  for i,n in d["materials"].items(): self.consume_item(p,i,n)
   self.data["custom_weapons"][key]={k:d[k] for k in ("name","damage","ability","ability_key","ability_damage","description")}
   owned.append(key); p["weapon"]=key; self.flush()
   await ctx.reply(embed=self.embed("WEAPON FORGED",f"{d['name']} crafted and equipped. Use ,attack {d['ability_key']}."),mention_author=False)
@@ -1139,15 +1148,16 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=e,mention_author=False)
 
  @dimension.command(name="enter")
+ @serialized
  async def dimension_enter(self,ctx,*,key):
   key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id); d=DIMENSIONS.get(key)
   if not d:
    await ctx.reply(embed=self.embed("UNKNOWN DIMENSION","Use ,dimension list."),mention_author=False); return
   if key not in p["unlocked_dimensions"]:
-   missing=[f"{ITEMS.get(i,i)} x{n-int(p['inventory'].get(i,0))}" for i,n in d["materials"].items() if int(p["inventory"].get(i,0))<n]
+  missing=[f"{ITEMS.get(i,i)} x{n}" for i,n in d["materials"].items() if not self.has_item(p,i,n)]
    if p["level"]<d["level"] or p["wins"]<d["wins"] or missing:
     await ctx.reply(embed=self.embed("GATE SEALED",f"Level {d['level']} · {d['wins']} victories\nMissing: {', '.join(missing) if missing else 'None'}"),mention_author=False); return
-   for i,n in d["materials"].items(): self.item(p,i,-n)
+   for i,n in d["materials"].items(): self.consume_item(p,i,n)
    p["unlocked_dimensions"].append(key)
   p["active_dimension"]=key; self.flush()
   await ctx.reply(embed=self.embed("DIMENSION ENTERED",f"You entered {d['name']}. Damage affinity: +{int((d['bonus']-1)*100)}%."),mention_author=False)
@@ -1216,10 +1226,12 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("CHEST VAULT","\\n".join(lines)),mention_author=False)
 
  @chest.command(name="open")
+ @serialized
  async def chest_open(self,ctx,*,tier):
   await self.open_chest_tiers(ctx,tier)
 
  @commands.command(name="oca",aliases=["openallchests"])
+ @serialized
  async def open_all_chests(self,ctx):
   await self.open_chest_tiers(ctx,"all")
 
@@ -1234,6 +1246,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("🛒 ITEM SHOP","\\n".join(lines)+"\\n\\nBuy with ,buy <item_key> [amount]."),mention_author=False)
 
  @commands.command(name="buy")
+ @serialized
  async def buy(self,ctx,item:str,amount:int=1):
   key=item.lower().strip().replace(" ","_")
   prices={"healing_potion":(120,0),"battle_tonic":(250,1),"focus_elixir":(250,1),"phoenix_feather":(1200,10)}
@@ -1268,6 +1281,7 @@ class Adventure(commands.Cog):
   if view is not None:
    view.message=message
  @commands.command(name="eat",aliases=["consume"])
+ @serialized
  async def eat(self,ctx,*,item):
   key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if key in {"six_eye","six_eyes"}:
@@ -1363,6 +1377,7 @@ class Adventure(commands.Cog):
   lines=[f"**{self.data['custom_weapons'][key]['name']}** · x{display_number(count)} · ,weapon equip {key}" for key,count in owned.items() if key in self.data.get("custom_weapons",{}) and count>0]
   await ctx.reply(embed=self.embed("YOUR WEAPON INVENTORY",chr(10).join(lines) if lines else "You don't own any custom weapons yet. Ask the bot owner to grant one with ,giveitem."),mention_author=False)
  @weapon.command(name="equip")
+ @serialized
  async def weapon_equip(self,ctx,*,key):
   key=key.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
   if key not in self.data.get("custom_weapons",{}):
@@ -1376,12 +1391,14 @@ class Adventure(commands.Cog):
   p["weapon"]=key; self.flush()
   await ctx.reply(embed=self.embed("WEAPON EQUIPPED",f"{self.data['custom_weapons'][key]['name']} is now equipped. Use ,attack or ,attack <ability name>."),mention_author=False)
  @weapon.command(name="unequip")
+ @serialized
  async def weapon_unequip(self,ctx):
   p=self.p(ctx.author.id); p["weapon"]=None; self.flush()
   await ctx.reply(embed=self.embed("WEAPON UNEQUIPPED","Your character's standard attacks are active again."),mention_author=False)
 
  @commands.command(name="setdamage")
  @commands.is_owner()
+ @serialized
  async def setdamage(self,ctx,amount:str):
   p=self.p(ctx.author.id)
   if not p.get("weapon") or p["weapon"] not in self.data.get("custom_weapons",{}):
@@ -1402,6 +1419,7 @@ class Adventure(commands.Cog):
 
  @commands.command(name="giveitem")
  @commands.is_owner()
+ @serialized
  async def giveitem(self,ctx,member:discord.User,item:str,amount:int=1):
   key=item.lower().strip().replace(" ","_")
   if amount<1:
@@ -1422,6 +1440,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("OWNER GRANT",result),mention_author=False)
  @commands.command(name="addclanrolls",aliases=["clanrolls"])
  @commands.is_owner()
+ @serialized
  async def addclanrolls(self,ctx,member:discord.User,amount:int):
   if not 1<=amount<=1000000:
    await ctx.reply(embed=self.embed("INVALID AMOUNT","Choose an amount from 1 to 1000000."),mention_author=False); return
@@ -1430,6 +1449,7 @@ class Adventure(commands.Cog):
 
  @commands.command(name="addxp")
  @commands.is_owner()
+ @serialized
  async def addxp(self,ctx,member:discord.User,amount:int):
   if not 0<=amount<=100000000: await ctx.reply(embed=self.embed("INVALID XP","Amount must be 0 to 100000000."),mention_author=False); return
   p=self.p(member.id); p["xp"]+=amount
@@ -1437,18 +1457,21 @@ class Adventure(commands.Cog):
   self.flush(); await ctx.reply(embed=self.embed("OWNER XP GRANT",f"Added {amount:,} XP. New level: {p['level']}."),mention_author=False)
  @commands.command(name="setlevel")
  @commands.is_owner()
+ @serialized
  async def setlevel(self,ctx,member:discord.User,level:int):
   if not 1<=level<=10000: await ctx.reply(embed=self.embed("INVALID LEVEL","Choose 1 to 10000."),mention_author=False); return
   p=self.p(member.id); p["level"]=level; p["xp"]=0; self.flush()
   await ctx.reply(embed=self.embed("OWNER LEVEL UPDATE",f"{member.mention} is now level {level}."),mention_author=False)
  @commands.command(name="addpoints")
  @commands.is_owner()
+ @serialized
  async def addpoints(self,ctx,member:discord.User,amount:int):
   if not 0<=amount<=100000: await ctx.reply(embed=self.embed("INVALID AMOUNT","Skill points must be 0 to 100000."),mention_author=False); return
   p=self.p(member.id); p["points"]+=amount; self.flush()
   await ctx.reply(embed=self.embed("OWNER POINT GRANT",f"Added {amount} skill points to {member.mention}."),mention_author=False)
  @commands.command(name="setcharacter")
  @commands.is_owner()
+ @serialized
  async def setcharacter(self,ctx,member:discord.User,*,character:str):
   key=character.lower().strip().replace(" ","_")
   if key not in CHARACTERS: await ctx.reply(embed=self.embed("INVALID CHARACTER","Use a character key from ,characters."),mention_author=False); return
@@ -1456,6 +1479,7 @@ class Adventure(commands.Cog):
   await ctx.reply(embed=self.embed("OWNER CHARACTER UPDATE",f"{member.mention} now uses {CHARACTERS[key][0]}."),mention_author=False)
  @commands.command(name="setrace")
  @commands.is_owner()
+ @serialized
  async def setrace(self,ctx,member:discord.User,*,race:str):
   key=race.lower().strip().replace(" ","_"); p=self.p(member.id)
   if key not in RACES: await ctx.reply(embed=self.embed("INVALID RACE","Use a key shown in ,races."),mention_author=False); return
@@ -1463,6 +1487,7 @@ class Adventure(commands.Cog):
   p["race"]=key; self.flush(); await ctx.reply(embed=self.embed("OWNER RACE UPDATE",f"{member.mention} is now {RACES[key][0]}."),mention_author=False)
  @commands.command(name="resetprofile")
  @commands.is_owner()
+ @serialized
  async def resetprofile(self,ctx,member:discord.User):
   self.data["profiles"][str(member.id)]=json.loads(json.dumps(DEFAULT)); self.flush()
   await ctx.reply(embed=self.embed("PROFILE RESET",f"Reset {member.mention}'s adventure profile."),mention_author=False)
