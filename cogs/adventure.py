@@ -358,7 +358,13 @@ def load():
   value=json.loads(path.read_text(encoding="utf-8"))
   if not isinstance(value,dict) or not isinstance(value.get("profiles"),dict):
    raise ValueError("database root or profiles collection is invalid")
-  value.setdefault("raids",{}); value.setdefault("custom_weapons",{}); value.setdefault("version",1)
+  if any(not isinstance(profile,dict) for profile in value["profiles"].values()):
+   raise ValueError("one or more player profiles are not valid objects")
+  value.setdefault("raids",{})
+  value.setdefault("custom_weapons",{})
+  value.setdefault("version",1)
+  if not isinstance(value["raids"],dict) or not isinstance(value["custom_weapons"],dict):
+   raise ValueError("raid or custom weapon collection is invalid")
   return value
  if DB_FILE.exists():
   try:
