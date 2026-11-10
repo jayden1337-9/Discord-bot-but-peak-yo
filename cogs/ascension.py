@@ -1,6 +1,8 @@
 import random
 from discord.ext import commands
 
+from core.locking import serialized
+
 from cogs.adventure import (
     CHARACTERS, CLANS, DIMENSIONS, PETS, RACES, SKILL_TREE,
     AttackCategoryView, apply_level_ups, display_number, mastery_tier,
@@ -65,7 +67,7 @@ class Ascension(commands.Cog):
         game, p = self.services(ctx)
         rank = max(0, int(p.get("ascension", 0)))
         cost = ascension_cost(rank)
-        missing = [f"{key.replace('_', ' ').title()} {max(0, amount - int(p['inventory'].get(key, 0)))}" for key, amount in cost.items() if int(p["inventory"].get(key, 0)) < amount]
+        missing = [f"{key.replace('_', ' ').title()} ×{amount}" for key, amount in cost.items() if not game.has_item(p, key, amount)]
         ready = int(p.get("level", 1)) >= 55 and int(p.get("best_tower", 0)) >= 10 and not missing and rank < MAX_ASCENSIONS
         description = (
             f"**Ascension:** {rank}/{MAX_ASCENSIONS}\n"
@@ -81,6 +83,7 @@ class Ascension(commands.Cog):
         await ctx.reply(embed=self.embed(game, "ASCENSION ARCHIVE", description), mention_author=False)
 
     @commands.command(name="ascend")
+    @serialized
     async def ascend(self, ctx):
         game, p = self.services(ctx)
         rank = max(0, int(p.get("ascension", 0)))
@@ -156,7 +159,7 @@ class Ascension(commands.Cog):
 
     @worldboss.command(name="join")
     async def worldboss_join(self, ctx):
-        game, _ = self.services(ctx)
+        game, p = self.services(ctx)
         async with game.lock:
             state = game.data.get("world_boss")
             if not state or not state.get("active"):
