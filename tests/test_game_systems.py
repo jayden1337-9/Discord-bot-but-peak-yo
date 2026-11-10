@@ -5,6 +5,7 @@ from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 from cogs.render_ui import inventory_image, gear_image
 from cogs.expeditions import ROUTES, expedition_scale, daily_login_reward
+from cogs.ascension import MAX_ASCENSIONS, WORLD_BOSSES, ascension_cost, ascension_damage_multiplier, worldboss_reward_tier
 from PIL import Image
 
 
@@ -212,6 +213,33 @@ class GameSystemTests(unittest.TestCase):
         self.assertGreater(gained, 0)
         self.assertGreater(profile["level"], 1)
         self.assertGreaterEqual(profile["xp"], 0)
+
+
+    def test_ascension_progression_preserves_a_bounded_bonus(self):
+        self.assertEqual(MAX_ASCENSIONS, 25)
+        self.assertEqual(ascension_damage_multiplier({}), 1.0)
+        self.assertAlmostEqual(ascension_damage_multiplier({"ascension": 5}), 1.10)
+        self.assertAlmostEqual(ascension_damage_multiplier({"ascension": 99}), 1.50)
+        self.assertEqual(ascension_cost(0), {"rift_crystal": 5, "mythic_token": 1, "time_rift_fragment": 10})
+        self.assertEqual(ascension_cost(3)["mythic_token"], 2)
+
+    def test_global_world_bosses_have_valid_rewards(self):
+        self.assertEqual(set(WORLD_BOSSES), {"world_eater", "celestial_dragon", "void_emperor"})
+        for boss in WORLD_BOSSES.values():
+            self.assertGreater(boss["hp"], 0)
+            self.assertTrue(boss["drops"])
+            self.assertTrue(all(item in ITEMS for item in boss["drops"]))
+        self.assertEqual(worldboss_reward_tier(1, 100, 1), "mythic")
+        self.assertEqual(worldboss_reward_tier(10, 100, 2), "ruby")
+        self.assertEqual(worldboss_reward_tier(3, 100, 4), "diamond")
+        self.assertEqual(worldboss_reward_tier(1, 100, 4), "rare")
+
+    def test_rift_tower_continues_past_floor_ten(self):
+        game = Endgame(None)
+        eleventh = game.tower_enemy(11)
+        self.assertIn("Ascended Floor 11", eleventh["name"])
+        self.assertEqual(eleventh["hp"], 650 * 11 * 11)
+        self.assertGreater(eleventh["damage"][1], game.tower_enemy(10)["damage"][1])
 
 
 if __name__ == "__main__":
