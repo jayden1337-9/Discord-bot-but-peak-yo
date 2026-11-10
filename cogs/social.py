@@ -10,6 +10,7 @@ class Social(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.lock = asyncio.Lock()
+        self.activity_cooldowns = {}
 
     def game(self):
         cog = self.bot.get_cog("Adventure")
@@ -342,12 +343,31 @@ class Social(commands.Cog):
         await ctx.reply("Listing cancelled and items returned.", mention_author=False)
 
     @commands.Cog.listener()
-    async def on_guild_activity(self, server_id, user_id, amount):
+    async def on_message(self, message):
+        # Guild activity progression is deliberately slow and rate-limited:
+        # commands, bots, DMs and one-word spam do not grant guild XP.
+        if message.guild is None or message.author.bot:
+            return
+        content = (message.content or "").strip()
+        if len(content) < 8 or content.startswith((",", "!", ".", "?")):
+            return
+        key = (message.guild.id, message.author.id)
+        now = time.monotonic()
+        if now - self.activity_cooldowns.get(key, 0.0) < 60:
+            return
+        self.activity_cooldowns[key] = now
+        # Bound the cache so a busy server cannot grow it indefinitely.
+        if len(self.activity_cooldowns) > 10000:
+            cutoff = now - 3600
+            self.activity_cooldowns = {
+                user: stamp for user, stamp in self.activity_cooldowns.items()
+                if stamp >= cutoff
+            }
         cog = self.bot.get_cog("Adventure")
         if cog is None:
             return
         ensure_social_data(cog.data)
-        result = award_guild_xp(cog.data, int(server_id), int(user_id), int(amount))
+        result = award_guild_xp(cog.data, message.guild.id, message.author.id, 5)
         if result is not None:
             cog.flush()
 
