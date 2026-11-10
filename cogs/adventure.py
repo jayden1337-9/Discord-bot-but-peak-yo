@@ -720,7 +720,7 @@ class Adventure(commands.Cog):
    self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":dim.get("damage_mult",1.0),"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
    p["attack_mode"]="raid"
    self.flush()
-  await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{display_number(hp)} HP. World: {dim['name']}. First turn: {ctx.author.mention}. Others can use ,join."),mention_author=False)
+  await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{display_number(hp)} HP. World: {dim['name']}. First turn: {ctx.author.mention}. Use ,attack for your turn. Others can use ,join."),mention_author=False)
  @boss.command(name="abandon")
  @commands.guild_only()
  async def abandon_raid(self,ctx):
@@ -808,7 +808,7 @@ class Adventure(commands.Cog):
    await ctx.reply(embed=self.embed("GLOBAL BOSS ACTIVE","Join the event first with ,worldboss join. After joining, use ,attack."),mention_author=False); return
   async with self.lock:
    g=str(ctx.guild.id); r=self.data["raids"].get(g); uid=str(ctx.author.id)
-   if not r: await ctx.reply(embed=self.embed("NO RAID","Start one with ,boss challenge mahito."),mention_author=False); return
+   if not r: await ctx.reply(embed=self.embed("NO ACTIVE ENCOUNTER","Start a raid with ,boss challenge <key>, a tower with ,tower start, or an expedition with ,expedition start <route>. Join a global boss with ,worldboss join. Then use ,attack."),mention_author=False); return
    if uid not in r["players"]: await ctx.reply(embed=self.embed("NOT ENLISTED","Use ,join first."),mention_author=False); return
    alive=[u for u in r["turns"] if r["players"].get(u,0)>0]
    if not alive: self.data["raids"].pop(g,None); self.flush(); await ctx.reply(embed=self.embed("PARTY DEFEATED","Raid ended."),mention_author=False); return
