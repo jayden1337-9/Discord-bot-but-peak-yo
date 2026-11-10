@@ -525,7 +525,7 @@ class BossRegisterView(discord.ui.View):
 class InventoryPager(discord.ui.View):
  def __init__(self,ctx,page,pages):
   super().__init__(timeout=180)
-  self.ctx=ctx; self.owner_id=ctx.author.id; self.page=page; self.pages=pages
+  self.ctx=ctx; self.owner_id=ctx.author.id; self.page=page; self.pages=pages; self.message=None
   self.previous.disabled=page<=1
   self.next.disabled=page>=pages
  async def interaction_check(self,interaction):
@@ -537,6 +537,7 @@ class InventoryPager(discord.ui.View):
   self.page=max(1,min(self.pages,self.page+delta))
   cog=self.ctx.bot.get_cog("Adventure")
   embed,file,view=cog.inventory_payload(self.ctx,self.page)
+  view.message=interaction.message
   await interaction.response.defer()
   await interaction.message.edit(embed=embed,attachments=[file],view=view)
  @discord.ui.button(label="Previous",style=discord.ButtonStyle.secondary)
@@ -548,6 +549,11 @@ class InventoryPager(discord.ui.View):
  async def on_timeout(self):
   for child in self.children:
    child.disabled=True
+  if self.message is not None:
+   try:
+    await self.message.edit(view=self)
+   except discord.HTTPException:
+    pass
 
 
 class Adventure(commands.Cog):
@@ -1259,7 +1265,9 @@ class Adventure(commands.Cog):
  @commands.command(name="inventory",aliases=["inv","bag"])
  async def inventory(self,ctx,page:int=1):
   embed,file,view=self.inventory_payload(ctx,page)
-  await ctx.reply(embed=embed,file=file,view=view,mention_author=False)
+  message=await ctx.reply(embed=embed,file=file,view=view,mention_author=False)
+  if view is not None:
+   view.message=message
  @commands.command(name="eat",aliases=["consume"])
  async def eat(self,ctx,*,item):
   key=item.lower().strip().replace(" ","_"); p=self.p(ctx.author.id)
