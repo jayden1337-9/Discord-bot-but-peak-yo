@@ -521,6 +521,12 @@ class BossRegisterView(discord.ui.View):
   if interaction.user.id!=self.owner_id:
    await interaction.response.send_message("These controls belong to the person who opened the boss register.",ephemeral=True); return False
   return True
+ async def on_timeout(self):
+  for child in self.children: child.disabled=True
+  if self.message is not None:
+   try: await self.message.edit(view=self)
+   except discord.HTTPException: pass
+
  @discord.ui.button(label="Previous",style=discord.ButtonStyle.secondary)
  async def previous_button(self,interaction,button):
   self.page=max(0,self.page-1); self.refresh()
@@ -751,7 +757,7 @@ class Adventure(commands.Cog):
  @commands.command(name="bosses",aliases=["raids"])
  async def bosses(self,ctx):
   view=BossRegisterView(self,ctx.author.id)
-  await ctx.reply(embed=view.build_embed(),view=view,mention_author=False)
+  view.message=await ctx.reply(embed=view.build_embed(),view=view,mention_author=False)
  @commands.group(name="boss",invoke_without_command=True)
  async def boss(self,ctx):
   await ctx.reply(embed=self.embed("RAID COMMANDS",",bosses · ,boss challenge <key> · ,boss summon <key> <count> · ,boss status · ,join · ,boss leave · ,boss abandon · ,attack [skill] · ,use phoenix_feather"),mention_author=False)
