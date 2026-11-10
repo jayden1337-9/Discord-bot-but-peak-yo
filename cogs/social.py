@@ -158,8 +158,12 @@ class Social(commands.Cog):
         data = cog.data
         item = item.lower().replace(" ", "_")
         async with self.lock:
-            if not valid_stack(cog.p(ctx.author.id), item, amount):
-                return await ctx.reply("You don't have that many transferable items.", mention_author=False)
+            profile = cog.p(ctx.author.id)
+            if item == "gold":
+                if amount < 1 or amount > 10**18 or int(profile.get("gold", 0)) < amount:
+                    return await ctx.reply("You do not have that much transferable Gold.", mention_author=False)
+            elif not valid_stack(profile, item, amount):
+                return await ctx.reply("You do not have that many transferable items.", mention_author=False)
             tid = next_id(data, "T")
             data["trades"][tid] = {"from": str(ctx.author.id), "to": str(member.id), "server_id": ctx.guild.id, "item": item, "amount": amount, "expires": int(time.time()) + 86400}
             cog.flush()
@@ -175,7 +179,10 @@ class Social(commands.Cog):
             if not offer or offer["to"] != str(ctx.author.id) or offer["server_id"] != ctx.guild.id or offer["expires"] < int(time.time()):
                 return await ctx.reply("That offer is missing, expired or not addressed to you.", mention_author=False)
             try:
-                transfer_item(cog.p(int(offer["from"])), cog.p(ctx.author.id), offer["item"], int(offer["amount"]))
+                if offer["item"] == "gold":
+                    transfer_gold(cog.p(int(offer["from"])), cog.p(ctx.author.id), int(offer["amount"]))
+                else:
+                    transfer_item(cog.p(int(offer["from"])), cog.p(ctx.author.id), offer["item"], int(offer["amount"]))
             except ValueError as exc:
                 del data["trades"][key]
                 cog.flush()
