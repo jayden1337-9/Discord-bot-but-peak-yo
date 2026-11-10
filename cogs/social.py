@@ -86,6 +86,10 @@ class MarketPurchaseConfirm(discord.ui.View):
         self.buyer_id = buyer_id
         self.listing_id = listing_id
 
+    async def on_timeout(self):
+        for child in self.children:
+            child.disabled = True
+
     async def interaction_check(self, interaction):
         if interaction.user.id != self.buyer_id or interaction.guild_id != self.server_id:
             await interaction.response.send_message("This purchase confirmation belongs to another player.", ephemeral=True)
@@ -133,6 +137,7 @@ class MarketBrowseView(discord.ui.View):
         self.cog = cog
         self.server_id = server_id
         self.buyer_id = buyer_id
+        self.message = None
         options = []
         for listing in listings[:25]:
             item = listing["item"].replace("_", " ").title()
@@ -169,6 +174,11 @@ class MarketBrowseView(discord.ui.View):
     async def on_timeout(self):
         for child in self.children:
             child.disabled = True
+        if self.message is not None:
+            try:
+                await self.message.edit(view=self)
+            except discord.HTTPException:
+                pass
 
 
 class Social(commands.Cog):
@@ -433,7 +443,7 @@ class Social(commands.Cog):
         shown = listings[:25]
         body = "\n".join(f"`{x['id']}` · {x['amount']:,} × {x['item'].replace('_', ' ').title()} · {x['price']:,} Gold · <@{x['seller']}>" for x in shown)
         view = MarketBrowseView(self, ctx.guild.id, ctx.author.id, shown)
-        await ctx.reply(embed=self.embed("Player market", body + "\n\nSelect a listing below to buy it."), view=view, mention_author=False)
+        view.message = await ctx.reply(embed=self.embed("Player market", body + "\n\nSelect a listing below to buy it."), view=view, mention_author=False)
 
     @market.command(name="list")
     async def market_list(self, ctx, item: str, amount: int, price: int):
