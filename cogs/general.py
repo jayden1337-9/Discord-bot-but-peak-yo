@@ -126,7 +126,7 @@ class General(commands.Cog):
         view = HelpView(ctx.author.id, ctx.clean_prefix)
         await ctx.reply(embed=view.build_embed(), view=view, mention_author=False)
 
-    @commands.command(name="userinfo", aliases=["whois", "profile"])
+    @commands.command(name="userinfo", aliases=["whois"])
     async def userinfo(self, ctx: commands.Context, member: discord.Member = None) -> None:
         member = member or ctx.author
         embed = self.embed(f"Member dossier  /  {member}", color=discord.Color.blurple())
