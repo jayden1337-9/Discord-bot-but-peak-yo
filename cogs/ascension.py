@@ -46,7 +46,18 @@ class Ascension(commands.Cog):
             raise RuntimeError("Adventure module is not loaded")
         return game, game.p(ctx.author.id)
 
-    def embed(self, game, title, description="", color=None):
+    def attack_skill_options(self, uid, category=None):
+        game = self.bot.get_cog("Adventure")
+        return game.attack_skill_options(uid, category) if game else {}
+
+    def embed(self, game_or_title, title_or_description="", description="", color=None):
+        if isinstance(game_or_title, str):
+            game = self.bot.get_cog("Adventure")
+            title = game_or_title
+            description = title_or_description
+        else:
+            game = game_or_title
+            title = title_or_description
         return game.embed(title, description, color)
 
     @commands.command(name="ascension", aliases=["ascendinfo"])
@@ -169,7 +180,7 @@ class Ascension(commands.Cog):
             if not categories:
                 await ctx.reply(embed=self.embed(game, "NO EQUIPPED SKILLS", "Equip an unlocked skill first with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
                 return
-            await ctx.reply(embed=self.embed(game, "CHOOSE WEAPON TYPE", "Choose a category, then choose an equipped skill. No damage is dealt until you select it."), view=AttackCategoryView(game, ctx, categories, self.worldboss_attack), mention_author=False)
+            await ctx.reply(embed=self.embed(game, "CHOOSE WEAPON TYPE", "Choose a category, then choose an equipped skill. No damage is dealt until you select it."), view=AttackCategoryView(self, ctx, categories, self.worldboss_attack), mention_author=False)
             return
         async with game.lock:
             state = game.data.get("world_boss")
