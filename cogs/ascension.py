@@ -139,6 +139,11 @@ class Ascension(commands.Cog):
             if old and old.get("active"):
                 await ctx.reply(embed=self.embed(game, "EVENT ALREADY ACTIVE", f"{old['name']} still has {display_number(old['hp'])} HP remaining. Close it with ,worldboss close first."), mention_author=False)
                 return
+            if old and old.get("defeated"):
+                pending = [uid for uid, data in old.get("players", {}).items() if int(data.get("damage", 0)) > 0 and uid not in old.get("claimed", [])]
+                if pending:
+                    await ctx.reply(embed=self.embed(game, "REWARDS STILL UNCLAIMED", f"{len(pending)} contributors still have rewards waiting. Ask them to use ,worldboss claim, or close the old event with ,worldboss close."), mention_author=False)
+                    return
             event_id = int(game.data.get("world_boss_counter", 0)) + 1
             game.data["world_boss_counter"] = event_id
             game.data["world_boss"] = {
