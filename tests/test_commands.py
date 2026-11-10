@@ -36,7 +36,7 @@ class FakeGame:
     def flush(self):
         pass
 
-    def embed(self, title, description=""):
+    def embed(self, title, description="", color=None):
         return (title, description)
 
 
