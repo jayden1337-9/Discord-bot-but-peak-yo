@@ -9,7 +9,7 @@ from cogs.adventure import (
 )
 
 MAX_ASCENSIONS = 25
-ASCENSION_BONUS = 0.02
+ASCENSION_BONUS = 0.92
 WORLD_BOSSES = {
     "world_eater": {"name": "The World Eater", "hp": 120_000, "damage": (90, 140), "drops": ["rift_crystal", "mythic_token", "abyssal_pearl"]},
     "celestial_dragon": {"name": "The Celestial Dragon", "hp": 400_000, "damage": (150, 220), "drops": ["dragon_scale", "phoenix_ash", "mythic_token"]},
