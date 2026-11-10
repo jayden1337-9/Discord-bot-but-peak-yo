@@ -111,7 +111,7 @@ def split_text(text, limit=1024):
         return [""]
     chunks = []
     while len(text) > limit:
-        cut = text.rfind("\\n", 0, limit + 1)
+        cut = text.rfind("\n", 0, limit + 1)
         if cut < limit // 2:
             cut = text.rfind(" ", 0, limit + 1)
         if cut < limit // 2:
@@ -186,6 +186,23 @@ class BotContext(commands.Context):
                 embed.set_field_at(index, name=render_text(field.name, emoji_map), value=render_text(field.value, emoji_map), inline=field.inline)
             kwargs["embed"] = embed
         embeds = kwargs.get("embeds")
+        if embeds and emoji_map:
+            rendered_embeds = []
+            for item in embeds:
+                item = item.copy()
+                if item.title:
+                    item.title = render_text(item.title, emoji_map)
+                if item.description:
+                    item.description = render_text(item.description, emoji_map)
+                for index, field in enumerate(item.fields):
+                    item.set_field_at(index, name=render_text(field.name, emoji_map), value=render_text(field.value, emoji_map), inline=field.inline)
+                if item.author.name:
+                    item.set_author(name=render_text(item.author.name, emoji_map), url=item.author.url, icon_url=item.author.icon_url)
+                if item.footer.text:
+                    item.set_footer(text=render_text(item.footer.text, emoji_map), icon_url=item.footer.icon_url)
+                rendered_embeds.append(item)
+            kwargs["embeds"] = rendered_embeds
+            embeds = rendered_embeds
         if embed is not None:
             pages = paginated_embeds(embed)
             oversized = len(pages) > 1
@@ -224,11 +241,16 @@ class DiscordBot(commands.Bot):
     async def on_ready(self) -> None:
         log.info("Logged in as %s (ID: %s)", self.user, self.user.id)
         guild = self.get_guild(EMOJI_GUILD_ID)
+        if guild is None:
+            try:
+                guild = await self.fetch_guild(EMOJI_GUILD_ID)
+            except discord.HTTPException as exc:
+                log.warning("Could not fetch emoji server %s: %s", EMOJI_GUILD_ID, exc)
         self.emoji_map = {
             emoji.name: str(emoji)
             for emoji in guild.emojis
         } if guild else {}
-        log.info("Loaded %s manually added custom emojis", len(self.emoji_map))
+        log.info("Loaded %s manually added custom emojis: %s", len(self.emoji_map), ", ".join(sorted(self.emoji_map)) or "none")
 
     async def on_command_error(self, ctx: commands.Context, error: commands.CommandError) -> None:
         # Keep one ordered chain so CommandNotFound is not overwritten by fallback handling.
