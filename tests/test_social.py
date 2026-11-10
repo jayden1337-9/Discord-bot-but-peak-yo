@@ -1,5 +1,5 @@
 import unittest
-from core.social import ensure_social_data, next_id, transfer_gold, transfer_item, valid_stack
+from core.social import award_guild_xp, ensure_social_data, guild_member_limit, next_id, transfer_gold, transfer_item, valid_stack
 
 
 class SocialCoreTests(unittest.TestCase):
@@ -33,6 +33,23 @@ class SocialCoreTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             transfer_item(source, target, "token", 1)
         self.assertEqual(source["inventory"]["token"], 2)
+
+    def test_guild_xp_levels_up_and_unlocks_member_slots(self):
+        data = {"guilds": {"G000001": {
+            "server_id": 55, "members": ["123"], "level": 1, "xp": 490
+        }}}
+        result = award_guild_xp(data, 55, 123, 20)
+        self.assertEqual(result, (2, 1))
+        guild = data["guilds"]["G000001"]
+        self.assertEqual(guild["xp"], 10)
+        self.assertEqual(guild_member_limit(guild), 11)
+
+    def test_guild_xp_does_not_cross_server_boundaries(self):
+        data = {"guilds": {"G000001": {
+            "server_id": 55, "members": ["123"], "level": 1, "xp": 0
+        }}}
+        self.assertIsNone(award_guild_xp(data, 56, 123, 100))
+        self.assertEqual(data["guilds"]["G000001"]["xp"], 0)
 
     def test_gold_transfer_is_atomic_on_insufficient_funds(self):
         source = {"gold": 5}
