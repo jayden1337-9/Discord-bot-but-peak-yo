@@ -235,7 +235,7 @@ class Expeditions(commands.Cog):
             except (ImportError, KeyError):
                 pass
             damage += gear_attack
-            damage = max(1, int(damage * race[1] * clan_mult * level_mult * mastery_mult * dimension_mult * (1 + pet_attack)))
+            damage = max(1, int(damage * race[1] * clan_mult * level_mult * mastery_mult * dimension_mult * (1 + pet_attack) * (1 + 0.02 * min(25, max(0, int(p.get("ascension", 0)))))))
             dealt = min(state["enemy_hp"], damage)
             state["enemy_hp"] -= dealt
             p.setdefault("mastery", {})[p["character"]] = mastery_xp + dealt
