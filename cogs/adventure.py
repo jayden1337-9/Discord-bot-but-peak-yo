@@ -517,6 +517,8 @@ class InventoryPager(discord.ui.View):
   await interaction.response.defer()
   command=self.ctx.bot.get_command("inventory")
   await self.ctx.invoke(command,page=self.page)
+  for child in self.children:
+   child.disabled=True
   try:
    await interaction.message.edit(view=self)
   except discord.HTTPException:
