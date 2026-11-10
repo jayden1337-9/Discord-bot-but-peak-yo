@@ -6,11 +6,15 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 
+from core.config import Settings
+
 # Load Wispbyte environment-file values before reading os.getenv().
 load_dotenv("/home/container/.env")
 
+settings = Settings.from_env()
+
 logging.basicConfig(
-    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    level=settings.log_level,
     format="%(asctime)s %(levelname)s %(name)s: %(message)s",
 )
 log = logging.getLogger("peakbot")
@@ -160,21 +164,16 @@ class PeakBot(commands.Bot):
         await ctx.reply(embed=embed, mention_author=False)
 
     async def is_owner(self, user: discord.User | discord.Member) -> bool:
-        owner_id = os.getenv("BOT_OWNER_ID")
-        if owner_id and owner_id.isdigit():
-            return user.id == int(owner_id)
-        return False
+        return settings.owner_id is not None and user.id == settings.owner_id
 
 
 async def main() -> None:
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        raise RuntimeError("DISCORD_TOKEN environment variable is missing")
+    token = settings.require_token()
 
     intents = discord.Intents.default()
     intents.message_content = True
     bot = PeakBot(
-        command_prefix=os.getenv("COMMAND_PREFIX", ","),
+        command_prefix=settings.prefix,
         intents=intents,
         help_command=None,
         context=PeakContext,
