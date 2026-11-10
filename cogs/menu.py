@@ -73,6 +73,22 @@ class CommandMenu(discord.ui.View):
             except discord.HTTPException:
                 pass
 
+    @discord.ui.button(label="Attack", style=discord.ButtonStyle.success, row=2)
+    async def attack(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "attack")
+
+    @discord.ui.button(label="Daily", style=discord.ButtonStyle.secondary, row=2)
+    async def daily(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "daily")
+
+    @discord.ui.button(label="Tower", style=discord.ButtonStyle.secondary, row=2)
+    async def tower(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "tower")
+
+    @discord.ui.button(label="Expedition", style=discord.ButtonStyle.secondary, row=2)
+    async def expedition(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.run(interaction, "expedition")
+
     @discord.ui.button(label="Close", style=discord.ButtonStyle.danger)
     async def close(self, interaction: discord.Interaction, button: discord.ui.Button):
         for child in self.children:
@@ -97,12 +113,36 @@ class Menu(commands.Cog):
         embed = discord.Embed(
             title="Quick menu",
             description=(
-                "Open your profile, inventory, quests, leaderboard, wallet, guild, "
-                "market, boss register or command help. Commands still work normally."
+                "Your shortcuts for profile, inventory, quests, wallet, community and combat. "
+                "Use the buttons below or keep using prefix commands."
             ),
             color=discord.Color.from_rgb(48, 61, 82),
         )
-        embed.set_footer(text=f"Opened by {ctx.author}")
+        game = self.bot.get_cog("Adventure")
+        if game is not None:
+            from cogs.adventure import CHARACTERS, display_number
+            profile = game.p(ctx.author.id)
+            character = CHARACTERS.get(profile.get("character"), CHARACTERS["sukuna"])[0]
+            embed.add_field(
+                name="Player",
+                value=(
+                    f"**{character}** · Level {display_number(profile.get('level', 1))}\n"
+                    f"Ascension {int(profile.get('ascension', 0))}/25 · "
+                    f"Victories {display_number(profile.get('wins', 0))}"
+                ),
+                inline=True,
+            )
+            embed.add_field(
+                name="Wallet",
+                value=(
+                    f"Gold: {display_number(profile.get('gold', 0))}\n"
+                    f"Gems: {display_number(profile.get('gems', 0))}"
+                ),
+                inline=True,
+            )
+            active = profile.get("attack_mode")
+            embed.add_field(name="Last encounter", value=(str(active).replace("_", " ").title() if active else "None"), inline=True)
+        embed.set_footer(text=f"Opened by {ctx.author} · Buttons are only usable by you")
         view = CommandMenu(ctx)
         view.message = await ctx.reply(embed=embed, view=view, mention_author=False)
 
