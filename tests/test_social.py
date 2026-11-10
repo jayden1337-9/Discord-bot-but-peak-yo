@@ -11,6 +11,15 @@ class SocialCoreTests(unittest.TestCase):
         self.assertEqual(data["trades"], {})
         self.assertEqual(data["market"], {})
 
+    def test_invalid_social_collection_is_rejected(self):
+        with self.assertRaises(ValueError):
+            ensure_social_data({"guilds": None})
+
+    def test_guild_with_missing_level_is_normalized(self):
+        data = {"guilds": {"G000001": {"server_id": 55, "members": ["123"], "xp": 0}}}
+        self.assertEqual(award_guild_xp(data, 55, 123, 5), (1, 0))
+        self.assertEqual(data["guilds"]["G000001"]["level"], 1)
+
     def test_ids_are_monotonic(self):
         data = {}
         self.assertEqual(next_id(data, "M"), "M000001")
