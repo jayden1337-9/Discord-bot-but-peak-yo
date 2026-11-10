@@ -573,7 +573,9 @@ class Adventure(commands.Cog):
   if k not in self.data["profiles"]:
    self.data["profiles"][k]=json.loads(json.dumps(DEFAULT)); save(self.data)
   p=self.data["profiles"][k]
-  for key,value in DEFAULT.items(): p.setdefault(key,json.loads(json.dumps(value)))
+  for key,value in DEFAULT.items():
+   if key not in p or (isinstance(value,(dict,list)) and not isinstance(p.get(key),type(value))):
+    p[key]=json.loads(json.dumps(value))
   if p["character"] not in CHARACTERS: p["character"]="sukuna"
   if p["race"] not in RACES: p["race"]="human"
   p.setdefault("weapon",None)
@@ -589,7 +591,9 @@ class Adventure(commands.Cog):
   p.setdefault("focus_boosts",0)
   p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
   sr=p["symbolic_rewards"]
-  for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items(): sr.setdefault(key,value)
+  for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items():
+   if key not in sr or (isinstance(value,dict) and not isinstance(sr.get(key),dict)):
+    sr[key]=json.loads(json.dumps(value))
   return p
  def attack_skill_options(self,uid,category=None):
   p=self.p(uid); custom=self.data.get("custom_weapons",{}).get(p.get("weapon"))
