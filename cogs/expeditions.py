@@ -183,7 +183,8 @@ class Expeditions(commands.Cog):
                 if not categories:
                     await ctx.reply(embed=self.embed("NO EQUIPPED SKILLS", "Equip an unlocked skill with ,equipskill <melee|sword|magic> <skill>."), mention_author=False)
                     return
-                await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=AttackCategoryView(game, ctx, categories, self.expedition_attack, self), mention_author=False)
+                view = AttackCategoryView(game, ctx, categories, self.expedition_attack, self)
+                view.message = await ctx.reply(embed=self.embed("CHOOSE WEAPON TYPE", "Choose a category, then choose one equipped skill. No attack happens until you select it."), view=view, mention_author=False)
                 return
             route = ROUTES[state["route"]]
             stage = route["stages"][state["stage"]]
