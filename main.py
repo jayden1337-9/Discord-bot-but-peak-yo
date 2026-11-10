@@ -36,7 +36,7 @@ UNICODE_TO_NAME = {
     "👥": "guild",
     "🤝": "trade",
     "🏪": "market",
-    "💀": "boss",
+    "👹": "boss",
     "🏰": "tower",
     "🧭": "expedition",
     "📅": "daily",
