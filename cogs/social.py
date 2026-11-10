@@ -132,6 +132,29 @@ class Social(commands.Cog):
         leader = ctx.guild.get_member(int(guild["leader"]))
         await ctx.reply(embed=self.embed(guild["name"], f"Leader: {leader.mention if leader else 'Unknown'}\nMembers: {len(guild['members'])}/{guild_member_limit(guild)}\nLevel: {guild['level']}/20\nGuild XP: {guild['xp']:,}/{int(guild['level']) * 500:,}\nNext level unlocks more member slots."), mention_author=False)
 
+    @guild.command(name="kick")
+    async def guild_kick(self, ctx, member: discord.Member):
+        cog = self.game()
+        async with self.lock:
+            _, guild = self.find_guild(cog.data, ctx.guild.id, ctx.author.id)
+            if not guild or guild["leader"] != str(ctx.author.id):
+                return await ctx.reply("Only the guild leader can remove members.", mention_author=False)
+            if member.id == ctx.author.id or str(member.id) not in guild["members"]:
+                return await ctx.reply("Choose another member of your guild.", mention_author=False)
+            guild["members"].remove(str(member.id))
+            cog.flush()
+        await ctx.reply(embed=self.embed("Guild member removed", f"{member.mention} was removed from {guild['name']}."), mention_author=False)
+
+    @guild.command(name="top")
+    async def guild_top(self, ctx):
+        cog = self.game()
+        guilds = [g for g in cog.data["guilds"].values() if g.get("server_id") == ctx.guild.id]
+        guilds.sort(key=lambda g: (int(g.get("level", 1)), int(g.get("xp", 0)), len(g.get("members", []))), reverse=True)
+        if not guilds:
+            return await ctx.reply("There are no guilds in this server yet.", mention_author=False)
+        lines = [f"**{i}. {g['name']}** · Level {g['level']} · {len(g['members'])}/{guild_member_limit(g)} members" for i, g in enumerate(guilds[:10], 1)]
+        await ctx.reply(embed=self.embed("Guild rankings", "\n".join(lines)), mention_author=False)
+
     @guild.command(name="members")
     async def guild_members(self, ctx):
         cog = self.game()
@@ -260,6 +283,16 @@ class Social(commands.Cog):
             data["market"][lid] = {"id": lid, "seller": str(ctx.author.id), "server_id": ctx.guild.id, "item": item, "amount": amount, "price": price, "created": int(time.time())}
             cog.flush()
         await ctx.reply(embed=self.embed("Listing created", f"{lid}: {amount:,} × {item.replace('_', ' ').title()} for {price:,} Gold. Your items are held until sale or cancellation."), mention_author=False)
+
+    @market.command(name="my")
+    async def market_my(self, ctx):
+        cog = self.game()
+        listings = [x for x in cog.data["market"].values() if x["server_id"] == ctx.guild.id and x["seller"] == str(ctx.author.id)]
+        listings.sort(key=lambda x: x["created"])
+        if not listings:
+            return await ctx.reply("You have no active listings in this server.", mention_author=False)
+        lines = [f"`{x['id']}` · {x['amount']:,} × {x['item'].replace('_', ' ').title()} · {x['price']:,} Gold" for x in listings]
+        await ctx.reply(embed=self.embed("Your market listings", "\n".join(lines)), mention_author=False)
 
     @market.command(name="buy")
     async def market_buy(self, ctx, listing_id: str):
