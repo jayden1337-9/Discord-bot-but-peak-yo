@@ -1,6 +1,6 @@
 import unittest
 
-from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, BOSS_RARE_DROPS, BOSS_DIMENSIONS, CHEST_TIERS, CHEST_LOOT, JJK_BOSSES, JJK_NO_CURSED_ENERGY, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label, boss_chest_weights
+from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, BOSS_RARE_DROPS, BOSS_DIMENSIONS, CHEST_TIERS, CHEST_LOOT, JJK_BOSSES, JJK_NO_CURSED_ENERGY, active_attack_mode, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label, boss_chest_weights
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 from cogs.render_ui import inventory_image, gear_image
@@ -10,6 +10,17 @@ from PIL import Image
 
 
 class GameSystemTests(unittest.TestCase):
+    def test_global_attack_selects_the_latest_active_encounter(self):
+        profile = {"attack_mode": "worldboss", "tower": {"floor": 1}, "expedition": None}
+        self.assertEqual(active_attack_mode(profile, raid_member=True, worldboss_member=True), "worldboss")
+        profile["attack_mode"] = "tower"
+        self.assertEqual(active_attack_mode(profile, raid_member=True, worldboss_member=True), "tower")
+        profile["tower"] = None
+        self.assertEqual(active_attack_mode(profile, raid_member=True, worldboss_member=True), "worldboss")
+        profile["attack_mode"] = "stale"
+        self.assertEqual(active_attack_mode(profile, raid_member=True, worldboss_member=True), "worldboss")
+        self.assertIsNone(active_attack_mode({"tower": None, "expedition": None}))
+
     def test_boss_phase_thresholds(self):
         self.assertEqual(raid_phase(100, 100), 1)
         self.assertEqual(raid_phase(75, 100), 2)
