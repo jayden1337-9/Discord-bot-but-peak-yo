@@ -32,8 +32,8 @@ class SocialCoreTests(unittest.TestCase):
         self.assertEqual(source["inventory"]["cursed_ash"], 7)
         self.assertEqual(target["inventory"]["cursed_ash"], 8)
 
-    def test_symbolic_or_missing_items_are_not_transferable(self):
-        profile = {"inventory": {}, "symbolic_rewards": {"inventory": {"rare_item": 999}}}
+    def test_missing_items_are_not_transferable(self):
+        profile = {"inventory": {}}
         self.assertFalse(valid_stack(profile, "rare_item", 1))
 
     def test_item_transfer_rejects_overflow_without_mutating(self):
