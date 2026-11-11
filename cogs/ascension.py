@@ -212,9 +212,7 @@ class Ascension(commands.Cog):
                 damage = random.randint(*custom["ability_damage"])
                 action = custom["ability"]
                 override = p.get("weapon_damage_override")
-                if override == "googolplex":
-                    damage = state["hp"]
-                elif override is not None:
+                if override is not None:
                     damage = int(override)
             elif key == char[5]:
                 if key not in p.get("unlocked", []) and not (p["race"] == "vessel" and p["character"] == "sukuna"):
