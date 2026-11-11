@@ -73,9 +73,7 @@ def _finish(image):
 
 def inventory_image(profile, items, page=1, icons=None, page_size=12):
     icons = icons or {}
-    normal = [(key, value, False) for key, value in profile.get("inventory", {}).items() if value > 0]
-    symbolic = [(key, value, True) for key, value in profile.get("symbolic_rewards", {}).get("inventory", {}).items() if value > 0]
-    entries = sorted(normal + symbolic, key=lambda item: (_category(item[0])[0], item[0]))
+    entries = sorted(((key, value) for key, value in profile.get("inventory", {}).items() if value > 0), key=lambda item: (_category(item[0])[0], item[0]))
     total_pages = max(1, ceil(len(entries) / page_size))
     page = max(1, min(int(page), total_pages))
     selected = entries[(page - 1) * page_size:page * page_size]
@@ -112,7 +110,7 @@ def inventory_image(profile, items, page=1, icons=None, page_size=12):
         draw.rounded_rectangle((24, header_h, width - 24, header_h + 135), 18, fill=PANEL, outline=BORDER, width=2)
         draw.text((55, header_h + 45), "Your inventory is empty.", font=body, fill=MUTED)
 
-    for index, (key, amount, is_symbolic) in enumerate(selected):
+    for index, (key, amount) in enumerate(selected):
         col, row = index % columns, index // columns
         x = 24 + col * (card_w + gap)
         y = header_h + row * (card_h + gap)
@@ -127,8 +125,8 @@ def inventory_image(profile, items, page=1, icons=None, page_size=12):
             draw.text((x + 25, y + 32), initials[:2], font=body, fill=accent)
         name = items.get(key, key.replace("_", " ").title())
         draw.text((x + 82, y + 14), _fit(draw, name, body, card_w - 100), font=body, fill=TEXT)
-        amount_text = f"{_number(amount)} × 10^(10^100)" if is_symbolic else f"x{_number(amount)}"
-        draw.text((x + 84, y + 47), _fit(draw, amount_text, small, card_w - 105), font=small, fill=GOLD if is_symbolic else GREEN)
+        amount_text = f"x{_number(amount)}"
+        draw.text((x + 84, y + 47), _fit(draw, amount_text, small, card_w - 105), font=small, fill=GREEN)
         draw.text((x + 84, y + 76), category, font=tiny, fill=accent)
 
     footer_y = height - footer_h + 8
