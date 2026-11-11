@@ -2,7 +2,7 @@ import asyncio, json, os, random, shutil, sqlite3, tempfile
 from math import isqrt
 from pathlib import Path
 import discord
-from core.ui import render_embed, style_view
+from core.ui import CUSTOM_EMOJIS, render_embed, style_view
 from discord.ext import commands
 
 from core.storage import atomic_json_save
