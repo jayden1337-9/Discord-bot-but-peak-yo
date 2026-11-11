@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import discord
-from core.ui import render_embed
+from core.ui import CUSTOM_EMOJIS, render_embed
 from discord.ext import commands
 
 RESTART_FLAG = Path(__file__).resolve().parent.parent / ".restart_requested"
@@ -143,23 +143,38 @@ class General(commands.Cog):
     @commands.command(name="help", aliases=["commands", "cmds"])
     async def help_command(self, ctx: commands.Context, *, command_name: str = None) -> None:
         if command_name:
-            command = self.bot.get_command(command_name.strip().lower())
-            if command is None:
-                await ctx.reply(embed=self.embed("Command not found", f"No command named `{command_name}` exists. Use `{ctx.clean_prefix}help` to browse the command index.", discord.Color.orange()), mention_author=False)
+            query = command_name.strip().lower()
+            all_commands = list(self.bot.walk_commands())
+            exact = next((c for c in all_commands if c.qualified_name.lower() == query), None)
+            if exact is None:
+                exact = next((c for c in all_commands if c.name.lower() == query or query in [alias.lower() for alias in c.aliases]), None)
+            if exact is None:
+                matches = [c for c in all_commands if query in c.qualified_name.lower() or query in c.name.lower() or any(query in alias.lower() for alias in c.aliases)]
+                if matches:
+                    lines = []
+                    for c in matches[:20]:
+                        suffix = f" {c.signature}" if c.signature else ""
+                        lines.append(f"`{ctx.clean_prefix}{c.qualified_name}{suffix}` — {c.short_doc or 'No description yet.'}")
+                    embed = self.embed(f"Command search · {len(matches)} match(es)", "I couldn't find an exact match. Closest commands:\n\n" + "\n".join(lines), discord.Color.blurple())
+                else:
+                    embed = self.embed("No matching command", f"No command or alias matches **{command_name}**. Try a shorter keyword, or use `{ctx.clean_prefix}help` to browse.", discord.Color.orange())
+                await ctx.reply(embed=embed, mention_author=False)
                 return
-            suffix = f" {command.signature}" if command.signature else ""
-            usage = f"`{ctx.clean_prefix}{command.qualified_name}{suffix}`"
-            description = command.help or command.short_doc or "No additional description is available."
-            embed = self.embed(f"Command help / {command.qualified_name}", description)
-            embed.add_field(name="Usage", value=usage, inline=False)
-            if command.aliases:
-                embed.add_field(name="Aliases", value=", ".join(f"`{alias}`" for alias in command.aliases), inline=False)
-            if isinstance(command, commands.Group) and command.commands:
+            suffix = f" {exact.signature}" if exact.signature else ""
+            usage = f"`{ctx.clean_prefix}{exact.qualified_name}{suffix}`"
+            description = exact.help or exact.short_doc or "This command does not have a detailed description yet."
+            embed = self.embed(f"{CUSTOM_EMOJIS['help']}  COMMAND · {exact.qualified_name}", description)
+            embed.add_field(name="EXACT USAGE", value=usage, inline=False)
+            if exact.aliases:
+                embed.add_field(name="ALIASES", value=", ".join(f"`{alias}`" for alias in exact.aliases), inline=False)
+            if isinstance(exact, commands.Group) and exact.commands:
                 lines = []
-                for child in command.commands:
+                for child in exact.commands:
                     child_suffix = f" {child.signature}" if child.signature else ""
-                    lines.append(f"`{ctx.clean_prefix}{child.qualified_name}{child_suffix}`")
-                embed.add_field(name="Subcommands", value="\n".join(lines)[:1024], inline=False)
+                    lines.append(f"`{ctx.clean_prefix}{child.qualified_name}{child_suffix}`\n{child.short_doc or 'No description yet.'}")
+                embed.add_field(name="SUBCOMMANDS · USE `,help <subcommand>` FOR DETAILS", value="\n\n".join(lines)[:1024], inline=False)
+            if exact.parent is not None:
+                embed.add_field(name="COMMAND GROUP", value=f"`{ctx.clean_prefix}help {exact.parent.qualified_name}`", inline=False)
             await ctx.reply(embed=embed, mention_author=False)
             return
         view = HelpView(ctx.author.id, ctx.clean_prefix)
