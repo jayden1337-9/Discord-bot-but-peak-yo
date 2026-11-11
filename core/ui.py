@@ -113,8 +113,8 @@ def _add_reading_space(value: str) -> str:
     if not value:
         return value
     value = re.sub(
-        r"(?m)(?<!\\n)\\n(?=(?:\\*\\*[^*\\n]+\\*\\*|<a?:[A-Za-z0-9_]+:\\d+>|[•▸◆▪]|\\d+[.)]\\s))",
-        "\\n\\n",
+        r"(?m)(?<!\n)\n(?=(?:\*\*[^*\n]+\*\*|<a?:[A-Za-z0-9_]+:\d+>|[•▸◆▪]|\d+[.)]\s))",
+        "\n\n",
         value,
     )
     return value
