@@ -2,6 +2,7 @@ import asyncio, json, os, random, shutil, sqlite3, tempfile
 from math import isqrt
 from pathlib import Path
 import discord
+from main import render_embed
 from discord.ext import commands
 
 from core.storage import atomic_json_save
@@ -708,7 +709,7 @@ class Adventure(commands.Cog):
   return result
  def flush(self): save(self.data)
  def embed(self,title,desc="",color=None):
-  e=discord.Embed(title=title,description=desc,color=color or discord.Color.from_rgb(35,45,64)); return e
+  e=discord.Embed(title=title,description=desc,color=color or discord.Color.from_rgb(35,45,64)); return render_embed(e)
  def item(self,p,key,n):
   p["inventory"][key]=max(0,p["inventory"].get(key,0)+n)
   if not p["inventory"][key]: p["inventory"].pop(key,None)
