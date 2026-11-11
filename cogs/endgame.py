@@ -212,9 +212,7 @@ class Endgame(commands.Cog):
         if weapon and key == weapon["ability_key"]:
             damage = random.randint(*weapon["ability_damage"])
             override = p.get("weapon_damage_override")
-            if override == "googolplex":
-                damage = state["enemy"]["hp"]
-            elif override is not None:
+            if override is not None:
                 damage = int(override)
         elif key == character[5]:
             if key not in p.get("unlocked", []) and not (p["race"] == "vessel" and p["character"] == "sukuna"):
