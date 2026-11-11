@@ -2,7 +2,7 @@ import random
 from datetime import datetime, timedelta, timezone
 
 import discord
-from main import render_embed
+from core.ui import render_embed
 from discord.ext import commands
 
 from core.locking import serialized
