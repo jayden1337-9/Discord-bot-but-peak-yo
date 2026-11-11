@@ -69,39 +69,38 @@ def render_text(value: str, emoji_map: dict[str, str] | None = None) -> str:
 def _ui_icon_for(value: str, emoji_map=None) -> str:
     text = str(value or "").lower()
     emojis = emoji_map or CUSTOM_EMOJIS
+    # Specific matches come first so broad words do not steal an icon.
     rules = [
-        (("inventory", "backpack", "bag"), "bag"),
-        (("yes", "approve", "vote yes"), "confirm"),
-        (("no", "reject", "vote no"), "cancel"),
-        (("refresh", "reload", "update"), "refresh"),
-        (("reward", "claim", "complete", "cleared", "victory", "success"), "reward"),
-        (("boss", "raid", "world boss", "enemy"), "boss"),
-        (("cancel", "declin", "invalid", "error", "denied", "unavailable", "missing", "locked", "failed"), "cancel"),
-        (("setting", "config", "option"), "settings"),
-        (("shield", "defen", "armor", "protect"), "shield"),
-        (("chest", "vault", "key", "loot", "drop"), "chest"),
-        (("gold", "wallet", "coin", "donat", "price", "cost"), "coin"),
-        (("star", "rarity", "rank s"), "star"),
-        (("weapon", "sword", "attack", "damage", "skill", "combat"), "sword"),
-        (("confirm", "accept", "equip", "join", "created", "selected", "purchase"), "confirm"),
-        (("king", "leader", "owner", "ascension"), "crown"),
-        (("tower", "floor", "rift"), "tower"),
-        (("trade", "offer", "exchange"), "trade"),
-        (("daily", "login", "streak"), "daily"),
-        (("down", "previous", "back", "retreat", "leave"), "down"),
-        (("trophy", "achievement", "record", "best"), "trophy"),
-        (("up", "next", "upgrade", "level up", "progress"), "up"),
-        (("enemy", "monster", "opponent", "target"), "enemy"),
-        (("expedition", "route", "journey", "companion"), "expedition"),
+        (("inventory", "backpack", "bag", "items"), "bag"),
+        (("yes", "approve", "vote yes", "success", "accepted"), "confirm"),
+        (("no", "reject", "vote no", "cancel", "declin", "invalid", "error", "denied", "unavailable", "missing", "locked", "failed"), "cancel"),
+        (("refresh", "reload", "update", "retry"), "refresh"),
+        (("reward", "claim", "complete", "cleared", "victory", "prize"), "reward"),
+        (("world boss", "boss", "raid", "battle"), "boss"),
+        (("enemy", "monster", "opponent", "target", "mob"), "enemy"),
+        (("setting", "config", "option", "preference"), "settings"),
+        (("shield", "defen", "armor", "protect", "health", "hp"), "shield"),
+        (("chest", "vault", "key", "loot", "drop", "treasure"), "chest"),
+        (("gold", "wallet", "coin", "balance", "donat", "price", "cost", "paid"), "coin"),
         (("gem", "crystal", "premium"), "gem"),
-        (("guild", "clan", "member"), "guild"),
-        (("help", "command", "menu", "guide"), "help"),
-        (("info", "status", "profile", "overview", "details"), "info"),
+        (("star", "rarity", "rank s", "character", "mastery"), "star"),
+        (("weapon", "sword", "attack", "damage", "skill", "combat", "forge"), "sword"),
+        (("king", "leader", "owner", "ascension", "admin"), "crown"),
+        (("tower", "floor", "rift"), "tower"),
+        (("trade", "offer", "exchange", "deal"), "trade"),
+        (("daily", "login", "streak", "weekly"), "daily"),
+        (("previous", "back", "retreat", "leave", "older"), "down"),
+        (("trophy", "achievement", "record", "best", "win"), "trophy"),
+        (("next", "upgrade", "level up", "progress", "forward"), "up"),
+        (("expedition", "route", "journey", "companion"), "expedition"),
+        (("guild", "clan", "member", "party"), "guild"),
+        (("help", "command", "menu", "guide", "usage"), "help"),
+        (("info", "status", "profile", "overview", "details", "account"), "info"),
         (("leaderboard", "ranking", "top players", "top guild"), "leaderboard"),
-        (("lucky", "roll", "chance", "random"), "lucky"),
-        (("market", "listing", "shop", "store"), "market"),
+        (("lucky", "luck", "roll", "chance", "random", "reroll"), "lucky"),
+        (("market", "listing", "shop", "store", "purchase", "buy", "sell"), "market"),
         (("potion", "elixir", "tonic", "consume", "heal"), "potion"),
-        (("quest", "contract", "mission", "objective"), "quest"),
+        (("quest", "contract", "mission", "objective", "task"), "quest"),
     ]
     for words, key in rules:
         if any(word in text for word in words) and key in emojis:
@@ -109,8 +108,20 @@ def _ui_icon_for(value: str, emoji_map=None) -> str:
     return emojis.get("info", "")
 
 
+def _add_reading_space(value: str) -> str:
+    """Separate headings and list rows without damaging paragraphs or code."""
+    if not value:
+        return value
+    value = re.sub(
+        r"(?m)(?<!\\n)\\n(?=(?:\\*\\*[^*\\n]+\\*\\*|<a?:[A-Za-z0-9_]+:\\d+>|[•▸◆▪]|\\d+[.)]\\s))",
+        "\\n\\n",
+        value,
+    )
+    return value
+
+
 def render_embed(embed, emoji_map=None):
-    """Apply the shared custom-emoji and spacing style to any Discord embed."""
+    """Apply the shared custom-emoji and spacious layout to every embed."""
     if embed is None:
         return None
     emojis = emoji_map or CUSTOM_EMOJIS
@@ -123,23 +134,16 @@ def render_embed(embed, emoji_map=None):
                 title = f"{icon}  {title}"
         result.title = title
     if result.description:
-        description = render_text(result.description, emojis)
-        # Give section headings and bullet groups breathing room without
-        # changing compact stat lines or existing paragraph breaks.
-        description = re.sub(
-            r"(?m)(?<!\n)\n(?=(?:\*\*[^*\n]+\*\*|[•▸◆])\s*)",
-            "\n\n",
-            description,
-        )
-        result.description = description
+        result.description = _add_reading_space(render_text(result.description, emojis))
     for index, field in enumerate(result.fields):
         name = render_text(field.name, emojis)
-        value = render_text(field.value, emojis)
+        value = _add_reading_space(render_text(field.value, emojis))
         if "<:" not in name:
             icon = _ui_icon_for(name, emojis)
             if icon:
                 name = f"{icon}  {name}"
-        result.set_field_at(index, name=name, value=value, inline=field.inline)
+        # One field per row gives stats and descriptions room to breathe.
+        result.set_field_at(index, name=name, value=value, inline=False)
     if result.author.name:
         result.set_author(
             name=render_text(result.author.name, emojis),
@@ -155,19 +159,27 @@ def render_embed(embed, emoji_map=None):
 
 
 def style_view(view, emoji_map=None):
-    """Add matching server emoji to Discord buttons while preserving labels."""
+    """Add matching server emoji to buttons and select options."""
     if view is None:
         return view
     emojis = emoji_map or CUSTOM_EMOJIS
     for item in getattr(view, "children", []):
-        if not isinstance(item, discord.ui.Button) or item.emoji is not None:
-            continue
-        label = (item.label or item.custom_id or "").lower()
-        icon = _ui_icon_for(label, emojis)
-        if icon:
-            try:
-                item.emoji = discord.PartialEmoji.from_str(icon)
-            except (TypeError, ValueError):
-                pass
+        if isinstance(item, discord.ui.Button) and item.emoji is None:
+            label = (item.label or item.custom_id or "").lower()
+            icon = _ui_icon_for(label, emojis)
+            if icon:
+                try:
+                    item.emoji = discord.PartialEmoji.from_str(icon)
+                except (TypeError, ValueError):
+                    pass
+        elif isinstance(item, discord.ui.Select):
+            for option in item.options:
+                if option.emoji is not None:
+                    continue
+                icon = _ui_icon_for(option.label, emojis)
+                if icon:
+                    try:
+                        option.emoji = discord.PartialEmoji.from_str(icon)
+                    except (TypeError, ValueError):
+                        pass
     return view
-
