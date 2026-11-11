@@ -319,6 +319,13 @@ def raid_phase(hp,max_hp):
  if hp*4<=max_hp*3: return 2
  return 1
 
+
+def combat_bar(current, maximum, width=18):
+ """Readable HP bar for battle embeds."""
+ maximum=max(1,int(maximum)); current=max(0,min(int(current),maximum))
+ filled=min(width,int(width*current/maximum))
+ return "█"*filled+"░"*(width-filled)
+
 def swarm_value(count):
  return 1 if count == "googolplex" else int(count)
 
@@ -851,7 +858,10 @@ class Adventure(commands.Cog):
    self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":damage_scale,"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1}
    p=self.p(ctx.author.id); p["attack_mode"]="raid"
    self.flush()
-  await ctx.reply(embed=self.embed("BOSS SWARM SUMMONED",f"Summoned **{swarm_label(count)} {b[0]}**. This uses one shared-health simulation rather than creating individual boss objects. Each attack hits the entire swarm.\nPer-boss HP: {display_number(hp)}\nWorld scaling: {'enabled' if scaled else 'base stats (switch to '+world+' for dimension scaling)'}\nFirst turn: {ctx.author.mention}. Use ,attack for your turn. Others can use ,join."),mention_author=False)
+  e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BOSS ENCOUNTER",f"**{swarm_label(count)} {b[0]}** has appeared.\n\n{CUSTOM_EMOJIS['shield']} **Per-boss HP**\n{combat_bar(hp,hp)}\n{display_number(hp)}\n\n{CUSTOM_EMOJIS['info']} **Battle instructions**\n{ctx.author.mention} takes the first turn. Use ,attack to choose a skill. Teammates can join with ,join.\n\nEach attack hits the shared-health swarm.",discord.Color.from_rgb(52,142,190))
+  e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  PARTY",value=f"1 / 6 fighters\n{ctx.author.mention}",inline=False)
+  e.add_field(name=f"{CUSTOM_EMOJIS['enemy']}  WORLD SCALING",value=f"{'Enabled' if scaled else 'Base stats'} · {dim['name']}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
  @boss.command(name="challenge")
  @commands.guild_only()
  async def challenge(self,ctx,*,key):
@@ -867,7 +877,9 @@ class Adventure(commands.Cog):
    self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":dim.get("damage_mult",1.0),"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{}}
    p["attack_mode"]="raid"
    self.flush()
-  await ctx.reply(embed=self.embed(f"RAID STARTED / {b[0].upper()}",f"{display_number(hp)} HP. World: {dim['name']}. First turn: {ctx.author.mention}. Use ,attack for your turn. Others can use ,join."),mention_author=False)
+  e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BOSS ENCOUNTER",f"**{b[0]}** has appeared in **{dim['name']}**.\n\n{CUSTOM_EMOJIS['shield']} **Boss HP**\n{combat_bar(hp,hp)}\n{display_number(hp)} / {display_number(hp)}\n\n{CUSTOM_EMOJIS['info']} **Battle instructions**\n{ctx.author.mention} takes the first turn. Use ,attack to choose a skill. Teammates can join with ,join.",discord.Color.from_rgb(52,142,190))
+  e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  PARTY",value=f"1 / 6 fighters\n{ctx.author.mention}",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
  @boss.command(name="abandon")
  @commands.guild_only()
  async def abandon_raid(self,ctx):
@@ -894,7 +906,9 @@ class Adventure(commands.Cog):
    r["players"][uid]=250; r["turns"].append(uid)
    self.p(ctx.author.id)["attack_mode"]="raid"
    added=max(1,int(BOSSES[r["boss"]][1]*0.25)); r["hp"]+=added; r["max_hp"]+=added; self.flush()
-  await ctx.reply(embed=self.embed("PLAYER JOINED",f"{ctx.author.mention} entered with 250 HP. Boss health scaled by 25% for the extra party member."),mention_author=False)
+  e=self.embed(f"{CUSTOM_EMOJIS['guild']}  FIGHTER JOINED",f"{ctx.author.mention} entered the raid.\n\n{CUSTOM_EMOJIS['shield']} **Starting HP**\n250 / 250\n\nBoss maximum HP increased by 25% to balance the larger party.",discord.Color.green())
+  e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  PARTY SIZE",value=f"**{len(r['players'])} / 6** fighters",inline=False)
+  await ctx.reply(embed=e,mention_author=False)
  @boss.command(name="status")
  @commands.guild_only()
  @serialized
@@ -905,8 +919,13 @@ class Adventure(commands.Cog):
   count=r.get("swarm_count",1)
   title=f"{swarm_label(count)}x {b[0].upper()}" if count != 1 else b[0].upper()
   phase=raid_phase(r['hp'],r['max_hp']); r['phase']=phase
-  e=self.embed(title,f"Phase {phase}/4 · {display_number(r['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining"); e.add_field(name="Current turn",value=f"<@{current}>" if current else "None")
-  e.add_field(name="Party",value="\n".join(f"<@{u}> · {hp}/250 HP" for u,hp in r["players"].items())[:1024],inline=False)
+  e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BATTLEFIELD STATUS",f"**{title}**\nPhase **{phase}/4** · {swarm_label(count)} remaining\n\n{CUSTOM_EMOJIS['shield']} **Boss vitality**\n{combat_bar(r['hp'],r['max_hp'])}\n{display_number(r['hp'])} / {display_number(r['max_hp'])} HP")
+  e.add_field(name=f"{CUSTOM_EMOJIS['up']}  CURRENT TURN",value=f"<@{current}>" if current else "No active fighter",inline=False)
+  party_rows=[]
+  for player_id,player_hp in r["players"].items():
+   state="💚" if player_hp>125 else "🟡" if player_hp>50 else "❤️" if player_hp>0 else "💀"
+   party_rows.append(f"{state} <@{player_id}> — **{player_hp}/250 HP**")
+  e.add_field(name=f"{CUSTOM_EMOJIS['guild']}  PARTY ({len(r['players'])}/6)",value="\n".join(party_rows)[:1024],inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @boss.command(name="leave")
  @commands.guild_only()
@@ -1104,16 +1123,14 @@ class Adventure(commands.Cog):
    self.flush()
   count=r.get("swarm_count",1)
   target_line=f" every one of {swarm_label(count)} bosses" if count != 1 else ""
-  e=self.embed(f"⚔️  {b[0].upper()} · TURN RESOLVED",f"{ctx.author.mention} takes their turn against **{b[0]}**.")
-  e.color=discord.Color.green() if incoming==0 else discord.Color.orange()
-  e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  SKILL USED",value=f"**{action}**\n{c[0]} · {display_number(damage)} damage dealt",inline=False)
-  e.add_field(name=f"{CUSTOM_EMOJIS['reward']}  DAMAGE SUMMARY",value=f"Damage this hit: **{display_number(damage)}**\nTotal damage dealt: **{total_damage_label}**",inline=False)
-  e.add_field(name=f"{CUSTOM_EMOJIS['shield']}  DEFENSE & HEALTH",value=f"Incoming damage: **{incoming}**\nYour remaining HP: **{hp}/250**",inline=True)
-  e.add_field(name=f"{CUSTOM_EMOJIS['enemy']}  BOSS STATUS",value=f"**{b[0]}**\nPhase: **{phase}/4**",inline=True)
+  e=self.embed(f"{CUSTOM_EMOJIS['sword']}  {b[0].upper()} · TURN RESOLVED",f"{ctx.author.mention} used **{action}** against **{b[0]}**.",discord.Color.green() if incoming==0 else discord.Color.orange())
+  e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  SKILL USED",value=f"**{action}**\n{c[0]}\nDamage dealt: **{display_number(damage)}**",inline=False)
+  e.add_field(name=f"{CUSTOM_EMOJIS['reward']}  DAMAGE SUMMARY",value=f"This hit: **{display_number(damage)}**\nTotal contribution: **{total_damage_label}**",inline=False)
+  e.add_field(name=f"{CUSTOM_EMOJIS['shield']}  DEFENSE & HEALTH",value=f"Boss retaliation: **{incoming}** damage\nYour HP: **{hp}/250**\n{combat_bar(hp,250)}",inline=False)
+  e.add_field(name=f"{CUSTOM_EMOJIS['enemy']}  BOSS STATUS",value=f"**Phase {phase}/4**\n{nextline.strip() or 'Battle continues.'}",inline=False)
   if g in self.data["raids"]:
    current_raid=self.data["raids"][g]
-   e.add_field(name=f"{CUSTOM_EMOJIS['boss']}  BOSS VITALITY",value=f"**{display_number(current_raid['hp'])} / {display_number(current_raid['max_hp'])} HP**\n{swarm_label(count)} remaining",inline=False)
-  e.add_field(name=f"{CUSTOM_EMOJIS['info']}  TURN ORDER",value=nextline.strip() or "Battle continues.",inline=False)
+   e.add_field(name=f"{CUSTOM_EMOJIS['boss']}  BOSS VITALITY",value=f"{combat_bar(current_raid['hp'],current_raid['max_hp'])}\n**{display_number(current_raid['hp'])} / {display_number(current_raid['max_hp'])} HP**\n{swarm_label(count)} remaining",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="mastery")
  async def mastery(self,ctx):
