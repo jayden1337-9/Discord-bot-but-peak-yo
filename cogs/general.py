@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import discord
+from main import render_embed
 from discord.ext import commands
 
 RESTART_FLAG = Path(__file__).resolve().parent.parent / ".restart_requested"
@@ -23,7 +24,7 @@ class PollView(discord.ui.View):
         embed.add_field(name="Yes", value=str(yes), inline=True)
         embed.add_field(name="No", value=str(no), inline=True)
         embed.add_field(name="Total votes", value=str(len(self.votes)), inline=True)
-        return embed
+        return render_embed(embed)
 
     async def record(self, interaction: discord.Interaction, vote: bool) -> None:
         self.votes[interaction.user.id] = vote
@@ -119,7 +120,7 @@ class General(commands.Cog):
             description=description,
             color=color,
         )
-        return result
+        return render_embed(result)
 
     @commands.command(name="ping", aliases=["latency"])
     async def ping(self, ctx: commands.Context) -> None:
