@@ -112,6 +112,9 @@ def _add_reading_space(value: str) -> str:
     """Separate headings and list rows without damaging paragraphs or code."""
     if not value:
         return value
+    # Shorter descriptions benefit from a blank line between every row.
+    if len(value) <= 2400 and "```" not in value:
+        return re.sub(r"(?<!\n)\n(?!\n)", "\n\n", value)
     value = re.sub(
         r"(?m)(?<!\n)\n(?=(?:\*\*[^*\n]+\*\*|<a?:[A-Za-z0-9_]+:\d+>|[•▸◆▪]|\d+[.)]\s))",
         "\n\n",
