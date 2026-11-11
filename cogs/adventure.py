@@ -674,19 +674,6 @@ class Adventure(commands.Cog):
    except (TypeError,ValueError,OverflowError): amount=0
    if amount>0: p["inventory"][key]=amount
    else: p["inventory"].pop(key,None)
-  for key,amount in list(sr["inventory"].items()):
-   try: amount=int(amount)
-   except (TypeError,ValueError,OverflowError): amount=0
-   if amount>0: sr["inventory"][key]=amount
-   else: sr["inventory"].pop(key,None)
-  for field in ("xp","points","points_spent","wins","damage"):
-   try: sr[field]=max(0,int(sr[field]))
-   except (TypeError,ValueError,OverflowError): sr[field]=0
-  for key,amount in list(sr["inventory_spent"].items()):
-   try: amount=max(0,int(amount))
-   except (TypeError,ValueError,OverflowError): amount=0
-   if amount: sr["inventory_spent"][key]=amount
-   else: sr["inventory_spent"].pop(key,None)
   return p
  def attack_skill_options(self,uid,category=None):
   p=self.p(uid); custom=self.data.get("custom_weapons",{}).get(p.get("weapon"))
