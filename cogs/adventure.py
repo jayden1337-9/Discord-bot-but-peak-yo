@@ -1104,8 +1104,16 @@ class Adventure(commands.Cog):
    self.flush()
   count=r.get("swarm_count",1)
   target_line=f" every one of {swarm_label(count)} bosses" if count != 1 else ""
-  e=self.embed("TURN RESOLVED",f"{ctx.author.mention} used {action} with {c[0]} for {display_number(damage)} damage to{target_line or ' the boss'}.\nTotal damage dealt: {total_damage_label}.\n{b[0]} retaliates for {incoming} damage. Your HP: {hp}/250.{nextline}")
-  if g in self.data["raids"]: e.add_field(name="Boss vitality",value=f"{display_number(self.data['raids'][g]['hp'])} / {display_number(r['max_hp'])} HP per boss · {swarm_label(count)} remaining",inline=False)
+  e=self.embed(f"⚔️  {b[0].upper()} · TURN RESOLVED",f"{ctx.author.mention} takes their turn against **{b[0]}**.")
+  e.color=discord.Color.green() if incoming==0 else discord.Color.orange()
+  e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  SKILL USED",value=f"**{action}**\n{c[0]} · {display_number(damage)} damage dealt",inline=False)
+  e.add_field(name=f"{CUSTOM_EMOJIS['reward']}  DAMAGE SUMMARY",value=f"Damage this hit: **{display_number(damage)}**\nTotal damage dealt: **{total_damage_label}**",inline=False)
+  e.add_field(name=f"{CUSTOM_EMOJIS['shield']}  DEFENSE & HEALTH",value=f"Incoming damage: **{incoming}**\nYour remaining HP: **{hp}/250**",inline=True)
+  e.add_field(name=f"{CUSTOM_EMOJIS['enemy']}  BOSS STATUS",value=f"**{b[0]}**\nPhase: **{phase}/4**",inline=True)
+  if g in self.data["raids"]:
+   current_raid=self.data["raids"][g]
+   e.add_field(name=f"{CUSTOM_EMOJIS['boss']}  BOSS VITALITY",value=f"**{display_number(current_raid['hp'])} / {display_number(current_raid['max_hp'])} HP**\n{swarm_label(count)} remaining",inline=False)
+  e.add_field(name=f"{CUSTOM_EMOJIS['info']}  TURN ORDER",value=nextline.strip() or "Battle continues.",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="mastery")
  async def mastery(self,ctx):
