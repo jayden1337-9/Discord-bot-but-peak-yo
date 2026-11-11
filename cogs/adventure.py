@@ -282,7 +282,7 @@ ITEM_RECIPES = {
  "naruto_key":{"name":"Naruto Key","materials":{"chakra_crystal":12,"uchiha_relic":8,"dimensional_eye":2}},
  "clan_token":{"name":"Clan Reroll","materials":{"chakra_crystal":4,"cursed_ash":4,"soul_fragment":4}},
 }
-DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_inventory":{},"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"gold":0,"gems":0,"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0,"symbolic_rewards":{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}, "attack_mode":None}
+DEFAULT = {"xp":0,"level":1,"points":0,"character":"sukuna","weapon":None,"weapon_inventory":{},"weapon_damage_override":None,"mastery":{},"unlocked":[],"race":"human","clan":None,"clan_rolls":1,"inventory":{},"gold":0,"gems":0,"six_eyes_unlocked":False,"infinity_unlocked":False,"sukuna_race_unlocked":False,"wins":0,"damage":0,"active_dimension":"earth","unlocked_dimensions":["earth"],"unlocked_skills":[],"equipped_skills":{"melee":[],"sword":[],"magic":[]},"damage_boosts":0,"focus_boosts":0, "attack_mode":None}
 
 def active_attack_mode(profile, raid_member=False, worldboss_member=False):
  active=set()
@@ -325,18 +325,6 @@ def combat_bar(current, maximum, width=18):
  maximum=max(1,int(maximum)); current=max(0,min(int(current),maximum))
  filled=min(width,int(width*current/maximum))
  return "█"*filled+"░"*(width-filled)
-
-def swarm_value(count):
- return 1 if count == "googolplex" else int(count)
-
-def swarm_label(count):
- return "10^(10^100) (googolplex)" if count == "googolplex" else display_number(count)
-
-def symbolic_quantity(coefficient, spent=0):
- coefficient=int(coefficient); spent=int(spent)
- if coefficient<=0: return "0"
- base="10^(10^100)" if coefficient==1 else f"{display_number(coefficient)} × 10^(10^100)"
- return f"{base} - {spent:,}" if spent else base
 
 def display_number(value):
  value=int(value)
@@ -676,11 +664,8 @@ class Adventure(commands.Cog):
    if not isinstance(p["equipped_skills"].get(category),list): p["equipped_skills"][category]=[]
   p.setdefault("damage_boosts",0)
   p.setdefault("focus_boosts",0)
-  p.setdefault("symbolic_rewards",{"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}})
-  sr=p["symbolic_rewards"]
-  for key,value in {"xp":0,"points":0,"points_spent":0,"wins":0,"damage":0,"inventory":{},"inventory_spent":{}}.items():
-   if key not in sr or (isinstance(value,dict) and not isinstance(sr.get(key),dict)):
-    sr[key]=json.loads(json.dumps(value))
+  p.pop("symbolic_rewards", None)
+  if p.get("weapon_damage_override") == "googolplex": p["weapon_damage_override"]=None
   for field,default in {"xp":0,"level":1,"points":0,"clan_rolls":1,"gold":0,"gems":0,"wins":0,"damage":0,"damage_boosts":0,"focus_boosts":0}.items():
    try: p[field]=int(p.get(field,default))
    except (TypeError,ValueError,OverflowError): p[field]=default
@@ -850,7 +835,7 @@ class Adventure(commands.Cog):
     await ctx.reply(embed=self.embed("INVALID COUNT","Use a whole number or the word googolplex."),mention_author=False); return
   if key not in BOSSES:
    await ctx.reply(embed=self.embed("UNKNOWN TARGET","Use ,bosses to view available bosses."),mention_author=False); return
-  if count != "googolplex" and count < 1:
+  if count < 1:
    await ctx.reply(embed=self.embed("INVALID COUNT","Boss count must be at least 1."),mention_author=False); return
   async with self.lock:
    g=str(ctx.guild.id)
@@ -864,7 +849,7 @@ class Adventure(commands.Cog):
    self.data["raids"][g]={"boss":key,"hp":hp,"max_hp":hp,"damage_scale":damage_scale,"swarm_count":count,"leader":str(ctx.author.id),"players":{str(ctx.author.id):250},"turns":[str(ctx.author.id)],"turn":0,"damage":{},"phase":1}
    p=self.p(ctx.author.id); p["attack_mode"]="raid"
    self.flush()
-  e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BOSS ENCOUNTER",f"**{swarm_label(count)} {b[0]}** has appeared.\n\n{CUSTOM_EMOJIS['shield']} **Per-boss HP**\n{combat_bar(hp,hp)}\n{display_number(hp)}\n\n{CUSTOM_EMOJIS['info']} **Battle instructions**\n{ctx.author.mention} takes the first turn. Use ,attack to choose a skill. Teammates can join with ,join.\n\nEach attack hits the shared-health swarm.",discord.Color.from_rgb(52,142,190))
+  e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BOSS ENCOUNTER",f"**{display_number(count)} {b[0]}** has appeared.\n\n{CUSTOM_EMOJIS['shield']} **Per-boss HP**\n{combat_bar(hp,hp)}\n{display_number(hp)}\n\n{CUSTOM_EMOJIS['info']} **Battle instructions**\n{ctx.author.mention} takes the first turn. Use ,attack to choose a skill. Teammates can join with ,join.\n\nEach attack hits the shared-health swarm.",discord.Color.from_rgb(52,142,190))
   e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  PARTY",value=f"1 / 6 fighters\n{ctx.author.mention}",inline=False)
   e.add_field(name=f"{CUSTOM_EMOJIS['enemy']}  WORLD SCALING",value=f"{'Enabled' if scaled else 'Base stats'} · {dim['name']}",inline=False)
   await ctx.reply(embed=e,mention_author=False)
@@ -923,9 +908,9 @@ class Adventure(commands.Cog):
   if not r: await ctx.reply(embed=self.embed("NO RAID","There is no active raid."),mention_author=False); return
   b=BOSSES[r["boss"]]; alive=[u for u in r["turns"] if r["players"].get(u,0)>0]; current=alive[r["turn"]%len(alive)] if alive else None
   count=r.get("swarm_count",1)
-  title=f"{swarm_label(count)}x {b[0].upper()}" if count != 1 else b[0].upper()
+  title=f"{display_number(count)}x {b[0].upper()}" if count != 1 else b[0].upper()
   phase=raid_phase(r['hp'],r['max_hp']); r['phase']=phase
-  e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BATTLEFIELD STATUS",f"**{title}**\nPhase **{phase}/4** · {swarm_label(count)} remaining\n\n{CUSTOM_EMOJIS['shield']} **Boss vitality**\n{combat_bar(r['hp'],r['max_hp'])}\n{display_number(r['hp'])} / {display_number(r['max_hp'])} HP")
+  e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BATTLEFIELD STATUS",f"**{title}**\nPhase **{phase}/4** · {display_number(count)} remaining\n\n{CUSTOM_EMOJIS['shield']} **Boss vitality**\n{combat_bar(r['hp'],r['max_hp'])}\n{display_number(r['hp'])} / {display_number(r['max_hp'])} HP")
   e.add_field(name=f"{CUSTOM_EMOJIS['up']}  CURRENT TURN",value=f"<@{current}>" if current else "No active fighter",inline=False)
   party_rows=[]
   for player_id,player_hp in r["players"].items():
@@ -1036,86 +1021,51 @@ class Adventure(commands.Cog):
    previous_phase=r.get("phase",1); phase=raid_phase(r["hp"],r["max_hp"]); r["phase"]=phase
    phase_line=""
    if phase>previous_phase: phase_line=f"\nBoss phase increased to {phase}/4. Incoming attacks are stronger."
-   swarm_count=r.get("swarm_count",1); symbolic_swarm=swarm_count=="googolplex"
-   swarm_multiplier=1 if symbolic_swarm else swarm_value(swarm_count)
+   swarm_count=r.get("swarm_count",1)
+   if not isinstance(swarm_count,int) or swarm_count<1: swarm_count=1; r["swarm_count"]=1
+   swarm_multiplier=swarm_count
    total_damage=damage*swarm_multiplier
-   if symbolic_swarm:
-    r["damage"][uid]=r["damage"].get(uid,0)+damage
-    p["symbolic_rewards"]["damage"]+=damage
-    total_damage_label=f"{display_number(damage)} × 10^(10^100)"
-   else:
-    r["damage"][uid]=r["damage"].get(uid,0)+total_damage
-    p["damage"]+=total_damage
-    total_damage_label=display_number(total_damage)
+   r["damage"][uid]=r["damage"].get(uid,0)+total_damage
+   p["damage"]+=total_damage
+   total_damage_label=display_number(total_damage)
    b=BOSSES[r["boss"]]
    if r["hp"]<=0:
     drops=[]
     for player_id in list(r["players"]):
      q=self.p(int(player_id)); got=[]
-     if symbolic_swarm:
-      sr=q["symbolic_rewards"]
-      xp_reward=b[3]+r["damage"].get(player_id,0)//4
-      sr["xp"]+=xp_reward; sr["points"]+=1; sr["wins"]+=1
-      got.extend([f"XP x{symbolic_quantity(xp_reward)}",f"Skill Points x{symbolic_quantity(1)}",f"Victories x{symbolic_quantity(1)}"])
-      if b[4] and random.random()<0.40:
-       item,limits=random.choice(list(b[4].items()))
-       amount=random.randint(*limits); sr["inventory"][item]=sr["inventory"].get(item,0)+amount
-       got.append(f"{ITEMS.get(item,item)} x{symbolic_quantity(amount)}")
-     else:
-      q["xp"]+=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4; q["points"]+=swarm_multiplier; old_wins=q.get("wins",0); q["wins"]+=swarm_multiplier
-      q["clan_rolls"]=q.get("clan_rolls",1)+(q["wins"]//5-old_wins//5)
-      apply_level_ups(q)
-      if b[4] and random.random()<0.40:
-       item,limits=random.choice(list(b[4].items()))
-       amount=random.randint(*limits)*swarm_multiplier
-       self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
+     xp_reward=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4
+     q["xp"]+=xp_reward; q["points"]+=swarm_multiplier; old_wins=q.get("wins",0); q["wins"]+=swarm_multiplier
+     q["clan_rolls"]=q.get("clan_rolls",1)+(q["wins"]//5-old_wins//5)
+     apply_level_ups(q)
+     if b[4] and random.random()<0.40:
+      item,limits=random.choice(list(b[4].items()))
+      amount=random.randint(*limits)*swarm_multiplier
+      self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
      chest_tier=roll_boss_chest(r["boss"]); chest_key=f"{chest_tier}_chest"
-     if symbolic_swarm:
-      sr=q["symbolic_rewards"]; sr["inventory"][chest_key]=sr["inventory"].get(chest_key,0)+1
-      got.append(f"{CHEST_TIERS[chest_tier]['icon']} {CHEST_TIERS[chest_tier]['name']} x{symbolic_quantity(1)}")
-      gold_gain=max(30,b[1]//8)
-      q["gold"]=q.get("gold",0)+gold_gain
-      got.append(f"🪙 {gold_gain:,} Gold")
-      rare_pool=BOSS_RARE_DROPS.get(r["boss"],[])
-      rare_total=sum(chance for _,chance in rare_pool)
-      if rare_pool and random.random()<rare_total:
-       rare_key=random.choices([key for key,_ in rare_pool],weights=[chance for _,chance in rare_pool],k=1)[0]
-       sr["inventory"][rare_key]=sr["inventory"].get(rare_key,0)+1
-       got.append(f"{ITEMS.get(rare_key,rare_key)} x{symbolic_quantity(1)} · RARE")
-     else:
-      self.item(q,chest_key,swarm_multiplier)
-      got.append(f"{CHEST_TIERS[chest_tier]['icon']} {CHEST_TIERS[chest_tier]['name']} x{display_number(swarm_multiplier)}")
-      gold_gain=max(30,b[1]//8)*swarm_multiplier
-      q["gold"]=q.get("gold",0)+gold_gain
-      got.append(f"🪙 {display_number(gold_gain)} Gold")
-      if random.random()<0.12:
-       gem_gain=random.randint(1,2)*swarm_multiplier
-       q["gems"]=q.get("gems",0)+gem_gain
-       got.append(f"💎 {display_number(gem_gain)} Gems")
-      rare_pool=BOSS_RARE_DROPS.get(r["boss"],[])
-      rare_total=sum(chance for _,chance in rare_pool)
-      if rare_pool and random.random()<rare_total:
-       rare_key=random.choices([key for key,_ in rare_pool],weights=[chance for _,chance in rare_pool],k=1)[0]
-       self.item(q,rare_key,swarm_multiplier)
-       got.append(f"{ITEMS.get(rare_key,rare_key)} x{display_number(swarm_multiplier)} · RARE")
+     self.item(q,chest_key,swarm_multiplier)
+     got.append(f"{CHEST_TIERS[chest_tier]['icon']} {CHEST_TIERS[chest_tier]['name']} x{display_number(swarm_multiplier)}")
+     gold_gain=max(30,b[1]//8)*swarm_multiplier
+     q["gold"]=q.get("gold",0)+gold_gain
+     got.append(f"🪙 {display_number(gold_gain)} Gold")
+     if random.random()<0.12:
+      gem_gain=random.randint(1,2)*swarm_multiplier
+      q["gems"]=q.get("gems",0)+gem_gain
+      got.append(f"💎 {display_number(gem_gain)} Gems")
+     rare_pool=BOSS_RARE_DROPS.get(r["boss"],[])
+     rare_total=sum(chance for _,chance in rare_pool)
+     if rare_pool and random.random()<rare_total:
+      rare_key=random.choices([key for key,_ in rare_pool],weights=[chance for _,chance in rare_pool],k=1)[0]
+      self.item(q,rare_key,swarm_multiplier)
+      got.append(f"{ITEMS.get(rare_key,rare_key)} x{display_number(swarm_multiplier)} · RARE")
      if random.random()<0.02:
-      if symbolic_swarm:
-       sr=q["symbolic_rewards"]; sr["inventory"]["phoenix_feather"]=sr["inventory"].get("phoenix_feather",0)+1
-       got.append(f"Phoenix Feather x{symbolic_quantity(1)}")
-      else:
-       self.item(q,"phoenix_feather",1); got.append("Phoenix Feather x1")
+      self.item(q,"phoenix_feather",swarm_multiplier); got.append(f"Phoenix Feather x{display_number(swarm_multiplier)}")
      if random.random()<0.01:
-      if symbolic_swarm:
-       sr=q["symbolic_rewards"]; sr["inventory"]["mythic_token"]=sr["inventory"].get("mythic_token",0)+1
-       got.append(f"Mythic Token x{symbolic_quantity(1)}")
-      else:
-       amount=swarm_multiplier
-       self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{display_number(amount)}")
+      self.item(q,"mythic_token",swarm_multiplier); got.append(f"Mythic Token x{display_number(swarm_multiplier)}")
      drops.append((f"<@{player_id}>", got))
      if g:
       self.bot.dispatch("guild_activity", int(g), int(player_id), 25)
     self.data["raids"].pop(g,None); self.flush()
-    e=self.embed(f"{CUSTOM_EMOJIS['confirm']}  RAID CLEARED · {b[0].upper()}",f"**{swarm_label(swarm_count)}** boss clear complete. Base rewards and eligible loot have been granted.\n\n{CUSTOM_EMOJIS['reward']} Rewards are scaled by the selected swarm count.",discord.Color.green())
+    e=self.embed(f"{CUSTOM_EMOJIS['confirm']}  RAID CLEARED · {b[0].upper()}",f"**{display_number(swarm_count)}** boss clear complete. Base rewards and eligible loot have been granted.\n\n{CUSTOM_EMOJIS['reward']} Rewards are scaled by the selected swarm count.",discord.Color.green())
     for player_mention,player_drops in drops:
      reward_text="\n".join(f"• {entry}" for entry in player_drops) if player_drops else "No bonus material drops this time."
      e.add_field(name=f"{CUSTOM_EMOJIS['guild']}  {player_mention}",value=reward_text[:1024],inline=False)
@@ -1138,7 +1088,7 @@ class Adventure(commands.Cog):
    else: self.data["raids"].pop(g,None); nextline=phase_line+"\nThe party has fallen."
    self.flush()
   count=r.get("swarm_count",1)
-  target_line=f" every one of {swarm_label(count)} bosses" if count != 1 else ""
+  target_line=f" every one of {display_number(count)} bosses" if count != 1 else ""
   e=self.embed(f"{CUSTOM_EMOJIS['sword']}  {b[0].upper()} · TURN RESOLVED",f"{ctx.author.mention} used **{action}** against **{b[0]}**.",discord.Color.green() if incoming==0 else discord.Color.orange())
   e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  SKILL USED",value=f"**{action}**\n{c[0]}\nDamage dealt: **{display_number(damage)}**",inline=False)
   e.add_field(name=f"{CUSTOM_EMOJIS['reward']}  DAMAGE SUMMARY",value=f"This hit: **{display_number(damage)}**\nTotal contribution: **{total_damage_label}**",inline=False)
@@ -1146,7 +1096,7 @@ class Adventure(commands.Cog):
   e.add_field(name=f"{CUSTOM_EMOJIS['enemy']}  BOSS STATUS",value=f"**Phase {phase}/4**\n{nextline.strip() or 'Battle continues.'}",inline=False)
   if g in self.data["raids"]:
    current_raid=self.data["raids"][g]
-   e.add_field(name=f"{CUSTOM_EMOJIS['boss']}  BOSS VITALITY",value=f"{combat_bar(current_raid['hp'],current_raid['max_hp'])}\n**{display_number(current_raid['hp'])} / {display_number(current_raid['max_hp'])} HP**\n{swarm_label(count)} remaining",inline=False)
+   e.add_field(name=f"{CUSTOM_EMOJIS['boss']}  BOSS VITALITY",value=f"{combat_bar(current_raid['hp'],current_raid['max_hp'])}\n**{display_number(current_raid['hp'])} / {display_number(current_raid['max_hp'])} HP**\n{display_number(count)} remaining",inline=False)
   await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="mastery")
  async def mastery(self,ctx):
@@ -1222,10 +1172,8 @@ class Adventure(commands.Cog):
   if key!=c[5]: await ctx.reply(embed=self.embed("UNKNOWN SKILL",f"Your character uses {c[5]}. Use ,skilltree for more skills."),mention_author=False); return
   if key in p["unlocked"] or(p["race"]=="vessel" and p["character"]=="sukuna"): await ctx.reply(embed=self.embed("ALREADY UNLOCKED","This skill is already available."),mention_author=False); return
   if p["points"]<c[7]:
-   sr=p["symbolic_rewards"]
-   if sr["points"]<=sr["points_spent"]: await ctx.reply(embed=self.embed("NOT ENOUGH POINTS",f"You need {c[7]} points."),mention_author=False); return
-   sr["points_spent"]+=c[7]-p["points"]; p["points"]=0
-  else: p["points"]-=c[7]
+   await ctx.reply(embed=self.embed("NOT ENOUGH POINTS",f"You need {c[7]} points."),mention_author=False); return
+  p["points"]-=c[7]
   p["unlocked"].append(key); self.flush()
   await ctx.reply(embed=self.embed("SKILL UNLOCKED",c[4]+" is now available."),mention_author=False)
 
@@ -1405,15 +1353,15 @@ class Adventure(commands.Cog):
 
  def inventory_payload(self,ctx,page=1):
   from cogs.render_ui import inventory_image
-  p=self.p(ctx.author.id); sr=p["symbolic_rewards"]
-  entries=sum(1 for v in p["inventory"].values() if v>0)+sum(1 for v in sr["inventory"].values() if v>0)
+  p=self.p(ctx.author.id)
+  entries=sum(1 for v in p["inventory"].values() if v>0)
   pages=max(1,(entries+14)//15); page=max(1,min(page,pages))
   image=inventory_image(p,ITEMS,page,ITEM_ICONS)
   file=discord.File(image,filename="inventory.png")
   e=self.embed(f"{CUSTOM_EMOJIS['bag']} INVENTORY",f"{entries} item stacks · page {page}/{pages}\n{CUSTOM_EMOJIS['coin']} Gold: {display_number(p.get('gold',0))}   {CUSTOM_EMOJIS['gem']} Gems: {display_number(p.get('gems',0))}\nUse ,inventory <page> to browse.")
   six=p["inventory"].get("six_eyes",0); fingers=p["inventory"].get("cursed_fingers",0)
-  six_label=symbolic_quantity(sr["inventory"]["six_eyes"],sr["inventory_spent"].get("six_eyes",0)) if sr["inventory"].get("six_eyes",0) else display_number(six)
-  finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
+  six_label=display_number(six)
+  finger_label=display_number(fingers)
   e.add_field(name="Awakening progress",value=f"Six Eyes: {six_label}/6\nCursed Fingers: {finger_label}/20\nRace: {RACES[p['race']][0]}",inline=False)
   e.set_image(url="attachment://inventory.png")
   view=style_view(InventoryPager(ctx,page,pages)) if pages>1 else None
@@ -1481,24 +1429,18 @@ class Adventure(commands.Cog):
  @commands.command(name="stats",aliases=["me","profile"])
  async def stats(self,ctx,member:discord.Member=None):
   member=member or ctx.author; p=self.p(member.id); c=CHARACTERS[p["character"]]
-  sr=p["symbolic_rewards"]
-  symbolic_lines=[]
-  if sr["xp"]: symbolic_lines.append(f"Symbolic XP: {symbolic_quantity(sr['xp'])} (stored separately from level progression)")
-  if sr["points"]: symbolic_lines.append(f"Symbolic skill points: {symbolic_quantity(sr['points'],sr['points_spent'])}")
-  if sr["wins"]: symbolic_lines.append(f"Symbolic victories: {symbolic_quantity(sr['wins'])}")
-  if sr["damage"]: symbolic_lines.append(f"Symbolic damage: {symbolic_quantity(sr['damage'])}")
   equipped_title=p.get("equipped_title")
   title_name={"rookie":"Rookie","slayer":"Boss Slayer","conqueror":"Conqueror","calamity":"Calamity","limitless":"Limitless","king_of_curses":"King of Curses"}.get(equipped_title,"None")
   mastery_level=mastery_tier(p.get("mastery",{}).get(p["character"],0))
   clan_name=CLANS.get(p.get("clan"),{}).get("name","Unassigned")
-  desc=(f"Title: {title_name}\nCharacter: {c[0]}\nClan: {clan_name}\nAscension: {int(p.get('ascension',0))}/25 (+{min(25,int(p.get('ascension',0)))*2}% damage)\nMastery: Tier {mastery_level}/3 (+{mastery_level*2}% damage)\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}" + ("\n" + "\n".join(symbolic_lines) if symbolic_lines else ""))
+  desc=(f"Title: {title_name}\nCharacter: {c[0]}\nClan: {clan_name}\nAscension: {int(p.get('ascension',0))}/25 (+{min(25,int(p.get('ascension',0)))*2}% damage)\nMastery: Tier {mastery_level}/3 (+{mastery_level*2}% damage)\nRace: {RACES[p['race']][0]}\nLevel: {display_number(p['level'])}\nXP: {display_number(p['xp'])} / {display_number(p['level']*250)}\nSkill points: {display_number(p['points'])}\nVictories: {display_number(p['wins'])}\nTotal damage: {display_number(p['damage'])}")
   e=self.embed("ADVENTURER PROFILE",desc[:4000])
   e.set_thumbnail(url=member.display_avatar.url); await ctx.reply(embed=e,mention_author=False)
  @commands.command(name="leaderboard",aliases=["top"])
  @serialized
  async def leaderboard(self,ctx):
   profiles=[(uid,self.p(uid)) for uid in list(self.data["profiles"])]
-  top=sorted(profiles,key=lambda x:(x[1].get("symbolic_rewards",{}).get("xp",0)>0,x[1].get("level",1),x[1].get("xp",0)),reverse=True)
+  top=sorted(profiles,key=lambda x:(x[1].get("level",1),x[1].get("xp",0)),reverse=True)
   view=LeaderboardView(self,ctx,top)
   view.message=await ctx.reply(embed=view.build_embed(),view=view,mention_author=False)
 
@@ -1554,9 +1496,6 @@ class Adventure(commands.Cog):
   if amount.lower() in {"off","reset","none"}:
    p["weapon_damage_override"]=None; self.flush()
    await ctx.reply(embed=self.embed("WEAPON DAMAGE RESET",f"{self.data['custom_weapons'][p['weapon']]['name']} is back to its normal damage ranges."),mention_author=False); return
-  if amount.lower() == "googolplex":
-   p["weapon_damage_override"]="googolplex"; self.flush()
-   await ctx.reply(embed=self.embed("WEAPON DAMAGE UPDATED","Your equipped weapon now uses googolplex damage. It hits for the boss's remaining HP."),mention_author=False); return
   try: value=int(amount.replace(",",""))
   except ValueError:
    await ctx.reply(embed=self.embed("INVALID DAMAGE","Use ,setdamage <amount> or ,setdamage off."),mention_author=False); return
