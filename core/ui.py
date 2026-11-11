@@ -116,7 +116,7 @@ def _add_reading_space(value: str) -> str:
     if len(value) <= 2400 and "```" not in value:
         return re.sub(r"(?<!\n)\n(?!\n)", "\n\n", value)
     value = re.sub(
-        r"(?m)(?<!\n)\n(?=(?:\*\*[^*\n]+\*\*|<a?:[A-Za-z0-9_]+:\d+>|[•▸◆▪]|\d+[.)]\s))",
+        r"(?m)(?<!\n)\n(?=(?:\*\*[^*\n]+\*\*|<a?:[A-Za-z0-9_]+:\d+>|[•▸◆▪]|`{1,3}|\d+[.)]\s))",
         "\n\n",
         value,
     )
