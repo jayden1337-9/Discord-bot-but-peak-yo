@@ -173,7 +173,7 @@ class BotContext(commands.Context):
             kwargs.pop("embeds", None)
             kwargs["embed"] = pages[0]
             view = EmbedPager(pages, self.author.id)
-            kwargs["view"] = view
+            kwargs["view"] = style_view(view, emoji_map)
             message = await super().send(content, **kwargs)
             view.message = message
             return message
