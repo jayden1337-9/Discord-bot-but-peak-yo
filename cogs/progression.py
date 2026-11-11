@@ -4,10 +4,10 @@ from discord.ext import commands
 from core.locking import serialized
 
 TITLE_RULES = {
-    "rookie": ("Rookie", "Complete your first raid.", lambda p: p.get("wins", 0) >= 1 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
-    "slayer": ("Boss Slayer", "Win 10 raids.", lambda p: p.get("wins", 0) >= 10 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
-    "conqueror": ("Conqueror", "Win 100 raids.", lambda p: p.get("wins", 0) >= 100 or p.get("symbolic_rewards", {}).get("wins", 0) > 0),
-    "calamity": ("Calamity", "Deal at least 100,000 total damage.", lambda p: p.get("damage", 0) >= 100000 or p.get("symbolic_rewards", {}).get("damage", 0) > 0),
+    "rookie": ("Rookie", "Complete your first raid.", lambda p: p.get("wins", 0) >= 1),
+    "slayer": ("Boss Slayer", "Win 10 raids.", lambda p: p.get("wins", 0) >= 10),
+    "conqueror": ("Conqueror", "Win 100 raids.", lambda p: p.get("wins", 0) >= 100),
+    "calamity": ("Calamity", "Deal at least 100,000 total damage.", lambda p: p.get("damage", 0) >= 100000),
     "limitless": ("Limitless", "Reach level 50.", lambda p: p.get("level", 1) >= 50),
     "king_of_curses": ("King of Curses", "Unlock the King of Curses race.", lambda p: p.get("sukuna_race_unlocked", False) or p.get("race") == "sukuna"),
 }
@@ -42,9 +42,6 @@ class Progression(commands.Cog):
             state[f"{kind}_claimed"] = False
             state[f"{kind}_baseline_wins"] = int(p.get("wins", 0))
             state[f"{kind}_baseline_damage"] = int(p.get("damage", 0))
-            sr = p.get("symbolic_rewards", {})
-            state[f"{kind}_baseline_symbolic_wins"] = int(sr.get("wins", 0))
-            state[f"{kind}_baseline_symbolic_damage"] = int(sr.get("damage", 0))
             if kind == "daily":
                 state["daily_objective"] = "damage" if int(p.get("wins", 0)) % 2 == 0 else "wins"
         return state
@@ -53,12 +50,6 @@ class Progression(commands.Cog):
         state = self.ensure_quest(p, kind)
         wins = max(0, int(p.get("wins", 0)) - state[f"{kind}_baseline_wins"])
         damage = max(0, int(p.get("damage", 0)) - state[f"{kind}_baseline_damage"])
-        sr = p.get("symbolic_rewards", {})
-        wins += max(0, int(sr.get("wins", 0)) - state[f"{kind}_baseline_symbolic_wins"])
-        symbolic_damage = max(0, int(sr.get("damage", 0)) - state[f"{kind}_baseline_symbolic_damage"])
-        damage += symbolic_damage
-        if kind == "daily" and symbolic_damage > 0:
-            damage = max(damage, 1000)
         if kind == "daily":
             if state.get("daily_objective") == "wins":
                 return wins, 1, "Win a boss raid"
