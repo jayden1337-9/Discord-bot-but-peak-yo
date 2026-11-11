@@ -528,25 +528,30 @@ class AttackSkillView(discord.ui.View):
 
 class BossRegisterView(discord.ui.View):
  def __init__(self,cog,owner_id):
-  super().__init__(timeout=180); self.cog=cog; self.owner_id=owner_id
-  self.entries=list(BOSSES.items()); self.page=0; self.page_size=12
+  super().__init__(timeout=180)
+  self.cog=cog; self.owner_id=owner_id; self.message=None
+  self.worlds=sorted({BOSS_DIMENSIONS.get(key,'earth') for key in BOSSES},key=lambda world:(DIMENSIONS.get(world,{}).get('name',world)).lower())
+  self.world=self.worlds[0] if self.worlds else 'earth'
+  self.add_item(BossDimensionSelect(self))
   self.refresh()
  def refresh(self):
-  self.previous_button.disabled=self.page<=0
-  self.next_button.disabled=self.page>=(len(self.entries)-1)//self.page_size
+  for child in self.children:
+   if isinstance(child,BossDimensionSelect):
+    child.options=[discord.SelectOption(label=DIMENSIONS.get(world,{'name':world.replace('_',' ').title()})['name'],value=world,description=f"{sum(1 for key in BOSSES if BOSS_DIMENSIONS.get(key,'earth')==world)} bosses",default=world==self.world) for world in self.worlds[:25]]
  def build_embed(self):
-  pages=max(1,(len(self.entries)+self.page_size-1)//self.page_size)
-  start=self.page*self.page_size
-  embed=self.cog.embed(f"⚔️ ANIME RAID REGISTER · {self.page+1}/{pages}","Every boss is assigned to its anime dimension. Defeat one to earn its own boss chest.")
-  for key,boss in self.entries[start:start+self.page_size]:
-   world=BOSS_DIMENSIONS.get(key,"earth")
-   dim=DIMENSIONS.get(world,DIMENSIONS["earth"])
-   hp=int(boss[1]*dim.get("hp_mult",1))
-   embed.add_field(name=f"{boss[0]} / {key}",value=f"🌌 {dim['name']} · {display_number(hp)} HP · {boss[2][0]}–{boss[2][1]} base damage · {boss[3]:,} XP",inline=False)
+  dim=DIMENSIONS.get(self.world,{ 'name':self.world.replace('_',' ').title(),'description':'Anime dimension'})
+  entries=[(key,boss) for key,boss in BOSSES.items() if BOSS_DIMENSIONS.get(key,'earth')==self.world]
+  entries.sort(key=lambda entry:(entry[1][1],entry[1][0].lower()))
+  lines=[]
+  for key,boss in entries:
+   hp=int(boss[1]*dim.get('hp_mult',1))
+   lines.append(f"**{boss[0]}**  ·  `{key}`\n　{CUSTOM_EMOJIS['shield']} {display_number(hp)} HP　•　⚔️ {boss[2][0]:,}–{boss[2][1]:,} DMG　•　✨ {boss[3]:,} XP")
+  embed=self.cog.embed(f"{CUSTOM_EMOJIS['boss']}  {dim['name'].upper()} · BOSS REGISTER",f"{dim.get('description','Select an anime dimension to browse its bosses.')}\n\n**{len(entries)} bosses available**\n\n"+'\n\n'.join(lines) if lines else f"No bosses are registered for {dim['name']} yet.")
+  embed.set_footer(text="Choose another anime dimension from the dropdown above")
   return render_embed(embed)
  async def interaction_check(self,interaction):
   if interaction.user.id!=self.owner_id:
-   await interaction.response.send_message("These controls belong to the person who opened the boss register.",ephemeral=True); return False
+   await interaction.response.send_message('These controls belong to the person who opened the boss register.',ephemeral=True); return False
   return True
  async def on_timeout(self):
   for child in self.children: child.disabled=True
@@ -554,14 +559,15 @@ class BossRegisterView(discord.ui.View):
    try: await self.message.edit(view=self)
    except discord.HTTPException: pass
 
- @discord.ui.button(label="Previous",style=discord.ButtonStyle.secondary)
- async def previous_button(self,interaction,button):
-  self.page=max(0,self.page-1); self.refresh()
-  await interaction.response.edit_message(embed=self.build_embed(),view=self)
- @discord.ui.button(label="Next",style=discord.ButtonStyle.primary)
- async def next_button(self,interaction,button):
-  self.page=min((len(self.entries)-1)//self.page_size,self.page+1); self.refresh()
-  await interaction.response.edit_message(embed=self.build_embed(),view=self)
+class BossDimensionSelect(discord.ui.Select):
+ def __init__(self,view):
+  self.register=view
+  options=[discord.SelectOption(label=DIMENSIONS.get(world,{'name':world.replace('_',' ').title()})['name'],value=world,description=f"{sum(1 for key in BOSSES if BOSS_DIMENSIONS.get(key,'earth')==world)} bosses",default=world==view.world) for world in view.worlds[:25]]
+  super().__init__(placeholder='Choose an anime dimension…',min_values=1,max_values=1,options=options)
+ async def callback(self,interaction):
+  self.register.world=self.values[0]
+  self.register.refresh()
+  await interaction.response.edit_message(embed=self.register.build_embed(),view=self.register)
 
 
 class LeaderboardView(discord.ui.View):
