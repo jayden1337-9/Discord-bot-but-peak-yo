@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import re
 
 import discord
 from dotenv import load_dotenv
@@ -83,6 +84,110 @@ def render_text(value: str, emoji_map: dict[str, str] | None = None) -> str:
         if custom_emoji:
             value = value.replace(unicode_emoji, custom_emoji)
     return value
+
+
+def _ui_icon_for(value: str, emoji_map=None) -> str:
+    text = str(value or "").lower()
+    emojis = emoji_map or CUSTOM_EMOJIS
+    rules = [
+        (("inventory", "backpack", "bag"), "bag"),
+        (("refresh", "reload", "update"), "refresh"),
+        (("reward", "claim", "complete", "cleared", "victory", "success"), "reward"),
+        (("boss", "raid", "world boss", "enemy"), "boss"),
+        (("cancel", "declin", "invalid", "error", "denied", "unavailable", "missing", "locked", "failed"), "cancel"),
+        (("setting", "config", "option"), "settings"),
+        (("shield", "defen", "armor", "protect"), "shield"),
+        (("chest", "vault", "key", "loot", "drop"), "chest"),
+        (("gold", "wallet", "coin", "donat", "price", "cost"), "coin"),
+        (("star", "rarity", "rank s"), "star"),
+        (("weapon", "sword", "attack", "damage", "skill", "combat"), "sword"),
+        (("confirm", "accept", "equip", "join", "created", "selected", "purchase"), "confirm"),
+        (("king", "leader", "owner", "ascension"), "crown"),
+        (("tower", "floor", "rift"), "tower"),
+        (("trade", "offer", "exchange"), "trade"),
+        (("daily", "login", "streak"), "daily"),
+        (("down", "previous", "back", "retreat", "leave"), "down"),
+        (("trophy", "achievement", "record", "best"), "trophy"),
+        (("up", "next", "upgrade", "level up", "progress"), "up"),
+        (("enemy", "monster", "opponent", "target"), "enemy"),
+        (("expedition", "route", "journey", "companion"), "expedition"),
+        (("gem", "crystal", "premium"), "gem"),
+        (("guild", "clan", "member"), "guild"),
+        (("help", "command", "menu", "guide"), "help"),
+        (("info", "status", "profile", "overview", "details"), "info"),
+        (("leaderboard", "ranking", "top players", "top guild"), "leaderboard"),
+        (("lucky", "roll", "chance", "random"), "lucky"),
+        (("market", "listing", "shop", "store"), "market"),
+        (("potion", "elixir", "tonic", "consume", "heal"), "potion"),
+        (("quest", "contract", "mission", "objective"), "quest"),
+    ]
+    for words, key in rules:
+        if any(word in text for word in words) and key in emojis:
+            return emojis[key]
+    return emojis.get("info", "")
+
+
+def render_embed(embed, emoji_map=None):
+    """Apply the shared custom-emoji and spacing style to any Discord embed."""
+    if embed is None:
+        return None
+    emojis = emoji_map or CUSTOM_EMOJIS
+    result = embed.copy()
+    if result.title:
+        title = render_text(result.title, emojis)
+        if "<:" not in title:
+            icon = _ui_icon_for(title, emojis)
+            if icon:
+                title = f"{icon}  {title}"
+        result.title = title
+    if result.description:
+        description = render_text(result.description, emojis)
+        # Give section headings and bullet groups breathing room without
+        # changing compact stat lines or existing paragraph breaks.
+        description = re.sub(
+            r"(?m)(?<!\\n)\\n(?=(?:\\*\\*[^*\\n]+\\*\\*|[•▸◆])\\s*)",
+            "\\n\\n",
+            description,
+        )
+        result.description = description
+    for index, field in enumerate(result.fields):
+        name = render_text(field.name, emojis)
+        value = render_text(field.value, emojis)
+        if "<:" not in name:
+            icon = _ui_icon_for(name, emojis)
+            if icon:
+                name = f"{icon}  {name}"
+        result.set_field_at(index, name=name, value=value, inline=field.inline)
+    if result.author.name:
+        result.set_author(
+            name=render_text(result.author.name, emojis),
+            url=result.author.url,
+            icon_url=result.author.icon_url,
+        )
+    if result.footer.text:
+        result.set_footer(
+            text=render_text(result.footer.text, emojis),
+            icon_url=result.footer.icon_url,
+        )
+    return result
+
+
+def style_view(view, emoji_map=None):
+    """Add matching server emoji to Discord buttons while preserving labels."""
+    if view is None:
+        return view
+    emojis = emoji_map or CUSTOM_EMOJIS
+    for item in getattr(view, "children", []):
+        if not isinstance(item, discord.ui.Button) or item.emoji is not None:
+            continue
+        label = (item.label or item.custom_id or "").lower()
+        icon = _ui_icon_for(label, emojis)
+        if icon:
+            try:
+                item.emoji = discord.PartialEmoji.from_str(icon)
+            except (TypeError, ValueError):
+                pass
+    return view
 
 
 class EmbedPager(discord.ui.View):
@@ -193,32 +298,7 @@ def paginated_embeds(embed):
 
 class BotContext(commands.Context):
     def _render_embed(self, embed, emoji_map):
-        if embed is None or not emoji_map:
-            return embed
-        embed = embed.copy()
-        if embed.title:
-            embed.title = render_text(embed.title, emoji_map)
-        if embed.description:
-            embed.description = render_text(embed.description, emoji_map)
-        for index, field in enumerate(embed.fields):
-            embed.set_field_at(
-                index,
-                name=render_text(field.name, emoji_map),
-                value=render_text(field.value, emoji_map),
-                inline=field.inline,
-            )
-        if embed.author.name:
-            embed.set_author(
-                name=render_text(embed.author.name, emoji_map),
-                url=embed.author.url,
-                icon_url=embed.author.icon_url,
-            )
-        if embed.footer.text:
-            embed.set_footer(
-                text=render_text(embed.footer.text, emoji_map),
-                icon_url=embed.footer.icon_url,
-            )
-        return embed
+        return render_embed(embed, emoji_map)
 
     async def reply(self, content=None, *, mention_author=True, **kwargs):
         # Context.reply normally bypasses Context.send and therefore skipped
@@ -229,6 +309,8 @@ class BotContext(commands.Context):
 
     async def send(self, content=None, **kwargs):
         emoji_map = getattr(self.bot, "emoji_map", None) or CUSTOM_EMOJIS
+        if "view" in kwargs:
+            kwargs["view"] = style_view(kwargs["view"], emoji_map)
         if isinstance(content, str):
             content = render_text(content, emoji_map)
         embed = self._render_embed(kwargs.get("embed"), emoji_map)
