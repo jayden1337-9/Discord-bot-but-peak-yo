@@ -2,6 +2,7 @@
 import asyncio
 import time
 import discord
+from main import render_embed
 from discord.ext import commands
 from core.social import award_guild_xp, ensure_social_data, guild_member_limit, next_id, transfer_gold, transfer_item, valid_stack
 
@@ -210,7 +211,7 @@ class Social(commands.Cog):
         return cog
 
     def embed(self, title, description=""):
-        return discord.Embed(title=title, description=description, color=discord.Color.from_rgb(48, 61, 82))
+        return render_embed(discord.Embed(title=title, description=description, color=discord.Color.from_rgb(48, 61, 82)))
 
     def find_guild(self, data, server_id, user_id):
         for key, guild in data["guilds"].items():
