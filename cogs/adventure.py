@@ -987,8 +987,7 @@ class Adventure(commands.Cog):
    if custom and ability_key==custom["ability_key"]:
     damage=random.randint(*custom["ability_damage"]); action=custom["ability"]
     override=p.get("weapon_damage_override")
-    if override=="googolplex": damage=r["hp"]
-    elif override is not None: damage=int(override)
+    if override is not None: damage=int(override)
    elif ability_key==c[5]:
     if ability_key not in p["unlocked"] and not(p["race"]=="vessel" and p["character"]=="sukuna"):
      await ctx.reply(embed=self.embed("SKILL LOCKED",f"Unlock {ability_key} with ,unlock {ability_key}."),mention_author=False); return
@@ -1314,8 +1313,7 @@ class Adventure(commands.Cog):
   p=self.p(ctx.author.id); lines=["Open one tier with ,chest open <tier> or everything with ,chest open all / ,oca."]
   for key,data in CHEST_TIERS.items():
    amount=p.get("inventory",{}).get(f"{key}_chest",0)
-   symbolic=p.get("symbolic_rewards",{}).get("inventory",{}).get(f"{key}_chest",0)
-   lines.append(f"{data['icon']} **{data['name']}** x{display_number(amount)}"+(" + symbolic stash" if symbolic else ""))
+   lines.append(f"{data['icon']} **{data['name']}** x{display_number(amount)}")
   await ctx.reply(embed=self.embed("CHEST VAULT","\\n".join(lines)),mention_author=False)
 
  @chest.command(name="open")
