@@ -76,7 +76,7 @@ class HelpView(discord.ui.View):
             description=description,
             color=discord.Color.from_rgb(35, 45, 64),
         )
-        return embed
+        return render_embed(embed)
 
     def refresh_buttons(self) -> None:
         self.previous_button.disabled = self.page == 0
