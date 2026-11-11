@@ -8,19 +8,17 @@ class FakeContext:
 
 
 class LeaderboardViewTests(unittest.TestCase):
-    def test_leaderboard_shows_symbolic_xp_and_ascension(self):
+    def test_leaderboard_shows_finite_xp_and_ascension(self):
         cog = Adventure.__new__(Adventure)
         entries = [
             ("456", {
                 "level": 900,
                 "xp": 1200,
                 "ascension": 5,
-                "symbolic_rewards": {"xp": 1},
             })
         ]
         view = LeaderboardView(cog, FakeContext(), entries)
         embed = view.build_embed()
-        self.assertIn("10^(10^100)", embed.description)
         self.assertIn("Ascension 5", embed.description)
         self.assertTrue(view.previous.disabled)
         self.assertTrue(view.next.disabled)
@@ -28,7 +26,7 @@ class LeaderboardViewTests(unittest.TestCase):
     def test_leaderboard_pages_ten_players_at_a_time(self):
         cog = Adventure.__new__(Adventure)
         entries = [
-            (str(index), {"level": index, "xp": index * 10, "symbolic_rewards": {}})
+            (str(index), {"level": index, "xp": index * 10})
             for index in range(12)
         ]
         view = LeaderboardView(cog, FakeContext(), entries)
