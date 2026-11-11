@@ -2,7 +2,7 @@ import asyncio, json, os, random, shutil, sqlite3, tempfile
 from math import isqrt
 from pathlib import Path
 import discord
-from core.ui import render_embed
+from core.ui import render_embed, style_view
 from discord.ext import commands
 
 from core.storage import atomic_json_save
@@ -536,7 +536,7 @@ class BossRegisterView(discord.ui.View):
    dim=DIMENSIONS.get(world,DIMENSIONS["earth"])
    hp=int(boss[1]*dim.get("hp_mult",1))
    embed.add_field(name=f"{boss[0]} / {key}",value=f"🌌 {dim['name']} · {display_number(hp)} HP · {boss[2][0]}–{boss[2][1]} base damage · {boss[3]:,} XP",inline=False)
-  return embed
+  return render_embed(embed)
  async def interaction_check(self,interaction):
   if interaction.user.id!=self.owner_id:
    await interaction.response.send_message("These controls belong to the person who opened the boss register.",ephemeral=True); return False
@@ -578,7 +578,7 @@ class LeaderboardView(discord.ui.View):
    lines.append(f"**{rank}.** <@{uid}> · Level {display_number(profile.get('level',1))} · {xp} XP · Ascension {ascension}")
   embed=self.cog.embed(f"PLAYER LEADERBOARD · {self.page+1}/{pages}","\n".join(lines) or "No players yet.")
   embed.set_footer(text="Top 100 profiles · Sorted by progression")
-  return embed
+  return render_embed(embed)
  async def interaction_check(self,interaction):
   if interaction.user.id!=self.owner_id:
    await interaction.response.send_message("These leaderboard controls belong to the person who opened them.",ephemeral=True)
@@ -1375,8 +1375,8 @@ class Adventure(commands.Cog):
   finger_label=symbolic_quantity(sr["inventory"]["cursed_fingers"],sr["inventory_spent"].get("cursed_fingers",0)) if sr["inventory"].get("cursed_fingers",0) else display_number(fingers)
   e.add_field(name="Awakening progress",value=f"Six Eyes: {six_label}/6\nCursed Fingers: {finger_label}/20\nRace: {RACES[p['race']][0]}",inline=False)
   e.set_image(url="attachment://inventory.png")
-  view=InventoryPager(ctx,page,pages) if pages>1 else None
-  return e,file,view
+  view=style_view(InventoryPager(ctx,page,pages)) if pages>1 else None
+  return render_embed(e),file,view
 
  @commands.command(name="inventory",aliases=["inv","bag"])
  async def inventory(self,ctx,page:int=1):
