@@ -904,6 +904,7 @@ class Adventure(commands.Cog):
   if not r: await ctx.reply(embed=self.embed("NO RAID","There is no active raid."),mention_author=False); return
   b=BOSSES[r["boss"]]; alive=[u for u in r["turns"] if r["players"].get(u,0)>0]; current=alive[r["turn"]%len(alive)] if alive else None
   count=r.get("swarm_count",1)
+  if not isinstance(count,int) or count<1: count=1; r["swarm_count"]=1
   title=f"{display_number(count)}x {b[0].upper()}" if count != 1 else b[0].upper()
   phase=raid_phase(r['hp'],r['max_hp']); r['phase']=phase
   e=self.embed(f"{CUSTOM_EMOJIS['boss']}  BATTLEFIELD STATUS",f"**{title}**\nPhase **{phase}/4** · {display_number(count)} remaining\n\n{CUSTOM_EMOJIS['shield']} **Boss vitality**\n{combat_bar(r['hp'],r['max_hp'])}\n{display_number(r['hp'])} / {display_number(r['max_hp'])} HP")
@@ -1083,6 +1084,7 @@ class Adventure(commands.Cog):
    else: self.data["raids"].pop(g,None); nextline=phase_line+"\nThe party has fallen."
    self.flush()
   count=r.get("swarm_count",1)
+  if not isinstance(count,int) or count<1: count=1; r["swarm_count"]=1
   target_line=f" every one of {display_number(count)} bosses" if count != 1 else ""
   e=self.embed(f"{CUSTOM_EMOJIS['sword']}  {b[0].upper()} · TURN RESOLVED",f"{ctx.author.mention} used **{action}** against **{b[0]}**.",discord.Color.green() if incoming==0 else discord.Color.orange())
   e.add_field(name=f"{CUSTOM_EMOJIS['sword']}  SKILL USED",value=f"**{action}**\n{c[0]}\nDamage dealt: **{display_number(damage)}**",inline=False)
