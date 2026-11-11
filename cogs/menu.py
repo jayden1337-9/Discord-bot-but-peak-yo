@@ -1,5 +1,6 @@
 """Compact Discord-native command panel."""
 import discord
+from main import render_embed
 from discord.ext import commands
 
 
@@ -94,11 +95,11 @@ class CommandMenu(discord.ui.View):
         for child in self.children:
             child.disabled = True
         await interaction.response.edit_message(
-            embed=discord.Embed(
+            embed=render_embed(discord.Embed(
                 title="Menu closed",
                 description="Run `,menu` whenever you need it again.",
                 color=discord.Color.from_rgb(48, 61, 82),
-            ),
+            )),
             view=self,
         )
 
@@ -110,14 +111,14 @@ class Menu(commands.Cog):
     @commands.command(name="menu", aliases=["panel", "start"])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def menu(self, ctx: commands.Context) -> None:
-        embed = discord.Embed(
+        embed = render_embed(discord.Embed(
             title="Quick menu",
             description=(
                 "Your shortcuts for profile, inventory, quests, wallet, community and combat. "
                 "Use the buttons below or keep using prefix commands."
             ),
             color=discord.Color.from_rgb(48, 61, 82),
-        )
+        ))
         game = self.bot.get_cog("Adventure")
         if game is not None:
             from cogs.adventure import CHARACTERS, display_number
