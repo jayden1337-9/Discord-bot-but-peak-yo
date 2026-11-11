@@ -2,7 +2,7 @@
 import asyncio
 import time
 import discord
-from main import render_embed
+from core.ui import render_embed
 from discord.ext import commands
 from core.social import award_guild_xp, ensure_social_data, guild_member_limit, next_id, transfer_gold, transfer_item, valid_stack
 
