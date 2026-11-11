@@ -12,7 +12,6 @@ class ProfileMigrationTests(unittest.TestCase):
                     "level": 900,
                     "gold": None,
                     "inventory": {"bad": "not-a-number", "valid": "12"},
-                    "symbolic_rewards": None,
                     "equipped_skills": None,
                     "unlocked_skills": None,
                     "character": [],
@@ -30,7 +29,7 @@ class ProfileMigrationTests(unittest.TestCase):
         self.assertEqual(profile["level"], 900)
         self.assertEqual(profile["gold"], 0)
         self.assertEqual(profile["inventory"], {"valid": 12})
-        self.assertIsInstance(profile["symbolic_rewards"], dict)
+        self.assertNotIn("symbolic_rewards", profile)
         self.assertIsInstance(profile["equipped_skills"], dict)
         self.assertEqual(profile["unlocked_skills"], [])
         self.assertEqual(profile["character"], "sukuna")
