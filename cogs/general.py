@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import discord
-from main import render_embed
+from core.ui import render_embed
 from discord.ext import commands
 
 RESTART_FLAG = Path(__file__).resolve().parent.parent / ".restart_requested"
