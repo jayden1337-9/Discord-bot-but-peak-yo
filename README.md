@@ -22,12 +22,11 @@ A lightweight, prefix-based Discord bot with community utilities and a persisten
 - Custom weapon builder and owner-only damage controls
 - Persistent JSON player profiles, inventories, weapons and active raids
 - Shared transaction locking across combat, crafting, progression, economy, expeditions and social features
-- Atomic item consumption with symbolic-stack support and no partial item loss
+- Atomic finite-item consumption with no partial item loss
 - Ascension progression with up to 25 permanent damage upgrades; no level or inventory reset
 - Global cooperative world bosses with contribution rankings, one-time rewards and three difficulty tiers
 - Endless Rift Tower floors with rotating bosses and scaling rewards
 - Huge-number display for existing high-level profiles
-- Exact symbolic googolplex swarm rewards, tracked without expanding their decimal digits; symbolic XP is kept separate from ordinary level calculations
 - Owner-only GitHub update/restart with validation and rollback
 
 ## Requirements
@@ -127,7 +126,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 
 ### Owner
 - `,createweapon`
-- `,setdamage <amount|googolplex|off>`
+- `,setdamage <amount|off>`
 - `,giveitem <member> <item> [amount]`
 - `,addxp <member> <amount>`
 - `,addpoints <member> <amount>`
@@ -142,7 +141,7 @@ The supervisor restarts the bot after unexpected exits. The owner-only `,reload`
 
 The player database is stored in `peak_game.json` inside `BOT_DATA_DIR`. The filename is retained for compatibility with existing player data. Keep that directory on persistent storage when configuring the host. The bot writes updates atomically and refreshes a last-known-good `peak_game.backup.json` recovery snapshot before every save. If the main database is damaged, startup attempts to restore that snapshot; if no valid recovery copy exists, startup stops rather than silently creating an empty database.
 
-Large player values are displayed in scientific notation. A googolplex swarm is represented exactly as 10^(10^100) and its damage, loot, victories, skill points and XP rewards are tracked symbolically. Symbolic XP is kept separate from ordinary level progression because the resulting level cannot be represented as a practical finite integer.
+Large finite player values are displayed in scientific notation. Boss summons accept positive whole-number counts, and rewards scale by that finite count.
 
 
 ## Rift Expeditions update
@@ -181,4 +180,4 @@ Commands:
 - `,trade offer @member <item> <amount>` creates a 24-hour direct item offer; `,trade accept <id>` and `,trade cancel <id>` resolve it.
 - `,market list <item> <amount> <price>` escrows an item stack for sale. `,market browse`, `,market buy <id>`, and `,market cancel <id>` manage listings.
 - Guilds gain 5 XP from eligible member messages, at most once per member per minute, or from Gold donations. Guild levels unlock member slots up to 20.
-- Guilds, trades and listings are scoped to the Discord server. Player profiles remain shared by Discord user ID. Symbolic reward balances are intentionally non-transferable.
+- Guilds, trades and listings are scoped to the Discord server. Player profiles remain shared by Discord user ID.
