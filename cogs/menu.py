@@ -1,6 +1,6 @@
 """Compact Discord-native command panel."""
 import discord
-from main import render_embed
+from core.ui import render_embed
 from discord.ext import commands
 
 
