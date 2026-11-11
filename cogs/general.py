@@ -49,6 +49,67 @@ class PollView(discord.ui.View):
         await self.record(interaction, False)
 
 
+COMMAND_DESCRIPTIONS = {
+    "help": "Search the command list or open detailed instructions for one command.",
+    "ping": "Check the bot's gateway latency and connection status.",
+    "about": "View bot statistics, loaded modules and runtime information.",
+    "menu": "Open the interactive shortcut panel for the bot's main features.",
+    "wallet": "View your current Gold and Gem balances.",
+    "inventory": "Browse your owned items, materials and consumables.",
+    "profile": "View your character build, level, stats and progression.",
+    "daily": "Claim your daily rewards and check your streak.",
+    "bosses": "Browse available bosses and inspect their rewards.",
+    "boss": "Open the boss command group for challenges, summons and raid status.",
+    "boss challenge": "Challenge a boss and create a raid for other players to join.",
+    "boss summon": "Spend a boss key to summon a selected boss.",
+    "boss status": "Inspect the active raid, boss health and participating players.",
+    "join": "Join the active boss raid before the fight begins.",
+    "attack": "Take your turn in the active raid using an equipped skill.",
+    "skills": "Browse your character's skills, damage and unlock status.",
+    "skilltree": "View the universal skill tree and its unlock requirements.",
+    "equipskill": "Equip an unlocked skill in a combat category.",
+    "unequipskill": "Remove a skill from one of your combat categories.",
+    "skillloadout": "Review the skills currently equipped for combat.",
+    "character": "Choose which unlocked anime character you want to use.",
+    "characters": "Browse the character roster and level requirements.",
+    "clans": "Compare clan bonuses and see which clans you can roll.",
+    "clan": "Check your current clan or use its subcommands to reroll.",
+    "races": "Browse available races and their passive bonuses.",
+    "race": "Select an unlocked race for your character.",
+    "mastery": "Check your equipped character's mastery tier and progress.",
+    "craft": "Craft a weapon or item when you have the required materials.",
+    "recipes": "Browse weapon blueprints and the materials each one requires.",
+    "chest": "View your chest stock and open chests by tier.",
+    "oca": "Open all available chest tiers in one command.",
+    "guild": "Manage your guild, membership, donations and guild rankings.",
+    "trade": "Create, accept, cancel and review player-to-player trades.",
+    "market": "Browse player listings or buy and sell items on the market.",
+    "gear": "Inspect your equipped endgame gear and its stat bonuses.",
+    "equipgear": "Equip a gear piece you own into its matching slot.",
+    "unequipgear": "Remove the gear currently equipped in a slot.",
+    "tower": "View and progress through the endgame tower.",
+    "forge": "Browse forge options and craft advanced equipment.",
+}
+
+def command_description(command):
+    """Return useful help text, never a circular 'use help' placeholder."""
+    if command.help:
+        return command.help.strip()
+    if command.short_doc:
+        return command.short_doc.strip()
+    callback_doc = getattr(command.callback, "__doc__", None)
+    if callback_doc and callback_doc.strip():
+        return callback_doc.strip()
+    qualified = command.qualified_name.lower()
+    if qualified in COMMAND_DESCRIPTIONS:
+        return COMMAND_DESCRIPTIONS[qualified]
+    if command.name.lower() in COMMAND_DESCRIPTIONS:
+        return COMMAND_DESCRIPTIONS[command.name.lower()]
+    words = command.name.replace("_", " ").replace("-", " ")
+    if isinstance(command, commands.Group):
+        return f"Open the {words} command group. Use its listed subcommands to perform specific actions."
+    return f"Run the {words} command."
+
 class HelpView(discord.ui.View):
     def __init__(self, author_id: int, prefix: str, bot: commands.Bot) -> None:
         super().__init__(timeout=180)
@@ -67,7 +128,7 @@ class HelpView(discord.ui.View):
                 continue
             category = command.cog.qualified_name if command.cog else "OTHER"
             suffix = f" {command.signature}" if command.signature else ""
-            description = command.short_doc or "Use `,help <command>` for details."
+            description = command_description(command)
             grouped.setdefault(category.upper(), []).append(f"`{self.prefix}{command.qualified_name}{suffix}`\n{description}")
         pages = []
         for category, entries in sorted(grouped.items()):
@@ -164,7 +225,7 @@ class General(commands.Cog):
                     lines = []
                     for c in matches[:20]:
                         suffix = f" {c.signature}" if c.signature else ""
-                        lines.append(f"`{ctx.clean_prefix}{c.qualified_name}{suffix}` — {c.short_doc or 'No description yet.'}")
+                        lines.append(f"`{ctx.clean_prefix}{c.qualified_name}{suffix}` — {command_description(c)}")
                     embed = self.embed(f"Command search · {len(matches)} match(es)", "I couldn't find an exact match. Closest commands:\n\n" + "\n".join(lines), discord.Color.blurple())
                 else:
                     embed = self.embed("No matching command", f"No command or alias matches **{command_name}**. Try a shorter keyword, or use `{ctx.clean_prefix}help` to browse.", discord.Color.orange())
@@ -172,7 +233,7 @@ class General(commands.Cog):
                 return
             suffix = f" {exact.signature}" if exact.signature else ""
             usage = f"`{ctx.clean_prefix}{exact.qualified_name}{suffix}`"
-            description = exact.help or exact.short_doc or "This command does not have a detailed description yet."
+            description = command_description(exact)
             embed = self.embed(f"{CUSTOM_EMOJIS['help']}  COMMAND · {exact.qualified_name}", description)
             embed.add_field(name="EXACT USAGE", value=usage, inline=False)
             if exact.aliases:
