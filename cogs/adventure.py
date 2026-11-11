@@ -1051,14 +1051,16 @@ class Adventure(commands.Cog):
       xp_reward=b[3]+r["damage"].get(player_id,0)//4
       sr["xp"]+=xp_reward; sr["points"]+=1; sr["wins"]+=1
       got.extend([f"XP x{symbolic_quantity(xp_reward)}",f"Skill Points x{symbolic_quantity(1)}",f"Victories x{symbolic_quantity(1)}"])
-      for item,limits in b[4].items():
+      if b[4] and random.random()<0.40:
+       item,limits=random.choice(list(b[4].items()))
        amount=random.randint(*limits); sr["inventory"][item]=sr["inventory"].get(item,0)+amount
        got.append(f"{ITEMS.get(item,item)} x{symbolic_quantity(amount)}")
      else:
       q["xp"]+=b[3]*swarm_multiplier+r["damage"].get(player_id,0)//4; q["points"]+=swarm_multiplier; old_wins=q.get("wins",0); q["wins"]+=swarm_multiplier
       q["clan_rolls"]=q.get("clan_rolls",1)+(q["wins"]//5-old_wins//5)
       apply_level_ups(q)
-      for item,limits in b[4].items():
+      if b[4] and random.random()<0.40:
+       item,limits=random.choice(list(b[4].items()))
        amount=random.randint(*limits)*swarm_multiplier
        self.item(q,item,amount); got.append(f"{ITEMS.get(item,item)} x{display_number(amount)}")
      chest_tier=roll_boss_chest(r["boss"]); chest_key=f"{chest_tier}_chest"
@@ -1068,10 +1070,12 @@ class Adventure(commands.Cog):
       gold_gain=max(30,b[1]//8)
       q["gold"]=q.get("gold",0)+gold_gain
       got.append(f"🪙 {gold_gain:,} Gold")
-      for rare_key,chance in BOSS_RARE_DROPS.get(r["boss"],[]):
-       if random.random()<chance:
-        sr["inventory"][rare_key]=sr["inventory"].get(rare_key,0)+1
-        got.append(f"{ITEM_ICONS.get(rare_key,'📦')} {ITEMS.get(rare_key,rare_key)} x{symbolic_quantity(1)}")
+      rare_pool=BOSS_RARE_DROPS.get(r["boss"],[])
+      rare_total=sum(chance for _,chance in rare_pool)
+      if rare_pool and random.random()<rare_total:
+       rare_key=random.choices([key for key,_ in rare_pool],weights=[chance for _,chance in rare_pool],k=1)[0]
+       sr["inventory"][rare_key]=sr["inventory"].get(rare_key,0)+1
+       got.append(f"{ITEMS.get(rare_key,rare_key)} x{symbolic_quantity(1)} · RARE")
      else:
       self.item(q,chest_key,swarm_multiplier)
       got.append(f"{CHEST_TIERS[chest_tier]['icon']} {CHEST_TIERS[chest_tier]['name']} x{display_number(swarm_multiplier)}")
@@ -1082,28 +1086,34 @@ class Adventure(commands.Cog):
        gem_gain=random.randint(1,2)*swarm_multiplier
        q["gems"]=q.get("gems",0)+gem_gain
        got.append(f"💎 {display_number(gem_gain)} Gems")
-      for rare_key,chance in BOSS_RARE_DROPS.get(r["boss"],[]):
-       if random.random()<chance:
-        self.item(q,rare_key,swarm_multiplier)
-        got.append(f"{ITEM_ICONS.get(rare_key,'📦')} {ITEMS.get(rare_key,rare_key)} x{display_number(swarm_multiplier)}")
-     if random.random()<0.08:
+      rare_pool=BOSS_RARE_DROPS.get(r["boss"],[])
+      rare_total=sum(chance for _,chance in rare_pool)
+      if rare_pool and random.random()<rare_total:
+       rare_key=random.choices([key for key,_ in rare_pool],weights=[chance for _,chance in rare_pool],k=1)[0]
+       self.item(q,rare_key,swarm_multiplier)
+       got.append(f"{ITEMS.get(rare_key,rare_key)} x{display_number(swarm_multiplier)} · RARE")
+     if random.random()<0.02:
       if symbolic_swarm:
        sr=q["symbolic_rewards"]; sr["inventory"]["phoenix_feather"]=sr["inventory"].get("phoenix_feather",0)+1
        got.append(f"Phoenix Feather x{symbolic_quantity(1)}")
       else:
        self.item(q,"phoenix_feather",1); got.append("Phoenix Feather x1")
-     if random.random()<0.10:
+     if random.random()<0.01:
       if symbolic_swarm:
        sr=q["symbolic_rewards"]; sr["inventory"]["mythic_token"]=sr["inventory"].get("mythic_token",0)+1
        got.append(f"Mythic Token x{symbolic_quantity(1)}")
       else:
        amount=swarm_multiplier
        self.item(q,"mythic_token",amount); got.append(f"Mythic Token x{display_number(amount)}")
-     drops.append(f"<@{player_id}>: {', '.join(got) if got else 'no bonus drops'}")
+     drops.append((f"<@{player_id}>", got))
      if g:
       self.bot.dispatch("guild_activity", int(g), int(player_id), 25)
     self.data["raids"].pop(g,None); self.flush()
-    await ctx.reply(embed=self.embed(f"RAID CLEARED / {swarm_label(swarm_count)}x {b[0].upper()}",f"Defeated {swarm_label(swarm_count)} bosses. Rewards are multiplied by the selected swarm count.\n\n"+ "\n".join(drops)[:3800],discord.Color.green()),mention_author=False); return
+    e=self.embed(f"{CUSTOM_EMOJIS['confirm']}  RAID CLEARED · {b[0].upper()}",f"**{swarm_label(swarm_count)}** boss clear complete. Base rewards and eligible loot have been granted.\n\n{CUSTOM_EMOJIS['reward']} Rewards are scaled by the selected swarm count.",discord.Color.green())
+    for player_mention,player_drops in drops:
+     reward_text="\n".join(f"• {entry}" for entry in player_drops) if player_drops else "No bonus material drops this time."
+     e.add_field(name=f"{CUSTOM_EMOJIS['guild']}  {player_mention}",value=reward_text[:1024],inline=False)
+    await ctx.reply(embed=e,mention_author=False); return
    boss_hits=random.random() < {1:0.42,2:0.48,3:0.54,4:0.60}[phase]
    phase_multiplier={1:1.0,2:1.10,3:1.20,4:1.30}[phase]
    incoming=int(random.randint(*b[2])*phase_multiplier*r.get("damage_scale",1.0)) if boss_hits else 0
