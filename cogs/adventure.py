@@ -573,8 +573,6 @@ class LeaderboardView(discord.ui.View):
   lines=[]
   for rank,(uid,profile) in enumerate(self.entries[start:start+self.page_size],start+1):
    xp=display_number(profile.get("xp",0))
-   symbolic=profile.get("symbolic_rewards",{}).get("xp",0)
-   if symbolic: xp+=f" + {symbolic_quantity(symbolic)} symbolic"
    ascension=max(0,min(25,int(profile.get("ascension",0))))
    lines.append(f"**{rank}.** <@{uid}> · Level {display_number(profile.get('level',1))} · {xp} XP · Ascension {ascension}")
   embed=self.cog.embed(f"PLAYER LEADERBOARD · {self.page+1}/{pages}","\n".join(lines) or "No players yet.")
@@ -827,12 +825,10 @@ class Adventure(commands.Cog):
  @commands.is_owner()
  async def summon(self,ctx,key:str,count:str):
   key=key.lower().strip().replace(" ","_")
-  raw_count=count.lower().replace(",","").strip()
-  if raw_count == "googolplex": count="googolplex"
-  else:
-   try: count=int(raw_count)
-   except ValueError:
-    await ctx.reply(embed=self.embed("INVALID COUNT","Use a whole number or the word googolplex."),mention_author=False); return
+  raw_count=count.replace(",","").strip()
+  try: count=int(raw_count)
+  except ValueError:
+   await ctx.reply(embed=self.embed("INVALID COUNT","Use a positive whole number for the boss count."),mention_author=False); return
   if key not in BOSSES:
    await ctx.reply(embed=self.embed("UNKNOWN TARGET","Use ,bosses to view available bosses."),mention_author=False); return
   if count < 1:
