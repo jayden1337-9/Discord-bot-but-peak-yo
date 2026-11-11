@@ -1,6 +1,6 @@
 import unittest
 
-from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, BOSS_RARE_DROPS, BOSS_DIMENSIONS, CHEST_TIERS, CHEST_LOOT, JJK_BOSSES, JJK_NO_CURSED_ENERGY, active_attack_mode, apply_level_ups, mastery_tier, raid_phase, symbolic_quantity, swarm_label, boss_chest_weights
+from cogs.adventure import DIMENSIONS, SKILL_TREE, SKILL_CATEGORIES, WEAPON_CATEGORIES, WEAPON_RECIPES, BOSSES, CLANS, PETS, BOSS_KEY_POOLS, ITEM_RECIPES, ITEMS, DEFAULT, BOSS_RARE_DROPS, BOSS_DIMENSIONS, CHEST_TIERS, CHEST_LOOT, JJK_BOSSES, JJK_NO_CURSED_ENERGY, active_attack_mode, apply_level_ups, mastery_tier, raid_phase, boss_chest_weights
 from cogs.endgame import GEAR, TOWER_BOSSES, Endgame
 from cogs.progression import Progression, TITLE_RULES, utc_day
 from cogs.render_ui import inventory_image, gear_image
@@ -28,34 +28,26 @@ class GameSystemTests(unittest.TestCase):
         self.assertEqual(raid_phase(25, 100), 4)
         self.assertEqual(raid_phase(0, 100), 4)
 
-    def test_symbolic_googolplex_label_is_exact(self):
-        self.assertEqual(swarm_label("googolplex"), "10^(10^100) (googolplex)")
-        self.assertEqual(symbolic_quantity(1), "10^(10^100)")
-        self.assertEqual(symbolic_quantity(3), "3 × 10^(10^100)")
-
     def test_character_mastery_tiers(self):
         self.assertEqual(mastery_tier(0), 0)
         self.assertEqual(mastery_tier(1000), 1)
         self.assertEqual(mastery_tier(5000), 2)
         self.assertEqual(mastery_tier(20000), 3)
 
-    def test_symbolic_rewards_unlock_high_tier_titles(self):
-        profile = {"wins": 0, "damage": 0, "race": "human", "symbolic_rewards": {"wins": 1, "damage": 1}}
+    def test_finite_progress_unlocks_high_tier_titles(self):
+        profile = {"wins": 100, "damage": 100000, "race": "human"}
         self.assertTrue(TITLE_RULES["conqueror"][2](profile))
         self.assertTrue(TITLE_RULES["calamity"][2](profile))
 
-    def test_symbolic_swarm_completes_daily_damage_contract(self):
+    def test_finite_damage_completes_daily_damage_contract(self):
         profile = {
             "wins": 0,
-            "damage": 0,
-            "symbolic_rewards": {"wins": 0, "damage": 1},
+            "damage": 1000,
             "quests": {
                 "daily_period": utc_day(),
                 "daily_claimed": False,
                 "daily_baseline_wins": 0,
                 "daily_baseline_damage": 0,
-                "daily_baseline_symbolic_wins": 0,
-                "daily_baseline_symbolic_damage": 0,
                 "daily_objective": "damage",
             },
         }
@@ -162,14 +154,8 @@ class GameSystemTests(unittest.TestCase):
         self.assertEqual(tenth["hp"], 65000)
         self.assertGreater(tenth["damage"][1], first["damage"][1])
 
-    def test_pillow_inventory_image_renders_huge_and_symbolic_stacks(self):
-        profile = {
-            "inventory": {"cursed_ash": 12, "dragon_scale": 10 ** 1991},
-            "symbolic_rewards": {
-                "inventory": {"void_ore": 2},
-                "inventory_spent": {"void_ore": 1},
-            },
-        }
+    def test_pillow_inventory_image_renders_large_finite_stacks(self):
+        profile = {"inventory": {"cursed_ash": 12, "dragon_scale": 10 ** 1991, "void_ore": 2}}
         image_file = inventory_image(profile, {"cursed_ash": "Cursed Ash", "dragon_scale": "Dragon Scale", "void_ore": "Void Ore"})
         image = Image.open(image_file)
         self.assertEqual(image.format, "PNG")
