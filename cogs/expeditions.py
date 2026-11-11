@@ -2,6 +2,7 @@ import random
 from datetime import datetime, timedelta, timezone
 
 import discord
+from main import render_embed
 from discord.ext import commands
 
 from core.locking import serialized
@@ -76,10 +77,10 @@ class Expeditions(commands.Cog):
         return self.bot.get_cog("Adventure")
 
     def embed(self, title, description="", color=None):
-        return discord.Embed(
+        return render_embed(discord.Embed(
             title=title, description=description,
             color=color or discord.Color.from_rgb(35, 45, 64),
-        )
+        ))
 
     def profile(self, ctx):
         game = self.services()
